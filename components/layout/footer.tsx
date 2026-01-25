@@ -89,8 +89,8 @@ export function Footer() {
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                <a href="mailto:support@marketplace.example.com" className="hover:text-white transition">
-                  support@marketplace.com
+                <a href="mailto:support@marketplace.satmz.com" className="hover:text-white transition">
+                  support@marketplace.satmz.com
                 </a>
               </li>
               <li className="flex items-center gap-2">
@@ -101,13 +101,13 @@ export function Footer() {
               </li>
             </ul>
             <div className="flex gap-4 mt-4">
-              <a href="#" className="hover:text-white transition">
+              <a href="https://facebook.com/b2bmarketplace" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="#" className="hover:text-white transition">
+              <a href="https://twitter.com/b2bmarketplace" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
                 <Twitter className="h-5 w-5" />
               </a>
-              <a href="#" className="hover:text-white transition">
+              <a href="https://linkedin.com/company/b2bmarketplace" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
                 <Linkedin className="h-5 w-5" />
               </a>
             </div>

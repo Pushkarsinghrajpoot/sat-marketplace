@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 import { Network, Cloud, Shield, Database, Key, Server, Briefcase, GraduationCap } from 'lucide-react';
 import type { Category } from '@/lib/types';
 
@@ -12,11 +14,21 @@ const categoryIcons: { [key: string]: any } = {
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     const cats = JSON.parse(localStorage.getItem('categories') || '[]');
     setCategories(cats);
+    setFilteredCategories(cats);
   }, []);
+
+  useEffect(() => {
+    const filtered = categories.filter(category =>
+      category.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredCategories(filtered);
+  }, [searchQuery, categories]);
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -25,8 +37,21 @@ export default function CategoriesPage() {
         <p className="text-lg text-gray-600">Explore our comprehensive range of B2B technology solutions</p>
       </div>
 
+      <div className="mb-8">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            type="search"
+            placeholder="Search categories..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {categories.map((category) => {
+        {filteredCategories.map((category) => {
           const Icon = categoryIcons[category.icon] || Network;
           return (
             <Link key={category.id} href={`/categories/${category.slug}`}>

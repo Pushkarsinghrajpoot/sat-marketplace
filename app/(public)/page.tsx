@@ -17,6 +17,7 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [distributors, setDistributors] = useState<Organization[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const cats = JSON.parse(localStorage.getItem('categories') || '[]');
@@ -27,6 +28,12 @@ export default function HomePage() {
     setFeaturedProducts(prods.filter((p: Product) => p.featured).slice(0, 6));
     setDistributors(orgs.filter((o: Organization) => o.type === 'DISTRIBUTOR').slice(0, 4));
   }, []);
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      window.location.href = `/categories?search=${encodeURIComponent(searchQuery)}`;
+    }
+  };
 
   return (
     <div className="w-full">
@@ -47,8 +54,11 @@ export default function HomePage() {
                     type="search"
                     placeholder="Search products, services, or distributors..."
                     className="flex-1 border-0 focus-visible:ring-0"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700" onClick={handleSearch}>
                     <Search className="h-5 w-5" />
                   </Button>
                 </div>
@@ -122,6 +132,11 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
+            <p className="text-gray-600 mb-4">
+              <Link href="/how-it-works" className="text-blue-600 hover:underline">
+                Learn more about our process →
+              </Link>
+            </p>
           </div>
           <div className="max-w-4xl mx-auto">
             <div className="grid md:grid-cols-3 gap-8">
