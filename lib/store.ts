@@ -7,15 +7,19 @@ import type { User, Organization } from './types';
 interface AuthState {
   user: User | null;
   organization: Organization | null;
+  isAuthenticated: boolean;
   login: (user: User, organization?: Organization | null) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       organization: null,
+      get isAuthenticated() {
+        return !!get().user;
+      },
       login: (user: User, organization?: Organization | null) => {
         set({ user, organization: organization || null });
       },
