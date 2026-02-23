@@ -6,16 +6,16 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Tag, Lock, Star, Mail, Lock as LockIcon } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { Mail, Lock as LockIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { signInWithEmail, updateLastLogin, getUserWithOrganization } from '@/lib/auth-helpers';
+import { signInWithEmail, updateLastLogin } from '@/lib/auth-helpers';
+import { useAuthStore } from '@/lib/store';
 
-export default function LoginPage() {
+export default function LoginSupabasePage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const { login } = useAuthStore();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -42,7 +42,9 @@ export default function LoginPage() {
       await updateLastLogin(authUser.id);
 
       // Fetch user data from users table
-      const { user, organization } = await getUserWithOrganization(authUser.id);
+      const { user, organization } = await import('@/lib/auth-helpers').then(m => 
+        m.getUserWithOrganization(authUser.id)
+      );
 
       if (!user) {
         toast.error('User profile not found');
@@ -86,66 +88,39 @@ export default function LoginPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
               <span className="text-xl font-bold">B2B</span>
             </div>
-            <span className="text-xl font-semibold">Marketplace</span>
+            <span className="text-xl font-bold">Marketplace</span>
           </Link>
           
-          <h1 className="text-4xl font-bold mb-6">Welcome to the B2B Marketplace</h1>
-          <p className="text-xl text-blue-100 mb-12">
-            Connect with thousands of verified distributors and resellers
-          </p>
-
           <div className="space-y-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">Verified distributors only</h3>
-                <p className="text-blue-100">Every business is thoroughly vetted</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Tag className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">Transparent pricing</h3>
-                <p className="text-blue-100">Compare quotes side-by-side easily</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Lock className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">Deal protection</h3>
-                <p className="text-blue-100">Your customer opportunities are secure</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Star className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">Rated & reviewed</h3>
-                <p className="text-blue-100">Real ratings from real businesses</p>
-              </div>
-            </div>
+            <h1 className="text-4xl font-bold leading-tight">
+              Connect with distributors,<br />grow your business
+            </h1>
+            <p className="text-lg text-blue-100">
+              The premier B2B marketplace for IT resellers and distributors
+            </p>
           </div>
         </div>
 
-        <div className="border-t border-white/20 pt-6">
-          <p className="text-sm text-blue-100">
-            "This marketplace helped us close 30% more deals"
-          </p>
-          <p className="text-sm font-semibold mt-2">- Sarah Chen, Premier Solutions</p>
+        <div className="space-y-4 text-sm text-blue-100">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-blue-300 rounded-full" />
+            <span>Secure deal registration with verification</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-blue-300 rounded-full" />
+            <span>Real-time quote comparison</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-blue-300 rounded-full" />
+            <span>Activity tracking & scoring system</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-gray-50">
+      <div className="flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardContent className="p-8">
-            <div className="text-center mb-8">
+            <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
               <p className="text-gray-600">Sign in to your account</p>
             </div>
@@ -159,15 +134,11 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.satmz.com"
+                    placeholder="you@company.com"
                     className="pl-10"
                     disabled={loading}
-                    required
                   />
                 </div>
-                {/* <p className="text-xs text-gray-500 mt-1">
-                  Try: robert@abcresellers.satmz.com / Test123!
-                </p> */}
               </div>
 
               <div>
@@ -181,7 +152,6 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     className="pl-10"
                     disabled={loading}
-                    required
                   />
                 </div>
               </div>
@@ -189,7 +159,6 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full" 
-                size="lg"
                 disabled={loading}
               >
                 {loading ? 'Signing in...' : 'Sign In'}
@@ -198,17 +167,16 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center">
               {/* <p className="text-sm text-gray-600">
-                Test credentials in{' '}
+                Testing? Use credentials from{' '}
                 <code className="bg-gray-100 px-2 py-1 rounded text-xs">CREDENTIALS.md</code>
               </p> */}
             </div>
 
-            <p className="text-center text-sm text-gray-600 mt-6">
-              Don't have an account?{' '}
-              <Link href="/auth/register" className="text-blue-600 font-semibold hover:underline">
-                Sign up
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <Link href="/" className="text-sm text-blue-600 hover:underline flex items-center justify-center gap-2">
+                ← Back to home
               </Link>
-            </p>
+            </div>
           </CardContent>
         </Card>
       </div>

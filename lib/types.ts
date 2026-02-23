@@ -1,10 +1,18 @@
 export type OrganizationType = 'DISTRIBUTOR' | 'RESELLER' | 'OEM' | 'INDIVIDUAL';
 
-export type UserRole = 'ADMIN' | 'SALES_MANAGER' | 'PRODUCT_MANAGER' | 'SUPPORT' | 'SALES_REP' | 'PRESALES_ENGINEER' | 'ACCOUNT_MANAGER' | 'PLATFORM_ADMIN';
+export type UserRole = 'RESELLER' | 'DISTRIBUTOR' | 'END_USER' | 'PLATFORM_ADMIN';
+
+export type DealType = 'DEAL_REGISTRATION' | 'BIDDING' | 'DIRECT_QUERY';
+
+export type QuoteType = 'NORMAL' | 'BIDDING';
+
+export type ActivityType = 'MEETING' | 'DEMO' | 'BOQ_REVISION';
+
+export type DealPriority = 'NORMAL' | 'GOLD';
 
 export type ProductStatus = 'ACTIVE' | 'DRAFT' | 'OUT_OF_STOCK' | 'ARCHIVED';
 
-export type DealStatus = 'PROSPECTING' | 'REGISTERED' | 'QUOTED' | 'WON' | 'LOST';
+export type DealStatus = 'DRAFT' | 'PENDING_VERIFICATION' | 'PENDING_DECLARATION' | 'ACTIVE' | 'CONVERTED_TO_BIDDING' | 'QUOTED' | 'WON' | 'LOST';
 
 export type QuoteStatus = 'TO_SUBMIT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'WON' | 'LOST' | 'EXPIRED';
 
@@ -21,7 +29,11 @@ export interface User {
   avatar?: string;
   organizationId?: string;
   role: UserRole;
+  phoneNumber?: string;
+  isActive: boolean;
+  lastLoginAt?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Organization {
@@ -165,9 +177,12 @@ export interface CaseStudy {
 
 export interface Deal {
   id: string;
+  dealType: DealType;
   resellerId: string;
+  resellerOrganizationId: string;
   customerEmail: string;
   customerName: string;
+  customerCompany: string;
   customerContact: string;
   opportunityName: string;
   estimatedValue: number;
@@ -175,9 +190,23 @@ export interface Deal {
   status: DealStatus;
   products: string[];
   services: string[];
+  priority: DealPriority;
+  score: number;
+  isLocked: boolean;
+  lockedBy?: string;
   lockedAt?: string;
+  isVerified: boolean;
+  verificationToken?: string;
+  verifiedAt?: string;
+  declarationAccepted: boolean;
+  declarationSignature?: string;
+  declarationAcceptedAt?: string;
+  convertedToBidding: boolean;
+  convertedToBiddingAt?: string;
+  parentDealId?: string;
   engagedDistributors: string[];
   quotes: string[];
+  activities: string[];
   wonQuoteId?: string;
   notes: string;
   createdAt: string;
@@ -191,9 +220,10 @@ export interface BOQ {
   fileName: string;
   fileUrl: string;
   items: BOQItem[];
-  visibility: 'PUBLIC' | 'PRIVATE';
+  visibility: 'PROTECTED' | 'BIDDING';
   distributorsInvited: string[];
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface BOQItem {
@@ -204,12 +234,58 @@ export interface BOQItem {
   specifications?: string;
 }
 
+export interface DealActivity {
+  id: string;
+  dealId: string;
+  resellerId: string;
+  activityType: ActivityType;
+  points: number;
+  scheduledDate?: string;
+  status: 'PENDING' | 'ACKNOWLEDGED' | 'REJECTED';
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
+  rejectionReason?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DirectQuery {
+  id: string;
+  resellerId: string;
+  resellerOrganizationId: string;
+  distributorId?: string;
+  title: string;
+  requirement: string;
+  products?: string[];
+  estimatedBudget?: number;
+  urgency: 'LOW' | 'MEDIUM' | 'HIGH';
+  status: 'OPEN' | 'RESPONDED' | 'CLOSED';
+  responses: DirectQueryResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DirectQueryResponse {
+  id: string;
+  queryId: string;
+  distributorId: string;
+  message: string;
+  quoteId?: string;
+  attachments?: string[];
+  createdAt: string;
+}
+
 export interface Quote {
   id: string;
-  boqId: string;
-  dealId: string;
+  quoteType: QuoteType;
+  boqId?: string;
+  dealId?: string;
+  queryId?: string;
   distributorId: string;
   resellerId: string;
+  recipientUserId?: string;
+  recipientRole?: UserRole;
   lineItems: QuoteLineItem[];
   subtotal: number;
   discount: number;

@@ -6,29 +6,49 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building, FileText, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { getUsers, getOrganizations, getDeals } from '@/lib/data-helpers';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalOrgs: 0,
     activeDeals: 0,
-    gmv: 15800000,
+    gmv: 0,
     pendingVerifications: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const organizations = JSON.parse(localStorage.getItem('organizations') || '[]');
-    const deals = JSON.parse(localStorage.getItem('deals') || '[]');
-    const pendingOrgs = JSON.parse(localStorage.getItem('pendingOrganizations') || '[]');
-    
-    setStats({
-      totalUsers: users.length,
-      totalOrgs: organizations.length,
-      activeDeals: deals.filter((d: any) => d.status !== 'WON' && d.status !== 'LOST').length,
-      gmv: 15800000,
-      pendingVerifications: pendingOrgs.length || 3,
-    });
+    async function fetchData() {
+      try {
+        const [users, organizations, deals] = await Promise.all([
+          getUsers(),
+          getOrganizations(),
+          getDeals(),
+        ]);
+
+        const activeDeals = deals.filter((d: any) => 
+          d.status !== 'WON' && d.status !== 'LOST' && d.status !== 'REJECTED'
+        );
+        const totalGMV = deals
+          .filter((d: any) => d.status === 'WON')
+          .reduce((sum, d) => sum + (d.deal_value || 0), 0);
+        
+        setStats({
+          totalUsers: users.length,
+          totalOrgs: organizations.length,
+          activeDeals: activeDeals.length,
+          gmv: totalGMV,
+          pendingVerifications: organizations.filter((o: any) => !o.verified).length,
+        });
+      } catch (error) {
+        console.error('Error fetching admin stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
   }, []);
   return (
     <div className="p-6 lg:p-8">

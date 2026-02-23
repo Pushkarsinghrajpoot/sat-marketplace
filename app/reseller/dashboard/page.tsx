@@ -6,67 +6,70 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Briefcase, TrendingUp, Target, Plus, ArrowRight } from 'lucide-react';
+import { DollarSign, Briefcase, TrendingUp, Target, Plus, ArrowRight, Lock, Search, Send } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { getDeals, getDirectQueries } from '@/lib/data-helpers';
+import { useAuthStore } from '@/lib/store';
 
 export default function ResellerDashboard() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries'>('registrations');
   const [stats, setStats] = useState({
     totalDeals: 0,
     totalValue: 0,
     avgDealSize: 0,
     winRate: 42.8,
+    registrations: 0,
+    bidding: 0,
+    queries: 0,
   });
 
-  const [dealsByStage, setDealsByStage] = useState({
-    prospecting: [] as any[],
-    registered: [] as any[],
-    quoted: [] as any[],
-    won: [] as any[],
-  });
+  const [dealRegistrations, setDealRegistrations] = useState<any[]>([]);
+  const [biddingDeals, setBiddingDeals] = useState<any[]>([]);
+  const [directQueries, setDirectQueries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    const deals = JSON.parse(localStorage.getItem('deals') || '[]');
-    
-    if (deals.length === 0) {
-      const sampleDeals = [
-        { id: '1', name: 'Healthcare Network Upgrade', customer: 'City Hospital', value: 125000, closeDate: '2024-03-15', status: 'PROSPECTING' },
-        { id: '2', name: 'Campus WiFi Deployment', customer: 'State University', value: 89000, closeDate: '2024-03-20', status: 'PROSPECTING' },
-        { id: '3', name: 'Data Center Modernization', customer: 'Tech Corp', value: 450000, closeDate: '2024-04-10', status: 'REGISTERED', distributors: 3 },
-        { id: '4', name: 'Security Infrastructure', customer: 'Finance Inc', value: 180000, closeDate: '2024-03-25', status: 'QUOTED', quotes: 5 },
-        { id: '5', name: 'Cloud Migration', customer: 'Retail Co', value: 95000, closeDate: '2024-02-28', status: 'WON' },
-      ];
-      localStorage.setItem('deals', JSON.stringify(sampleDeals));
-      
-      setStats({
-        totalDeals: sampleDeals.length,
-        totalValue: sampleDeals.reduce((sum, d) => sum + d.value, 0),
-        avgDealSize: sampleDeals.reduce((sum, d) => sum + d.value, 0) / sampleDeals.length,
-        winRate: 42.8,
-      });
+    async function fetchData() {
+      if (!user?.id) return;
 
-      setDealsByStage({
-        prospecting: sampleDeals.filter(d => d.status === 'PROSPECTING'),
-        registered: sampleDeals.filter(d => d.status === 'REGISTERED'),
-        quoted: sampleDeals.filter(d => d.status === 'QUOTED'),
-        won: sampleDeals.filter(d => d.status === 'WON'),
-      });
-    } else {
-      setStats({
-        totalDeals: deals.length,
-        totalValue: deals.reduce((sum: number, d: any) => sum + (d.value || 0), 0),
-        avgDealSize: deals.length > 0 ? deals.reduce((sum: number, d: any) => sum + (d.value || 0), 0) / deals.length : 0,
-        winRate: 42.8,
-      });
+      try {
+        const [deals, queries] = await Promise.all([
+          getDeals({ userId: user.id }),
+          getDirectQueries({ userId: user.id }),
+        ]);
 
-      setDealsByStage({
-        prospecting: deals.filter((d: any) => d.status === 'PROSPECTING'),
-        registered: deals.filter((d: any) => d.status === 'REGISTERED'),
-        quoted: deals.filter((d: any) => d.status === 'QUOTED'),
-        won: deals.filter((d: any) => d.status === 'WON'),
-      });
+        const registrations = deals.filter((d: any) => d.deal_type === 'DEAL_REGISTRATION');
+        const bidding = deals.filter((d: any) => d.deal_type === 'BIDDING');
+        
+        const wonDeals = deals.filter((d: any) => d.status === 'WON');
+        const totalValue = deals.reduce((sum: number, d: any) => sum + (d.deal_value || 0), 0);
+        const avgDealSize = deals.length > 0 ? totalValue / deals.length : 0;
+        const winRate = deals.length > 0 ? (wonDeals.length / deals.length) * 100 : 0;
+        
+        setStats({
+          totalDeals: deals.length,
+          totalValue,
+          avgDealSize,
+          winRate,
+          registrations: registrations.length,
+          bidding: bidding.length,
+          queries: queries.length,
+        });
+
+        setDealRegistrations(registrations);
+        setBiddingDeals(bidding);
+        setDirectQueries(queries);
+      } catch (error) {
+        console.error('Error fetching reseller data:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, []);
+
+    fetchData();
+  }, [user]);
 
   return (
     <div className="p-6 lg:p-8">
@@ -141,23 +144,65 @@ export default function ResellerDashboard() {
         </Card>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Deal Pipeline</h2>
-        <Button onClick={() => router.push('/reseller/deals/register')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Register New Deal
-        </Button>
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">My Deals & Queries</h2>
+          <Button onClick={() => router.push('/reseller/deals/register')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create New
+          </Button>
+        </div>
+
+        <div className="flex gap-2 border-b border-gray-200 mb-6">
+          <button
+            onClick={() => setActiveTab('registrations')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'registrations'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Deal Registrations
+              <Badge variant="info">{stats.registrations}</Badge>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('bidding')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'bidding'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Bidding Deals
+              <Badge variant="warning">{stats.bidding}</Badge>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('queries')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'queries'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Send className="h-4 w-4" />
+              Direct Queries
+              <Badge variant="default">{stats.queries}</Badge>
+            </div>
+          </button>
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-6">
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-700">Prospecting</h3>
-            <Badge variant="default">{dealsByStage.prospecting.length}</Badge>
-          </div>
-          <div className="space-y-3">
-            {dealsByStage.prospecting.length > 0 ? (
-              dealsByStage.prospecting.map((deal) => (
+      {activeTab === 'registrations' && (
+        <div className="space-y-4">
+          {dealRegistrations.length > 0 ? (
+            dealRegistrations.map((deal: any) => (
                 <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                   <Card className="bg-gray-50 hover:shadow-md transition-shadow cursor-pointer">
                     <CardContent className="p-4">
@@ -172,84 +217,86 @@ export default function ResellerDashboard() {
                 </Link>
               ))
             ) : (
-              <Card className="bg-gray-50">
-                <CardContent className="p-4 text-center">
-                  <p className="text-xs text-gray-500">No deals in this stage</p>
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Lock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 mb-2">No deal registrations yet</p>
+                  <p className="text-sm text-gray-500 mb-4">Create a protected deal with customer verification</p>
+                  <Button onClick={() => router.push('/reseller/deals/register')}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Register First Deal
+                  </Button>
                 </CardContent>
               </Card>
             )}
-          </div>
         </div>
+      )}
 
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-700">Registered</h3>
-            <Badge variant="info">{dealsByStage.registered.length}</Badge>
-          </div>
-          <div className="space-y-3">
-            {dealsByStage.registered.map((deal) => (
+      {activeTab === 'bidding' && (
+        <div className="space-y-4">
+          {biddingDeals.length > 0 ? (
+            biddingDeals.map((deal: any) => (
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
-                <Card className="bg-blue-50 border-blue-200 hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <h4 className="font-semibold text-sm mb-2 line-clamp-2">{deal.name}</h4>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customer}</p>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="p-6">
+                    <h4 className="font-semibold text-lg mb-2">{deal.name}</h4>
+                    <p className="text-sm text-gray-600 mb-3">{deal.customer}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-gray-900">{formatCurrency(deal.value)}</span>
-                      <span className="text-xs text-blue-600">{deal.distributors || 0} distributors</span>
+                      <span className="text-sm font-bold text-gray-900">{formatCurrency(deal.value)}</span>
+                      <Badge variant="warning">Bidding</Badge>
                     </div>
                   </CardContent>
                 </Card>
               </Link>
-            ))}
-          </div>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Search className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600 mb-2">No bidding deals yet</p>
+                <p className="text-sm text-gray-500 mb-4">Create open bidding opportunities for quick quotes</p>
+                <Button onClick={() => router.push('/reseller/deals/register')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Bidding Deal
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
+      )}
 
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-700">Quoted</h3>
-            <Badge variant="warning">{dealsByStage.quoted.length}</Badge>
-          </div>
-          <div className="space-y-3">
-            {dealsByStage.quoted.map((deal) => (
-              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
-                <Card className="bg-purple-50 border-purple-200 hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <h4 className="font-semibold text-sm mb-2 line-clamp-2">{deal.name}</h4>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customer}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-gray-900">{formatCurrency(deal.value)}</span>
-                      <span className="text-xs text-purple-600">{deal.quotes || 0} quotes</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+      {activeTab === 'queries' && (
+        <div className="space-y-4">
+          {directQueries.length > 0 ? (
+            directQueries.map((query: any) => (
+              <Card key={query.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <h4 className="font-semibold text-lg mb-2">{query.title}</h4>
+                  <p className="text-sm text-gray-600 mb-3">{query.requirement}</p>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="info">{query.status}</Badge>
+                    <span className="text-sm text-gray-500">{query.responses || 0} responses</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Send className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600 mb-2">No direct queries yet</p>
+                <p className="text-sm text-gray-500 mb-4">Send queries to distributors for quick responses</p>
+                <Link href="/reseller/queries/create">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Query
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
         </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-700">Won</h3>
-            <Badge variant="success">{dealsByStage.won.length}</Badge>
-          </div>
-          <div className="space-y-3">
-            {dealsByStage.won.map((deal) => (
-              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
-                <Card className="bg-green-50 border-green-200 hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <h4 className="font-semibold text-sm mb-2 line-clamp-2">{deal.name}</h4>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customer}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-green-700">{formatCurrency(deal.value)}</span>
-                      <Badge variant="success" className="text-xs">Closed</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
 
       <Card className="mt-8">
         <CardContent className="p-6">

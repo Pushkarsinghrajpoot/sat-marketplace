@@ -6,16 +6,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Search, Send } from 'lucide-react';
+import { CheckCircle, Search, Send, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
-const steps = ['Customer Info', 'Deal Details', 'Declaration', 'Distributors'];
+const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Declaration'];
 
 export default function RegisterDealPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
+  const [dealType, setDealType] = useState<'DEAL_REGISTRATION' | 'BIDDING' | 'DIRECT_QUERY' | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
+  const [signature, setSignature] = useState('');
   const [formData, setFormData] = useState({
     customerName: '',
+    customerCompany: '',
     customerContact: '',
     customerEmail: '',
     opportunityName: '',
@@ -41,8 +47,42 @@ export default function RegisterDealPage() {
     }
   };
 
+  const handleSendVerification = () => {
+    if (!formData.customerEmail) {
+      toast.error('Please enter customer email');
+      return;
+    }
+    setVerificationSent(true);
+    toast.success('Verification email sent to ' + formData.customerEmail);
+  };
+
+  const handleVerifyCode = () => {
+    if (verificationCode.length === 6) {
+      setIsVerified(true);
+      toast.success('Email verified successfully!');
+      setCurrentStep(currentStep + 1);
+    } else {
+      toast.error('Please enter valid 6-digit code');
+    }
+  };
+
   const handleSubmit = () => {
-    toast.success('Deal registered successfully!');
+    if (!dealType) {
+      toast.error('Please select a deal type');
+      return;
+    }
+    
+    const dealData = {
+      ...formData,
+      dealType,
+      signature,
+      isVerified,
+      status: 'ACTIVE',
+      isLocked: true,
+    };
+    
+    localStorage.setItem('newDeal', JSON.stringify(dealData));
+    toast.success('Deal registered and locked successfully!');
     router.push('/reseller/deals');
   };
 
@@ -79,65 +119,165 @@ export default function RegisterDealPage() {
 
         <Card>
           <CardContent className="p-8">
-            {/* Step 1: Customer Information */}
+            {/* Step 0: Deal Type Selection */}
             {currentStep === 0 && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
+                  <CardTitle>Select Deal Type</CardTitle>
+                  <p className="text-sm text-gray-600">Choose the type of deal you want to create</p>
+                </CardHeader>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <Card 
+                    className={`cursor-pointer transition-all ${dealType === 'DEAL_REGISTRATION' ? 'border-blue-500 bg-blue-50' : 'hover:border-gray-400'}`}
+                    onClick={() => setDealType('DEAL_REGISTRATION')}
+                  >
+                    <CardContent className="p-6">
+                      <Lock className="h-8 w-8 text-blue-600 mb-3" />
+                      <h3 className="font-semibold mb-2">Deal Registration</h3>
+                      <p className="text-xs text-gray-600 mb-3">
+                        Protect your customer opportunity with verification and locking
+                      </p>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        <li>• Customer verification required</li>
+                        <li>• Deal locking & protection</li>
+                        <li>• Activity tracking & scoring</li>
+                        <li>• Convert to bidding option</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className={`cursor-pointer transition-all ${dealType === 'BIDDING' ? 'border-blue-500 bg-blue-50' : 'hover:border-gray-400'}`}
+                    onClick={() => setDealType('BIDDING')}
+                  >
+                    <CardContent className="p-6">
+                      <Search className="h-8 w-8 text-purple-600 mb-3" />
+                      <h3 className="font-semibold mb-2">Open Bidding</h3>
+                      <p className="text-xs text-gray-600 mb-3">
+                        Create an open bidding opportunity for multiple distributors
+                      </p>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        <li>• No verification required</li>
+                        <li>• No deal locking</li>
+                        <li>• Multiple distributors can bid</li>
+                        <li>• Faster quote process</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className={`cursor-pointer transition-all ${dealType === 'DIRECT_QUERY' ? 'border-blue-500 bg-blue-50' : 'hover:border-gray-400'}`}
+                    onClick={() => setDealType('DIRECT_QUERY')}
+                  >
+                    <CardContent className="p-6">
+                      <Send className="h-8 w-8 text-green-600 mb-3" />
+                      <h3 className="font-semibold mb-2">Direct Query</h3>
+                      <p className="text-xs text-gray-600 mb-3">
+                        Send a direct query to specific distributors
+                      </p>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        <li>• No verification needed</li>
+                        <li>• No locking or scoring</li>
+                        <li>• Quick response</li>
+                        <li>• Simple requirement sharing</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {dealType && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-blue-900 font-semibold">
+                        {dealType === 'DEAL_REGISTRATION' && 'Deal Registration selected - Full protection with verification'}
+                        {dealType === 'BIDDING' && 'Open Bidding selected - Quick bidding process without verification'}
+                        {dealType === 'DIRECT_QUERY' && 'Direct Query selected - Simple query without verification'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Step 1: Customer Information */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <CardHeader className="px-0 pt-0">
                   <CardTitle>Customer Information</CardTitle>
-                  <p className="text-sm text-gray-600">Enter your end customer's details</p>
+                  <p className="text-sm text-gray-600">
+                    {dealType === 'DEAL_REGISTRATION' 
+                      ? "Enter your end customer's corporate email for verification" 
+                      : "Enter your end customer's details"}
+                  </p>
                 </CardHeader>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Company Name *</label>
+                    <label className="block text-sm font-medium mb-2">Customer Name *</label>
                     <Input
                       value={formData.customerName}
                       onChange={(e) => setFormData({...formData, customerName: e.target.value})}
+                      placeholder="John Doe"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Company Name *</label>
+                    <Input
+                      value={formData.customerCompany}
+                      onChange={(e) => setFormData({...formData, customerCompany: e.target.value})}
                       placeholder="XYZ Corporation"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Contact Person *</label>
+                    <label className="block text-sm font-medium mb-2">Contact Number *</label>
                     <Input
                       value={formData.customerContact}
                       onChange={(e) => setFormData({...formData, customerContact: e.target.value})}
-                      placeholder="John Doe"
+                      placeholder="+1 555 0100"
                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">Customer Email *</label>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {dealType === 'DEAL_REGISTRATION' ? 'Corporate Email *' : 'Customer Email *'}
+                    </label>
                     <Input
                       type="email"
                       value={formData.customerEmail}
                       onChange={(e) => setFormData({...formData, customerEmail: e.target.value})}
                       placeholder="john@xyzcorp.com"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      We'll send a verification code to confirm the relationship
-                    </p>
+                    {dealType === 'DEAL_REGISTRATION' && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Must be a corporate email - verification will be sent
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-sm text-blue-900 mb-1">Deal Protection</p>
-                        <p className="text-xs text-blue-800">
-                          Once registered, this deal is protected and other resellers cannot claim the same customer opportunity.
-                        </p>
+                {dealType === 'DEAL_REGISTRATION' && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Lock className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm text-blue-900 mb-1">Deal Protection & Lock</p>
+                          <p className="text-xs text-blue-800">
+                            Once verified, this deal will be locked to you. Other resellers from your company or any other company cannot lock the same customer opportunity.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 
             {/* Step 2: Deal Details */}
-            {currentStep === 1 && (
+            {currentStep === 2 && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle>Deal Details</CardTitle>
@@ -196,12 +336,109 @@ export default function RegisterDealPage() {
               </div>
             )}
 
-            {/* Step 3: Declaration */}
-            {currentStep === 2 && (
+            {/* Step 3: Verification */}
+            {currentStep === 3 && dealType === 'DEAL_REGISTRATION' && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
-                  <CardTitle>Reseller Declaration</CardTitle>
-                  <p className="text-sm text-gray-600">Confirm your relationship with the customer</p>
+                  <CardTitle>Email Verification</CardTitle>
+                  <p className="text-sm text-gray-600">Verify customer's corporate email</p>
+                </CardHeader>
+
+                {!verificationSent ? (
+                  <div className="space-y-4">
+                    <Card className="bg-yellow-50 border-yellow-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-sm text-yellow-900 mb-1">Verification Required</p>
+                            <p className="text-xs text-yellow-800">
+                              A verification code will be sent to <strong>{formData.customerEmail}</strong> to confirm the business relationship.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <div className="text-center">
+                      <Button onClick={handleSendVerification} size="lg">
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Verification Code
+                      </Button>
+                    </div>
+                  </div>
+                ) : !isVerified ? (
+                  <div className="space-y-4">
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="p-4">
+                        <p className="text-sm text-blue-900">
+                          Verification code has been sent to <strong>{formData.customerEmail}</strong>
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <div className="max-w-md mx-auto">
+                      <label className="block text-sm font-medium mb-2">Enter 6-digit verification code</label>
+                      <Input
+                        type="text"
+                        maxLength={6}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        placeholder="000000"
+                        className="text-center text-2xl tracking-widest"
+                      />
+                    </div>
+
+                    <div className="text-center">
+                      <Button onClick={handleVerifyCode} disabled={verificationCode.length !== 6}>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Verify Code
+                      </Button>
+                    </div>
+
+                    <div className="text-center">
+                      <button 
+                        onClick={handleSendVerification}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Resend verification code
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <Card className="bg-green-50 border-green-200">
+                    <CardContent className="p-6 text-center">
+                      <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-3" />
+                      <p className="font-semibold text-green-900 mb-1">Email Verified Successfully!</p>
+                      <p className="text-sm text-green-800">
+                        Customer relationship confirmed. Proceed to declaration.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Skip verification for Bidding and Direct Query */}
+            {currentStep === 3 && dealType !== 'DEAL_REGISTRATION' && (
+              <div className="space-y-6">
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-sm text-blue-900">
+                      No verification required for {dealType === 'BIDDING' ? 'Bidding' : 'Direct Query'} deals. 
+                      Click Next to continue.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Step 4: Declaration */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <CardHeader className="px-0 pt-0">
+                  <CardTitle>Declaration & E-Sign</CardTitle>
+                  <p className="text-sm text-gray-600">Accept terms and provide electronic signature</p>
                 </CardHeader>
 
                 <Card className="bg-yellow-50 border-yellow-200">
@@ -225,7 +462,7 @@ export default function RegisterDealPage() {
                     <div>
                       <p className="font-medium text-sm mb-1">I confirm my relationship with the customer</p>
                       <p className="text-xs text-gray-600">
-                        I have an active business relationship with {formData.customerName} and am authorized
+                        I have an active business relationship with {formData.customerCompany} and am authorized
                         to request quotes for this opportunity.
                       </p>
                     </div>
@@ -248,69 +485,35 @@ export default function RegisterDealPage() {
                   </div>
                 </div>
 
-                <Card className="bg-green-50 border-green-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-sm text-green-900 mb-1">Deal Lock</p>
-                        <p className="text-xs text-green-800">
-                          Once locked, this registration cannot be modified. You can proceed to select distributors
-                          and request quotes.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 4: Select Distributors */}
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <CardHeader className="px-0 pt-0">
-                  <CardTitle>Select Distributors</CardTitle>
-                  <p className="text-sm text-gray-600">Choose distributors to send engagement requests</p>
-                </CardHeader>
-
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Electronic Signature *</label>
                   <Input
-                    type="search"
-                    placeholder="Search distributors offering your products..."
-                    className="pl-10"
+                    type="text"
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    placeholder="Type your full name as signature"
+                    className="text-lg"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    By typing your name, you agree to use it as your electronic signature
+                  </p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  {['TechDist Global', 'NetSupply Corp', 'CloudFirst Distribution'].map((dist) => (
-                    <Card key={dist} className="cursor-pointer hover:border-blue-500 transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded" />
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-sm">{dist}</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="flex text-yellow-400 text-xs">★★★★★</div>
-                              <span className="text-xs text-gray-600">(4.8)</span>
-                              <CheckCircle className="h-3 w-3 text-green-600" />
-                            </div>
-                            <p className="text-xs text-gray-600 mt-1">2,450 products</p>
-                          </div>
+                {dealType === 'DEAL_REGISTRATION' && (
+                  <Card className="bg-green-50 border-green-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Lock className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm text-green-900 mb-1">Deal Will Be Locked</p>
+                          <p className="text-xs text-green-800">
+                            Once submitted, this deal will be automatically locked to you. Other resellers (including those from your company) cannot register the same customer opportunity. You'll be able to track activities and add points to increase your deal score.
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-blue-900 font-semibold mb-1">3 distributors selected</p>
-                    <p className="text-xs text-blue-800">
-                      Engagement requests will be sent to selected distributors. They can accept and provide quotes.
-                    </p>
-                  </CardContent>
-                </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 
@@ -323,11 +526,14 @@ export default function RegisterDealPage() {
               >
                 Back
               </Button>
-              <Button onClick={handleNext}>
+              <Button 
+                onClick={handleNext}
+                disabled={currentStep === 0 && !dealType}
+              >
                 {currentStep === steps.length - 1 ? (
                   <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Register & Send Requests
+                    <Lock className="h-4 w-4 mr-2" />
+                    {dealType === 'DEAL_REGISTRATION' ? 'Lock & Register Deal' : 'Submit Deal'}
                   </>
                 ) : (
                   'Next'

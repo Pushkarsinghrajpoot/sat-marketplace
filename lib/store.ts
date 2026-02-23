@@ -7,10 +7,8 @@ import type { User, Organization } from './types';
 interface AuthState {
   user: User | null;
   organization: Organization | null;
-  isAuthenticated: boolean;
-  login: (email: string) => void;
+  login: (user: User, organization?: Organization | null) => void;
   logout: () => void;
-  setOrganization: (org: Organization) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -18,18 +16,10 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       organization: null,
-      isAuthenticated: false,
-      login: (email: string) => {
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        const user = users.find((u: User) => u.email === email);
-        if (user) {
-          const orgs = JSON.parse(localStorage.getItem('organizations') || '[]');
-          const org = orgs.find((o: Organization) => o.id === user.organizationId);
-          set({ user, organization: org || null, isAuthenticated: true });
-        }
+      login: (user: User, organization?: Organization | null) => {
+        set({ user, organization: organization || null });
       },
-      logout: () => set({ user: null, organization: null, isAuthenticated: false }),
-      setOrganization: (org) => set({ organization: org }),
+      logout: () => set({ user: null, organization: null }),
     }),
     {
       name: 'auth-storage',

@@ -9,56 +9,83 @@
 ---
 
 ## 🔵 DISTRIBUTOR Accounts
-These users can manage products, create campaigns, review engagement requests, and submit quotes.
+These users can view deal registrations, bidding deals, and direct queries. They can acknowledge activities and submit quotes.
 
 ### TechDist Global (Main Distributor)
 - **Email:** `john@techdist.satmz.com`
 - **Name:** John Smith
-- **Role:** Admin
+- **Role:** Distributor
 - **Dashboard:** `/distributor/dashboard`
 - **Features:** 
+  - View Deal Registrations (with lock status and scores)
+  - View Bidding Deals
+  - View Direct Queries
+  - Acknowledge/Reject Activities
+  - Submit Quotes
   - Add/Edit Products
   - Create Campaigns
-  - Review Engagement Requests from Resellers
-  - Submit Quotes
-  - Credit Request Reviews
-
-### TechDist Global (Sales Manager)
-- **Email:** `sarah@techdist.satmz.com`
-- **Name:** Sarah Johnson
-- **Role:** Sales Manager
 
 ### NetSupply Corp
 - **Email:** `mike@netsupply.satmz.com`
 - **Name:** Mike Davis
-- **Role:** Admin
+- **Role:** Distributor
 
 ### CloudFirst Distribution
 - **Email:** `emily@cloudfirst.satmz.com`
 - **Name:** Emily Wilson
-- **Role:** Admin
+- **Role:** Distributor
 
 ---
 
 ## 🟢 RESELLER Accounts
-These users can register deals, upload BOQ, request quotes, and compare quotes.
+These users can create deal registrations, bidding deals, and direct queries. They can track activities and scores.
 
 ### ABC Resellers Inc
 - **Email:** `robert@abcresellers.satmz.com`
 - **Name:** Robert Brown
-- **Role:** Admin
+- **Role:** Reseller
 - **Dashboard:** `/reseller/dashboard`
 - **Features:**
-  - Register Deals (4-step wizard)
-  - Upload BOQ (Bill of Quantities)
-  - Request Quotes from Distributors
-  - Compare Quotes
-  - Manage Deal Pipeline
+  - Create Deal Registration (with verification & e-sign)
+  - Create Bidding Deals (no verification required)
+  - Send Direct Queries to Distributors
+  - Add Activities (Meeting, Demo, BOQ Revision)
+  - Track Deal Score (points system)
+  - Upload BOQ (Protected or Bidding)
+  - Convert Deals to Bidding
+  - View Deal Lock Status
 
 ### Premier Solutions Group
 - **Email:** `lisa@premiersolutions.satmz.com`
-- **Name:** Lisa Anderson
-- **Role:** Admin
+- **Name:** Lisa Martinez
+- **Role:** Reseller
+
+---
+
+## 👁️ END USER Accounts (View Only)
+These users have read-only access to view deals and queries from their organization.
+
+### ABC Resellers Inc (End User)
+- **Email:** `enduser@abcresellers.satmz.com`
+- **Name:** End User Demo
+- **Role:** End User (View Only)
+- **Dashboard:** `/end-user/dashboard`
+- **Features:**
+  - View Deal Registrations (lock status, scores, dates)
+  - View Bidding Deals
+  - View Direct Queries
+  - View Activity History
+  - **Restrictions:**
+    - Cannot create deals or queries
+    - Cannot lock deals
+    - Cannot upload BOQs
+    - Cannot perform activities
+    - Cannot acknowledge/reject
+
+### TechDist Global (End User)
+- **Email:** `sarah@techdist.satmz.com`
+- **Name:** Sarah Johnson
+- **Role:** End User (View Only)
 
 ---
 
@@ -97,18 +124,38 @@ Platform administrator with access to all management features.
 
 ### For Resellers (Start Here):
 1. Login as: `robert@abcresellers.satmz.com`
-2. Go to "Register Deal" → Complete the 4-step wizard
-3. Go to "Upload BOQ" → Upload a sample spreadsheet
-4. View "My Deals" → See the pipeline (Prospecting → Won)
-5. Browse products and request quotes
+2. Create a **Deal Registration**:
+   - Select deal type (Deal Registration/Bidding/Direct Query)
+   - Enter customer info with corporate email
+   - Verify customer email (any 6-digit code)
+   - Accept declaration and provide e-signature
+   - Deal automatically locks to you
+3. Add **Activities** to build score:
+   - Schedule Meeting (+10 points)
+   - Request Demo (+10 points)
+   - BOQ Revision (+10 points)
+4. Create **Direct Query** for quick pricing
+5. Create **Bidding Deal** for open competition
+6. View tabs: Registrations | Bidding | Queries
 
 ### For Distributors:
 1. Login as: `john@techdist.satmz.com`
-2. Go to "Products" → Add a new product
-3. Go to "Campaigns" → Create a marketing campaign
-4. Go to "Engagements" → Review reseller engagement requests
-5. Go to "Quotes" → Submit and manage quotes
-6. Go to "Credit Requests" → Review credit applications
+2. View **Deal Registrations** tab:
+   - See locked deals with lock owner and date
+   - View deal scores (activity points)
+   - Acknowledge or reject activities
+3. View **Bidding Deals** tab:
+   - See open bidding opportunities
+   - Submit quotes
+4. View **Direct Queries** tab:
+   - Respond to reseller queries
+5. Manage products and campaigns
+
+### For End Users (View Only):
+1. Login as: `enduser@abcresellers.satmz.com`
+2. View deal registrations from your organization
+3. See lock status, scores, and activity history
+4. No creation or modification permissions
 
 ### For OEM:
 1. Login as: `david@cisco.satmz.com`
@@ -136,8 +183,37 @@ Platform administrator with access to all management features.
 ```
 Distributor: john@techdist.satmz.com
 Reseller: robert@abcresellers.satmz.com
+End User: enduser@abcresellers.satmz.com
 OEM: david@cisco.satmz.com
 Admin: admin@marketplace.satmz.com
 ```
 
 All use OTP: `123456` (or any 6 digits)
+
+---
+
+## 🆕 New Features Overview
+
+### Deal Types
+1. **Deal Registration** - Full verification with lock protection
+2. **Bidding** - Open to multiple distributors
+3. **Direct Query** - Simple inquiry without verification
+
+### Activity & Scoring System
+- Meeting: +10 points
+- Demo: +10 points
+- BOQ Revision: +10 points
+- Gold Deal: 70+ points
+- Distributors can acknowledge/reject activities
+
+### Lock Mechanism
+- First to register locks the deal
+- No one else (even from same company) can lock
+- Lock visible to distributors and end users
+- Lock owner and date displayed
+
+### Role Permissions
+- **Reseller**: Create deals, queries, activities
+- **Distributor**: View deals, acknowledge, quote
+- **End User**: View only, no actions
+- **Platform Admin**: Full platform access
