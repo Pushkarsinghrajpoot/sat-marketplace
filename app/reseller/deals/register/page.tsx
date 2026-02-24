@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Search, Send, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { createDeal } from '@/lib/data-helpers';
+import { useAuthStore } from '@/lib/store';
 
 const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Declaration'];
 
@@ -33,7 +35,61 @@ export default function RegisterDealPage() {
     agreedToTerms: false,
   });
 
+  const validateCurrentStep = () => {
+    switch (currentStep) {
+      case 0: // Deal Type
+        if (!dealType) {
+          toast.error('Please select a deal type');
+          return false;
+        }
+        return true;
+      
+      case 1: // Customer Info
+        if (!formData.customerName || !formData.customerCompany || !formData.customerEmail) {
+          toast.error('Please fill in all required customer information');
+          return false;
+        }
+        if (!formData.customerEmail.includes('@')) {
+          toast.error('Please enter a valid email address');
+          return false;
+        }
+        return true;
+      
+      case 2: // Deal Details
+        if (!formData.opportunityName || !formData.estimatedValue || !formData.closeDate) {
+          toast.error('Please fill in all required deal details');
+          return false;
+        }
+        if (parseFloat(formData.estimatedValue) <= 0) {
+          toast.error('Deal value must be greater than 0');
+          return false;
+        }
+        return true;
+      
+      case 3: // Verification
+        if (!isVerified) {
+          toast.error('Please verify customer email before proceeding');
+          return false;
+        }
+        return true;
+      
+      case 4: // Declaration
+        if (!formData.confirmedRelationship || !formData.agreedToTerms || !signature) {
+          toast.error('Please confirm all declarations and provide signature');
+          return false;
+        }
+        return true;
+      
+      default:
+        return true;
+    }
+  };
+
   const handleNext = () => {
+    if (!validateCurrentStep()) {
+      return;
+    }
+    
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -66,24 +122,44 @@ export default function RegisterDealPage() {
     }
   };
 
-  const handleSubmit = () => {
-    if (!dealType) {
-      toast.error('Please select a deal type');
+  const { user } = useAuthStore();
+
+  const handleSubmit = async () => {
+    if (!user?.id) {
+      toast.error('Please login to register a deal');
+      return;
+    }
+
+    if (!validateCurrentStep()) {
       return;
     }
     
-    const dealData = {
-      ...formData,
-      dealType,
-      signature,
-      isVerified,
-      status: 'ACTIVE',
-      isLocked: true,
-    };
-    
-    localStorage.setItem('newDeal', JSON.stringify(dealData));
-    toast.success('Deal registered and locked successfully!');
-    router.push('/reseller/deals');
+    try {
+      const dealData = {
+        deal_name: formData.opportunityName,
+        deal_type: dealType,
+        customer_name: formData.customerName,
+        customer_company: formData.customerCompany,
+        customer_email: formData.customerEmail,
+        customer_phone: formData.customerContact,
+        deal_value: parseFloat(formData.estimatedValue),
+        expected_close_date: formData.closeDate,
+        products_needed: formData.productsNeeded,
+        description: formData.notes,
+        status: 'PENDING',
+        reseller_id: user.id,
+        reseller_organization_id: user.organizationId,
+        is_verified: isVerified,
+        signature: signature,
+      };
+      
+      await createDeal(dealData);
+      toast.success('Deal registered successfully!');
+      router.push('/reseller/deals');
+    } catch (error: any) {
+      console.error('Error creating deal:', error);
+      toast.error(error.message || 'Failed to register deal');
+    }
   };
 
   return (

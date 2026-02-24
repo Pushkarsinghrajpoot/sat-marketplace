@@ -1,52 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { getCategories, createCategory, updateCategory, deleteCategory, getQualificationBands, createQualificationBand, updateQualificationBand } from '@/lib/data-helpers';
 
 export default function ConfigPage() {
-  const [categories, setCategories] = useState([
-    { id: '1', name: 'Networking & Infrastructure', status: 'Active', products: 2450 },
-    { id: '2', name: 'Cloud Services', status: 'Active', products: 1820 },
-    { id: '3', name: 'Cybersecurity', status: 'Active', products: 1560 },
-    { id: '4', name: 'Storage Solutions', status: 'Active', products: 980 },
-    { id: '5', name: 'Software Licensing', status: 'Active', products: 3200 },
-  ]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [qualificationBands, setQualificationBands] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [qualificationBands, setQualificationBands] = useState([
-    { id: '1', name: 'Bronze Partner', minRevenue: 0, maxRevenue: 100000, discount: 5 },
-    { id: '2', name: 'Silver Partner', minRevenue: 100000, maxRevenue: 500000, discount: 10 },
-    { id: '3', name: 'Gold Partner', minRevenue: 500000, maxRevenue: 2000000, discount: 15 },
-    { id: '4', name: 'Platinum Partner', minRevenue: 2000000, maxRevenue: null, discount: 25 },
-  ]);
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      const [cats, bands] = await Promise.all([
+        getCategories(),
+        getQualificationBands()
+      ]);
+      setCategories(cats);
+      setQualificationBands(bands);
+    } catch (error) {
+      console.error('Error loading config:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSaveConfig = () => {
-    localStorage.setItem('platformCategories', JSON.stringify(categories));
-    localStorage.setItem('qualificationBands', JSON.stringify(qualificationBands));
-    toast.success('Configuration saved successfully!');
+    toast.success('All changes are saved automatically!');
   };
 
-  const handleAddCategory = () => {
-    const newCategory = {
-      id: `cat-${Date.now()}`,
-      name: 'New Category',
-      status: 'Active',
-      products: 0,
-    };
-    setCategories([...categories, newCategory]);
+  const handleAddCategory = async () => {
+    try {
+      const newCategory = await createCategory({
+        name: 'New Category',
+        slug: `new-category-${Date.now()}`,
+        status: 'ACTIVE',
+        product_count: 0,
+      });
+      setCategories([...categories, newCategory]);
+      toast.success('Category added');
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error('Failed to add category');
+    }
   };
 
-  const handleDeleteCategory = (id: string) => {
-    setCategories(categories.filter(c => c.id !== id));
-    toast.success('Category deleted');
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      await deleteCategory(id);
+      setCategories(categories.filter(c => c.id !== id));
+      toast.success('Category deleted');
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category');
+    }
   };
 
-  const handleUpdateCategory = (id: string, name: string) => {
-    setCategories(categories.map(c => c.id === id ? { ...c, name } : c));
+  const handleUpdateCategory = async (id: string, name: string) => {
+    try {
+      await updateCategory(id, { name });
+      setCategories(categories.map(c => c.id === id ? { ...c, name } : c));
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast.error('Failed to update category');
+    }
+  };
+
+  const handleAddBand = async () => {
+    try {
+      const newBand = await createQualificationBand({
+        name: 'New Band',
+        min_revenue: 0,
+        max_revenue: 50000,
+        discount_percentage: 0,
+        status: 'ACTIVE',
+      });
+      setQualificationBands([...qualificationBands, newBand]);
+      toast.success('Qualification band added');
+    } catch (error) {
+      console.error('Error adding band:', error);
+      toast.error('Failed to add band');
+    }
   };
 
   return (

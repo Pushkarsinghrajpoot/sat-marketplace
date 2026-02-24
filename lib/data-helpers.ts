@@ -229,3 +229,184 @@ export async function updateQuote(quoteId: string, updates: any) {
 
   return data;
 }
+
+// Product Management
+export async function getProducts(filters?: { distributorId?: string; category?: string; status?: string }) {
+  let query = supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (filters?.distributorId) {
+    query = query.eq('distributor_id', filters.distributorId);
+  }
+
+  if (filters?.category) {
+    query = query.eq('category', filters.category);
+  }
+
+  if (filters?.status) {
+    query = query.eq('status', filters.status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching products:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function createProduct(productData: any) {
+  const { data, error } = await supabase
+    .from('products')
+    .insert([productData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating product:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updateProduct(productId: string, updates: any) {
+  const { data, error } = await supabase
+    .from('products')
+    .update(updates)
+    .eq('id', productId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating product:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+// Organization Management
+export async function updateOrganization(orgId: string, updates: any) {
+  const { data, error } = await supabase
+    .from('organizations')
+    .update(updates)
+    .eq('id', orgId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating organization:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+// Configuration Management
+export async function getCategories() {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function createCategory(categoryData: any) {
+  const { data, error } = await supabase
+    .from('categories')
+    .insert([categoryData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating category:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updateCategory(categoryId: string, updates: any) {
+  const { data, error } = await supabase
+    .from('categories')
+    .update(updates)
+    .eq('id', categoryId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating category:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deleteCategory(categoryId: string) {
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', categoryId);
+
+  if (error) {
+    console.error('Error deleting category:', error);
+    throw error;
+  }
+}
+
+export async function getQualificationBands() {
+  const { data, error } = await supabase
+    .from('qualification_bands')
+    .select('*')
+    .order('min_revenue', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching qualification bands:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function createQualificationBand(bandData: any) {
+  const { data, error } = await supabase
+    .from('qualification_bands')
+    .insert([bandData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating qualification band:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updateQualificationBand(bandId: string, updates: any) {
+  const { data, error } = await supabase
+    .from('qualification_bands')
+    .update(updates)
+    .eq('id', bandId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating qualification band:', error);
+    throw error;
+  }
+
+  return data;
+}

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, CheckCircle, X, Eye, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { getOrganizations, updateOrganization } from '@/lib/data-helpers';
 
 export default function OrganizationsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
@@ -18,50 +19,50 @@ export default function OrganizationsPage() {
     loadOrganizations();
   }, []);
 
-  const loadOrganizations = () => {
-    const storedOrgs = JSON.parse(localStorage.getItem('organizations') || '[]');
-    const pendingOrgs = [
-      { id: 'p1', name: 'NewTech Solutions', type: 'DISTRIBUTOR', status: 'PENDING', submittedAt: '2024-01-23', documents: 2 },
-      { id: 'p2', name: 'Global Resale Corp', type: 'RESELLER', status: 'PENDING', submittedAt: '2024-01-24', documents: 3 },
-      { id: 'p3', name: 'Future Tech Distribution', type: 'DISTRIBUTOR', status: 'PENDING', submittedAt: '2024-01-25', documents: 3 },
-    ];
-    
-    const verifiedOrgs = storedOrgs.map((org: any) => ({
-      id: org.id,
-      name: org.name,
-      type: org.type,
-      status: 'VERIFIED',
-      submittedAt: '2023-01-15',
-      documents: 3,
-    }));
-
-    setOrganizations([...pendingOrgs, ...verifiedOrgs]);
+  const loadOrganizations = async () => {
+    try {
+      const orgs = await getOrganizations();
+      setOrganizations(orgs);
+    } catch (error) {
+      console.error('Error loading organizations:', error);
+    }
   };
 
-  const handleApprove = (orgId: string, orgName: string) => {
-    setOrganizations(orgs => 
-      orgs.map(org => 
-        org.id === orgId ? { ...org, status: 'VERIFIED' } : org
-      )
-    );
-    toast.success(`${orgName} has been approved!`);
+  const handleApprove = async (orgId: string, orgName: string) => {
+    try {
+      await updateOrganization(orgId, { verified: true });
+      setOrganizations(orgs => 
+        orgs.map(org => 
+          org.id === orgId ? { ...org, verified: true } : org
+        )
+      );
+      toast.success(`${orgName} has been approved!`);
+    } catch (error) {
+      console.error('Error approving organization:', error);
+      toast.error('Failed to approve organization');
+    }
   };
 
-  const handleReject = (orgId: string, orgName: string) => {
-    setOrganizations(orgs => 
-      orgs.map(org => 
-        org.id === orgId ? { ...org, status: 'REJECTED' } : org
-      )
-    );
-    toast.error(`${orgName} has been rejected`);
+  const handleReject = async (orgId: string, orgName: string) => {
+    try {
+      await updateOrganization(orgId, { verified: false });
+      setOrganizations(orgs => 
+        orgs.map(org => 
+          org.id === orgId ? { ...org, verified: false } : org
+        )
+      );
+      toast.info(`${orgName} has been rejected`);
+    } catch (error) {
+      console.error('Error rejecting organization:', error);
+      toast.error('Failed to reject organization');
+    }
   };
 
   const filteredOrganizations = organizations.filter(org => {
-    const matchesSearch = org.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = org.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'pending' && org.status === 'PENDING') ||
-                         (statusFilter === 'verified' && org.status === 'VERIFIED') ||
-                         (statusFilter === 'rejected' && org.status === 'REJECTED');
+                         (statusFilter === 'pending' && !org.verified) ||
+                         (statusFilter === 'verified' && org.verified === true);
     return matchesSearch && matchesStatus;
   });
 

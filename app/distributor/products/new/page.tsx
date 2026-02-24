@@ -8,13 +8,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Minus, Upload, X } from 'lucide-react';
-import { generateId } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
+import { createProduct } from '@/lib/data-helpers';
 
 export default function AddProductPage() {
   const router = useRouter();
-  const { organization } = useAuthStore();
+  const { user, organization } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -47,35 +49,74 @@ export default function AddProductPage() {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    // For now, create data URLs for preview
+    // In production, upload to Supabase Storage or S3
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    toast.success(`${files.length} image(s) uploaded`);
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (isDraft: boolean = false) => {
+    if (!user?.id) {
+      toast.error('Please login to create products');
+      return;
+    }
+
     if (!formData.name || !formData.sku || !formData.category || !formData.price) {
       toast.error('Please fill all required fields');
       return;
     }
 
-    const products = JSON.parse(localStorage.getItem('products') || '[]');
-    const newProduct = {
-      id: generateId(),
-      organizationId: organization?.id,
-      ...formData,
-      price: Number(formData.price),
-      inventory: Number(formData.inventory),
-      currency: 'USD',
-      images: [],
-      videos: [],
-      documents: [],
-      status: 'ACTIVE',
-      views: 0,
-      tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    setLoading(true);
 
-    products.push(newProduct);
-    localStorage.setItem('products', JSON.stringify(products));
-    
-    toast.success('Product added successfully!');
-    router.push('/distributor/products');
+    try {
+      const productData = {
+        name: formData.name,
+        sku: formData.sku,
+        category: formData.category,
+        brand: formData.brand,
+        description: formData.description,
+        short_description: formData.shortDescription,
+        price: Number(formData.price),
+        currency: 'USD',
+        inventory_count: Number(formData.inventory),
+        low_stock_threshold: Number(formData.lowStockThreshold),
+        availability: formData.availability,
+        lead_time: formData.leadTime,
+        images: uploadedImages,
+        specifications: formData.specifications,
+        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+        featured: formData.featured,
+        status: isDraft ? 'DRAFT' : 'ACTIVE',
+        distributor_id: user.id,
+        distributor_organization_id: user.organizationId,
+        views: 0,
+      };
+
+      await createProduct(productData);
+      
+      toast.success(isDraft ? 'Product saved as draft!' : 'Product published successfully!');
+      router.push('/distributor/products');
+    } catch (error: any) {
+      console.error('Error creating product:', error);
+      toast.error(error.message || 'Failed to create product');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,9 +128,13 @@ export default function AddProductPage() {
             <p className="text-gray-600">Create a new product listing</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
-            <Button variant="outline">Save as Draft</Button>
-            <Button onClick={handleSubmit}>Publish Product</Button>
+            <Button variant="outline" onClick={() => router.back()} disabled={loading}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleSubmit(true)} disabled={loading}>
+              {loading ? 'Saving...' : 'Save as Draft'}
+            </Button>
+            <Button onClick={() => handleSubmit(false)} disabled={loading}>
+              {loading ? 'Publishing...' : 'Publish Product'}
+            </Button>
           </div>
         </div>
 
@@ -355,10 +400,41 @@ export default function AddProductPage() {
                 <CardTitle>Images & Media</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Drag & drop product images</p>
-                  <p className="text-sm text-gray-500">or click to browse (max 10 images)</p>
+                <div className="space-y-4">
+                  <label className="block">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 cursor-pointer transition-colors">
+                      <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">Click to upload product images</p>
+                      <p className="text-sm text-gray-500">PNG, JPG up to 10MB (max 10 images)</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {uploadedImages.length > 0 && (
+                    <div className="grid grid-cols-4 gap-4">
+                      {uploadedImages.map((image, idx) => (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={image}
+                            alt={`Product ${idx + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border"
+                          />
+                          <button
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

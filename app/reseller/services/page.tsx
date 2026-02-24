@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Star, DollarSign } from 'lucide-react';
+import { Plus, Search, Star, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ServicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,7 +51,7 @@ export default function ServicesPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Services</h1>
           <p className="text-gray-600">Manage your service offerings</p>
         </div>
-        <Button>
+        <Button onClick={() => toast.info('Add service feature coming soon!')}>
           <Plus className="h-4 w-4 mr-2" />
           Add Service
         </Button>
@@ -101,9 +102,15 @@ export default function ServicesPage() {
                   <span className="font-semibold text-gray-900">{service.pricing}</span>
                 </div>
 
-                <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1">Edit</Button>
-                  <Button size="sm" variant="outline" className="flex-1">View</Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => toast.info('Service details coming soon!')}>View Details</Button>
+                  <Button size="sm" onClick={() => toast.info('Quote request coming soon!')}>Request Quote</Button>
+                  <Button variant="ghost" size="sm" onClick={() => toast.info('Edit service coming soon!')}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => toast.info('Delete service coming soon!')}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </CardContent>

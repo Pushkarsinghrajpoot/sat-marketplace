@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,14 +8,34 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { getDeals, createDealActivity } from '@/lib/data-helpers';
+import { useAuthStore } from '@/lib/store';
 
 export default function BOQUploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [dealId, setDealId] = useState('');
+  const [deals, setDeals] = useState<any[]>([]);
   const [visibility, setVisibility] = useState('PUBLIC');
   const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
   const [parsed, setParsed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    async function fetchDeals() {
+      if (!user?.id) return;
+      
+      try {
+        const data = await getDeals({ userId: user.id });
+        setDeals(data.filter(d => d.status === 'ACTIVE' || d.status === 'PENDING'));
+      } catch (error) {
+        console.error('Error fetching deals:', error);
+      }
+    }
+
+    fetchDeals();
+  }, [user]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -27,13 +47,38 @@ export default function BOQUploadPage() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!file || !dealId) {
       toast.error('Please upload a file and select a deal');
       return;
     }
-    toast.success('BOQ uploaded successfully!');
-    router.push('/reseller/deals');
+
+    setLoading(true);
+
+    try {
+      // Create deal activity for BOQ upload
+      await createDealActivity({
+        deal_id: dealId,
+        user_id: user?.id,
+        activity_type: 'BOQ_REVISION',
+        description: `BOQ file uploaded: ${file.name}`,
+        metadata: {
+          file_name: file.name,
+          file_size: file.size,
+          visibility,
+          selected_distributors: selectedDistributors,
+          boq_data: mockPreviewData
+        }
+      });
+
+      toast.success('BOQ uploaded successfully! Distributors can now view and quote.');
+      router.push('/reseller/deals');
+    } catch (error) {
+      console.error('Error uploading BOQ:', error);
+      toast.error('Failed to upload BOQ');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const mockPreviewData = [
@@ -140,12 +185,14 @@ export default function BOQUploadPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Associate with Deal *</label>
+                  <label className="block text-sm font-medium mb-2">Select Deal *</label>
                   <Select value={dealId} onChange={(e) => setDealId(e.target.value)}>
                     <option value="">Select a deal</option>
-                    <option value="deal1">Enterprise Network Upgrade - XYZ Corp</option>
-                    <option value="deal2">Data Center Modernization - Tech Corp</option>
-                    <option value="deal3">Security Infrastructure - Finance Inc</option>
+                    {deals.map((deal) => (
+                      <option key={deal.id} value={deal.id}>
+                        {deal.deal_name} - {deal.customer_name}
+                      </option>
+                    ))}
                   </Select>
                 </div>
 
@@ -244,14 +291,9 @@ export default function BOQUploadPage() {
                   </CardContent>
                 </Card>
 
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!file || !dealId}
-                  className="w-full"
-                  size="lg"
-                >
+                <Button onClick={handleSubmit} className="w-full" disabled={loading}>
                   <Send className="h-4 w-4 mr-2" />
-                  Submit BOQ
+                  {loading ? 'Submitting...' : 'Submit BOQ'}
                 </Button>
               </CardContent>
             </Card>

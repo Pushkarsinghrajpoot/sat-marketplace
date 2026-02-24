@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,11 +8,35 @@ import { Input } from '@/components/ui/input';
 import { Search, Star, CheckCircle, Target, Clock, Package } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getDeals, updateDeal } from '@/lib/data-helpers';
+import { useAuthStore } from '@/lib/store';
 
 export default function EngagementsPage() {
   const [activeTab, setActiveTab] = useState('pending');
-  
-  const engagements = [
+  const [searchQuery, setSearchQuery] = useState('');
+  const [engagements, setEngagements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    async function fetchEngagements() {
+      if (!user?.id) return;
+      
+      try {
+        // Fetch deals where distributor can engage
+        const deals = await getDeals({ userId: user.id });
+        setEngagements(deals);
+      } catch (error) {
+        console.error('Error fetching engagements:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEngagements();
+  }, [user]);
+
+  const sampleEngagements = [
     {
       id: '1',
       reseller: 'ABC Resellers Inc.',
@@ -53,13 +77,63 @@ export default function EngagementsPage() {
     },
   ];
 
-  const handleAccept = (id: string) => {
-    toast.success('Engagement request accepted! You can now submit a quote.');
+  const handleAccept = async (id: string) => {
+    try {
+      await updateDeal(id, { status: 'ACCEPTED' });
+      toast.success('Engagement request accepted! You can now submit a quote.');
+      
+      // Refresh engagements
+      const deals = await getDeals({ userId: user?.id });
+      setEngagements(deals);
+    } catch (error) {
+      console.error('Error accepting engagement:', error);
+      toast.error('Failed to accept engagement');
+    }
   };
 
-  const handleDecline = (id: string) => {
-    toast.info('Engagement request declined');
+  const handleDecline = async (id: string) => {
+    try {
+      await updateDeal(id, { status: 'DECLINED' });
+      toast.info('Engagement request declined');
+      
+      // Refresh engagements
+      const deals = await getDeals({ userId: user?.id });
+      setEngagements(deals);
+    } catch (error) {
+      console.error('Error declining engagement:', error);
+      toast.error('Failed to decline engagement');
+    }
   };
+
+  // Filter engagements based on search and tab
+  const filteredEngagements = (engagements.length > 0 ? engagements : sampleEngagements).filter(eng => {
+    // Search filter
+    const matchesSearch = searchQuery === '' || 
+      eng.deal?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eng.reseller?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eng.deal_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eng.customer_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Tab filter
+    const matchesTab = activeTab === 'all' || 
+      (activeTab === 'pending' && (eng.status === 'PENDING' || eng.status === 'ACTIVE')) ||
+      (activeTab === 'accepted' && eng.status === 'ACCEPTED') ||
+      (activeTab === 'declined' && (eng.status === 'DECLINED' || eng.status === 'REJECTED'));
+    
+    return matchesSearch && matchesTab;
+  });
+
+  const getCounts = () => {
+    const allDeals = engagements.length > 0 ? engagements : sampleEngagements;
+    return {
+      pending: allDeals.filter(e => e.status === 'PENDING' || e.status === 'ACTIVE').length,
+      accepted: allDeals.filter(e => e.status === 'ACCEPTED').length,
+      declined: allDeals.filter(e => e.status === 'DECLINED' || e.status === 'REJECTED').length,
+      all: allDeals.length,
+    };
+  };
+
+  const counts = getCounts();
 
   return (
     <div className="p-6 lg:p-8">
@@ -71,10 +145,10 @@ export default function EngagementsPage() {
       <div className="mb-6">
         <div className="flex gap-4 border-b border-gray-200">
           {[
-            { key: 'pending', label: 'Pending', count: 12 },
-            { key: 'accepted', label: 'Accepted', count: 45 },
-            { key: 'declined', label: 'Declined', count: 8 },
-            { key: 'all', label: 'All', count: 65 },
+            { key: 'pending', label: 'Pending', count: counts.pending },
+            { key: 'accepted', label: 'Accepted', count: counts.accepted },
+            { key: 'declined', label: 'Declined', count: counts.declined },
+            { key: 'all', label: 'All', count: counts.all },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -97,6 +171,8 @@ export default function EngagementsPage() {
           <Input
             type="search"
             placeholder="Search by reseller name or deal..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -152,7 +228,7 @@ export default function EngagementsPage() {
                   <span className="text-gray-600">{engagement.products.length} products</span>
                 </div>
                 <div className="mt-2 space-y-1">
-                  {engagement.products.slice(0, 2).map((product, idx) => (
+                  {engagement.products?.slice(0, 2).map((product: string, idx: number) => (
                     <p key={idx} className="text-xs text-gray-700">• {product}</p>
                   ))}
                   {engagement.products.length > 2 && (
