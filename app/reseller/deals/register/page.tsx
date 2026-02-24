@@ -136,21 +136,23 @@ export default function RegisterDealPage() {
     
     try {
       const dealData = {
-        deal_name: formData.opportunityName,
+        opportunity_name: formData.opportunityName,
         deal_type: dealType,
         customer_name: formData.customerName,
         customer_company: formData.customerCompany,
         customer_email: formData.customerEmail,
-        customer_phone: formData.customerContact,
-        deal_value: parseFloat(formData.estimatedValue),
-        expected_close_date: formData.closeDate,
-        products_needed: formData.productsNeeded,
-        description: formData.notes,
-        status: 'PENDING',
+        customer_contact: formData.customerContact,
+        estimated_value: parseFloat(formData.estimatedValue),
+        close_date: formData.closeDate,
+        notes: formData.notes,
+        status: 'DRAFT',
         reseller_id: user.id,
         reseller_organization_id: user.organizationId,
         is_verified: isVerified,
-        signature: signature,
+        declaration_signature: signature,
+        is_locked: true,
+        locked_by: user.id,
+        locked_at: new Date().toISOString(),
       };
       
       await createDeal(dealData);

@@ -36,7 +36,7 @@ export default function DealsPage() {
 
   const filteredDeals = deals.filter(deal => 
     searchQuery === '' || 
-    deal.deal_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    deal.opportunity_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     deal.customer_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -97,16 +97,16 @@ export default function DealsPage() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="bg-gray-50 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.deal_name}</h3>
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunity_name}</h3>
                     <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.deal_value || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimated_value || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <Calendar className="h-3 w-3" />
-                        <span>{deal.expected_close_date}</span>
+                        <span>{deal.close_date}</span>
                       </div>
                     </div>
                     <Button variant="outline" size="sm" className="w-full mt-3">
@@ -133,16 +133,16 @@ export default function DealsPage() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="bg-blue-50 border-blue-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.deal_name}</h3>
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunity_name}</h3>
                     <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.deal_value || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimated_value || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-blue-600">
                         <Calendar className="h-3 w-3" />
-                        <span>{deal.expected_close_date}</span>
+                        <span>{deal.close_date}</span>
                       </div>
                     </div>
                     <Button variant="outline" size="sm" className="w-full mt-3">
@@ -169,16 +169,16 @@ export default function DealsPage() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="bg-purple-50 border-purple-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.deal_name}</h3>
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunity_name}</h3>
                     <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.deal_value || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimated_value || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-purple-600">
                         <Calendar className="h-3 w-3" />
-                        <span>{deal.expected_close_date}</span>
+                        <span>{deal.close_date}</span>
                       </div>
                     </div>
                     <Button size="sm" className="w-full mt-3">
@@ -205,15 +205,15 @@ export default function DealsPage() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="bg-green-50 border-green-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.deal_name}</h3>
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunity_name}</h3>
                     <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-green-700">{formatCurrency(deal.deal_value || 0)}</span>
+                        <span className="font-bold text-green-700">{formatCurrency(deal.estimated_value || 0)}</span>
                       </div>
                       <div className="text-xs text-gray-600">
-                        Closed: {deal.expected_close_date}
+                        Closed: {deal.close_date}
                       </div>
                     </div>
                     <Button variant="outline" size="sm" className="w-full mt-3">
