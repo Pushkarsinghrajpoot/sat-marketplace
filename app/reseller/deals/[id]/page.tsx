@@ -1,14 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Award, X, Star, DollarSign, Calendar, Building } from 'lucide-react';
+import { Award, X, Star, DollarSign, Calendar, Building, Users, Plus, Lock } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { updateDeal } from '@/lib/data-helpers';
+import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
+import MeetingActivityList from '@/components/meetings/MeetingActivityList';
+import { useAuthStore } from '@/lib/store';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -21,85 +26,129 @@ export default function DealDetailPage() {
   const [wonAmount, setWonAmount] = useState('');
   const [closeReason, setCloseReason] = useState('');
 
-  const deal = {
-    id: params.id,
-    name: 'Enterprise Network Upgrade',
-    customer: 'XYZ Corporation',
-    value: 125000,
-    closeDate: '2024-03-15',
-    status: 'QUOTED',
-    distributors: ['TechDist Global', 'NetSupply Corp', 'CloudFirst Distribution'],
-    quotes: 3,
-    bestQuote: 118500,
-    createdAt: '2024-01-18',
-  };
+  const [deal, setDeal] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const { user } = useAuthStore();
 
-  const handleCloseDeal = () => {
+  useEffect(() => {
+    async function fetchDeal() {
+      try {
+        const { data, error } = await supabase
+          .from('deals')
+          .select('*')
+          .eq('id', params.id)
+          .single();
+        
+        if (error) throw error;
+        setDeal(data);
+      } catch (error) {
+        console.error('Error fetching deal:', error);
+        toast.error('Failed to load deal');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDeal();
+  }, [params.id]);
+
+  const handleCloseDeal = async () => {
     if (closeStatus === 'WON' && !wonAmount) {
       toast.error('Please enter the won amount');
       return;
     }
 
-    // Save deal closure
-    const deals = JSON.parse(localStorage.getItem('deals') || '[]');
-    const dealIndex = deals.findIndex((d: any) => d.id === params.id);
-    if (dealIndex >= 0) {
-      deals[dealIndex].status = closeStatus;
-      deals[dealIndex].closedAt = new Date().toISOString();
-      deals[dealIndex].wonAmount = closeStatus === 'WON' ? Number(wonAmount) : undefined;
-      deals[dealIndex].closeReason = closeReason;
-      localStorage.setItem('deals', JSON.stringify(deals));
-    }
+    try {
+      await updateDeal(params.id as string, {
+        status: closeStatus,
+        updated_at: new Date().toISOString(),
+      });
 
-    toast.success(`Deal marked as ${closeStatus}!`);
-    setShowCloseModal(false);
-    
-    if (closeStatus === 'WON') {
-      setTimeout(() => setShowRatingModal(true), 500);
-    } else {
-      router.push('/reseller/deals');
+      toast.success(`Deal marked as ${closeStatus}!`);
+      setShowCloseModal(false);
+      
+      if (closeStatus === 'WON') {
+        setTimeout(() => setShowRatingModal(true), 500);
+      } else {
+        router.push('/reseller/deals');
+      }
+    } catch (error) {
+      console.error('Error closing deal:', error);
+      toast.error('Failed to update deal status');
     }
   };
 
   const handleSubmitRating = () => {
-    if (!rating) {
-      toast.error('Please select a rating');
-      return;
-    }
-
-    const ratingData = {
-      id: `rating-${Date.now()}`,
-      dealId: params.id,
-      fromOrg: 'org4', // ABC Resellers
-      toOrg: 'org1', // TechDist Global (example)
-      rating,
-      comment: ratingComment,
-      createdAt: new Date().toISOString(),
-    };
-
-    const ratings = JSON.parse(localStorage.getItem('ratings') || '[]');
-    ratings.push(ratingData);
-    localStorage.setItem('ratings', JSON.stringify(ratings));
-
-    toast.success('Rating submitted successfully!');
+    toast.info('Rating feature will be implemented with a ratings table');
     setShowRatingModal(false);
     router.push('/reseller/deals');
   };
+
+  const handleConvertToBidding = async () => {
+    setConverting(true);
+    try {
+      await updateDeal(params.id as string, {
+        deal_type: 'BIDDING',
+        converted_to_bidding: true,
+        converted_to_bidding_at: new Date().toISOString(),
+        status: 'ACTIVE',
+      });
+      
+      toast.success('Deal converted to bidding successfully!');
+      setShowConvertModal(false);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error converting deal:', error);
+      toast.error('Failed to convert deal to bidding');
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="text-center py-12">
+          <p className="text-gray-500">Loading deal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!deal) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="text-center py-12">
+          <p className="text-gray-500">Deal not found</p>
+          <Button onClick={() => router.back()} className="mt-4">Go Back</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{deal.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{deal.opportunity_name}</h1>
             <div className="flex items-center gap-3">
               <Badge variant={deal.status === 'WON' ? 'success' : 'warning'}>{deal.status}</Badge>
               <span className="text-gray-600">Deal ID: {deal.id}</span>
             </div>
           </div>
-          <Button variant="outline" onClick={() => setShowCloseModal(true)}>
-            Close Deal
-          </Button>
+          <div className="flex gap-3">
+            {deal.deal_type === 'DEAL_REGISTRATION' && deal.is_locked && !deal.converted_to_bidding && (
+              <Button variant="outline" onClick={() => setShowConvertModal(true)}>
+                Convert to Bidding
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setShowCloseModal(true)}>
+              Close Deal
+            </Button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -109,7 +158,7 @@ export default function DealDetailPage() {
                 <Building className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600">Customer</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{deal.customer}</p>
+              <p className="text-xl font-bold text-gray-900">{deal.customer_name}</p>
             </CardContent>
           </Card>
 
@@ -119,10 +168,7 @@ export default function DealDetailPage() {
                 <DollarSign className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600">Deal Value</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(deal.value)}</p>
-              {deal.bestQuote && (
-                <p className="text-sm text-green-600 mt-1">Best quote: {formatCurrency(deal.bestQuote)}</p>
-              )}
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(deal.estimated_value || 0)}</p>
             </CardContent>
           </Card>
 
@@ -132,29 +178,73 @@ export default function DealDetailPage() {
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600">Expected Close</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{deal.closeDate}</p>
+              <p className="text-xl font-bold text-gray-900">{deal.close_date}</p>
             </CardContent>
           </Card>
         </div>
 
+        {/* Lock Status Card */}
+        {deal.is_locked && (
+          <Card className="mb-6 bg-yellow-50 border-yellow-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Lock className="h-5 w-5 text-yellow-700" />
+                <div>
+                  <p className="font-semibold text-yellow-900">Deal Locked</p>
+                  <p className="text-sm text-yellow-800">
+                    Locked on {deal.locked_at ? new Date(deal.locked_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+                {deal.score > 0 && (
+                  <Badge variant="warning" className="ml-auto">
+                    Score: {deal.score} points
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Engaged Distributors</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Deal Information</CardTitle>
+              {deal.deal_type === 'DEAL_REGISTRATION' && (
+                <Button onClick={() => setShowMeetingModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Activity
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {deal.distributors.map((dist, idx) => (
-                <div key={idx} className="p-4 bg-gray-50 rounded-lg flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-900">{dist}</p>
-                    <p className="text-sm text-gray-600">Quote submitted</p>
-                  </div>
-                  <Button variant="outline" size="sm">View Quote</Button>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Deal Type</p>
+                  <Badge>{deal.deal_type.replace('_', ' ')}</Badge>
                 </div>
-              ))}
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <Badge variant="info">{deal.status}</Badge>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Customer Email</p>
+                <p className="font-semibold">{deal.customer_email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Notes</p>
+                <p className="text-gray-900">{deal.notes || 'No notes'}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Meeting Activities */}
+        {(deal.deal_type === 'DEAL_REGISTRATION' || deal.deal_type === 'DIRECT_QUERY') && (
+          <MeetingActivityList dealId={deal.id} userRole={user?.role as 'RESELLER' | 'DISTRIBUTOR' | 'END_USER'} />
+        )}
 
         {/* Close Deal Modal */}
         {showCloseModal && (
@@ -291,6 +381,61 @@ export default function DealDetailPage() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Convert to Bidding Modal */}
+        {showConvertModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-md w-full">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-4">Convert to Bidding</h3>
+                <p className="text-gray-600 mb-6">
+                  This will convert your registered deal into a competitive bidding opportunity. 
+                  Your lock status and activity score will remain visible to all participants.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-blue-900">
+                    <strong>What happens next:</strong>
+                  </p>
+                  <ul className="text-sm text-blue-800 mt-2 space-y-1">
+                    <li>• Other resellers can participate</li>
+                    <li>• Your lock badge remains visible</li>
+                    <li>• Activity score is preserved</li>
+                    <li>• Meeting history stays attached</li>
+                  </ul>
+                </div>
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={handleConvertToBidding} 
+                    disabled={converting}
+                    className="flex-1"
+                  >
+                    {converting ? 'Converting...' : 'Convert to Bidding'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowConvertModal(false)}
+                    disabled={converting}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Meeting Modal */}
+        {showMeetingModal && user && (
+          <CreateMeetingModal
+            dealId={deal.id}
+            resellerId={user.id}
+            onClose={() => setShowMeetingModal(false)}
+            onSuccess={() => {
+              setShowMeetingModal(false);
+              window.location.reload();
+            }}
+          />
         )}
       </div>
     </div>

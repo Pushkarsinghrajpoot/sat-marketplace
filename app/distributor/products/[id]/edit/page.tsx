@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { getProducts, updateProduct } from '@/lib/data-helpers';
+import { supabase } from '@/lib/supabase';
 
 export default function EditProductPage() {
   const params = useParams();
@@ -16,22 +18,45 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const products = JSON.parse(localStorage.getItem('products') || '[]');
-    const product = products.find((p: any) => p.id === params.id);
-    if (product) {
-      setFormData(product);
+    async function fetchProduct() {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', params.id)
+          .single();
+        
+        if (error) throw error;
+        if (data) {
+          setFormData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        toast.error('Failed to load product');
+      } finally {
+        setLoading(false);
+      }
     }
-    setLoading(false);
+    fetchProduct();
   }, [params.id]);
 
-  const handleSubmit = () => {
-    const products = JSON.parse(localStorage.getItem('products') || '[]');
-    const index = products.findIndex((p: any) => p.id === params.id);
-    if (index >= 0) {
-      products[index] = { ...formData, updatedAt: new Date().toISOString() };
-      localStorage.setItem('products', JSON.stringify(products));
+  const handleSubmit = async () => {
+    try {
+      await updateProduct(params.id as string, {
+        name: formData.name,
+        sku: formData.sku,
+        brand: formData.brand,
+        description: formData.description,
+        price: Number(formData.price),
+        inventory: Number(formData.inventory),
+        status: formData.status,
+        updated_at: new Date().toISOString()
+      });
       toast.success('Product updated successfully!');
       router.push('/distributor/products');
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error('Failed to update product');
     }
   };
 

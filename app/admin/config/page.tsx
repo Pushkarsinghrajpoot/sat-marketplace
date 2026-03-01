@@ -147,7 +147,7 @@ export default function ConfigPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Partner Qualification Bands</CardTitle>
-              <Button size="sm">
+              <Button size="sm" onClick={handleAddBand}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Band
               </Button>

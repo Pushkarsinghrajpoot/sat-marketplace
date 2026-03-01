@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, Calendar, DollarSign, Users, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { Lock, TrendingUp } from 'lucide-react';
 import { getDeals } from '@/lib/data-helpers';
 import { useAuthStore } from '@/lib/store';
 
@@ -41,8 +42,8 @@ export default function DealsPage() {
   );
 
   const dealsByStage = {
-    prospecting: filteredDeals.filter(d => d.status === 'DRAFT' || d.status === 'PENDING'),
-    registered: filteredDeals.filter(d => d.status === 'ACTIVE' && d.deal_type === 'DEAL_REGISTRATION'),
+    prospecting: filteredDeals.filter(d => d.status === 'DRAFT' && !d.is_locked),
+    registered: filteredDeals.filter(d => (d.status === 'DRAFT' || d.status === 'ACTIVE') && d.is_locked && d.deal_type === 'DEAL_REGISTRATION'),
     quoted: filteredDeals.filter(d => d.status === 'QUOTED'),
     won: filteredDeals.filter(d => d.status === 'WON'),
   };
@@ -133,7 +134,12 @@ export default function DealsPage() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="bg-blue-50 border-blue-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunity_name}</h3>
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-sm line-clamp-2 flex-1">{deal.opportunity_name}</h3>
+                      {deal.is_locked && (
+                        <Lock className="h-4 w-4 text-yellow-600 ml-2 flex-shrink-0" />
+                      )}
+                    </div>
                     <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
@@ -144,6 +150,12 @@ export default function DealsPage() {
                         <Calendar className="h-3 w-3" />
                         <span>{deal.close_date}</span>
                       </div>
+                      {deal.score > 0 && (
+                        <div className="flex items-center gap-2 text-xs text-orange-600">
+                          <TrendingUp className="h-3 w-3" />
+                          <span className="font-semibold">{deal.score} points</span>
+                        </div>
+                      )}
                     </div>
                     <Button variant="outline" size="sm" className="w-full mt-3">
                       Manage

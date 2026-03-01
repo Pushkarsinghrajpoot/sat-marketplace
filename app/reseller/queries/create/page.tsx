@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,27 +9,44 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Send, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/store';
 
 export default function CreateQueryPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [formData, setFormData] = useState({
     title: '',
     requirement: '',
     estimatedBudget: '',
     urgency: 'MEDIUM',
-    distributorId: '',
   });
 
   const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
+  const [distributors, setDistributors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const distributors = [
-    { id: 'dist1', name: 'TechDist Global', products: 2450, rating: 4.8 },
-    { id: 'dist2', name: 'NetSupply Corp', products: 1850, rating: 4.6 },
-    { id: 'dist3', name: 'CloudFirst Distribution', products: 3200, rating: 4.9 },
-    { id: 'dist4', name: 'Enterprise Solutions', products: 1600, rating: 4.7 },
-  ];
+  useEffect(() => {
+    fetchDistributors();
+  }, []);
 
-  const handleSubmit = () => {
+  const fetchDistributors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('id, name, rating, verified')
+        .eq('type', 'DISTRIBUTOR')
+        .eq('verified', true);
+      
+      if (error) throw error;
+      setDistributors(data || []);
+    } catch (error) {
+      console.error('Error fetching distributors:', error);
+    }
+  };
+
+  const handleSubmit = async () => {
     if (!formData.title || !formData.requirement) {
       toast.error('Please fill in required fields');
       return;
@@ -40,16 +57,40 @@ export default function CreateQueryPage() {
       return;
     }
 
-    const queryData = {
-      ...formData,
-      distributorIds: selectedDistributors,
-      status: 'OPEN',
-      createdAt: new Date().toISOString(),
-    };
+    if (!user?.id || !user?.organizationId) {
+      toast.error('User not authenticated');
+      return;
+    }
 
-    localStorage.setItem('newQuery', JSON.stringify(queryData));
-    toast.success('Direct query sent successfully!');
-    router.push('/reseller/queries');
+    setLoading(true);
+
+    try {
+      // Create a query for each selected distributor
+      const queries = selectedDistributors.map(distributorId => ({
+        reseller_id: user.id,
+        reseller_organization_id: user.organizationId,
+        distributor_id: distributorId,
+        title: formData.title,
+        requirement: formData.requirement,
+        estimated_budget: formData.estimatedBudget ? parseFloat(formData.estimatedBudget) : null,
+        urgency: formData.urgency,
+        status: 'OPEN',
+      }));
+
+      const { error } = await supabase
+        .from('direct_queries')
+        .insert(queries);
+
+      if (error) throw error;
+
+      toast.success(`Direct query sent to ${selectedDistributors.length} distributor(s)!`);
+      router.push('/reseller/queries');
+    } catch (error) {
+      console.error('Error creating query:', error);
+      toast.error('Failed to send query');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleDistributor = (id: string) => {
@@ -141,11 +182,15 @@ export default function CreateQueryPage() {
                   type="search"
                   placeholder="Search distributors..."
                   className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
               <div className="space-y-3">
-                {distributors.map((dist) => (
+                {distributors
+                  .filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((dist) => (
                   <Card
                     key={dist.id}
                     className={`cursor-pointer transition-all ${
@@ -166,12 +211,11 @@ export default function CreateQueryPage() {
                         <div className="flex-1">
                           <h4 className="font-semibold">{dist.name}</h4>
                           <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                            <span>{dist.products.toLocaleString()} products</span>
-                            <span>•</span>
                             <span className="flex items-center gap-1">
                               <span className="text-yellow-500">★</span>
-                              {dist.rating}
+                              {dist.rating?.toFixed(1) || 'N/A'}
                             </span>
+                            {dist.verified && <span className="text-green-600 text-xs">✓ Verified</span>}
                           </div>
                         </div>
                       </div>
@@ -196,12 +240,12 @@ export default function CreateQueryPage() {
           </Card>
 
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => router.back()}>
+            <Button variant="outline" onClick={() => router.back()} disabled={loading}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} disabled={loading}>
               <Send className="h-4 w-4 mr-2" />
-              Send Query
+              {loading ? 'Sending...' : 'Send Query'}
             </Button>
           </div>
         </div>

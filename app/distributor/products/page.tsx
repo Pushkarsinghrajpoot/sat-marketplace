@@ -11,18 +11,59 @@ import { Search, Plus, Upload, Download, Edit, Copy, Trash2, MoreVertical } from
 import { formatCurrency } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import type { Product } from '@/lib/types';
+import { toast } from 'sonner';
+import { getProducts } from '@/lib/data-helpers';
 
 export default function ProductsPage() {
-  const { organization } = useAuthStore();
+  const { user, organization } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    const prods = JSON.parse(localStorage.getItem('products') || '[]');
-    const myProducts = prods.filter((p: Product) => p.organizationId === organization?.id);
-    setProducts(myProducts);
-  }, [organization]);
+    async function fetchProducts() {
+      if (!user?.id) return;
+      try {
+        const data = await getProducts({ distributorId: user.id });
+        setProducts(data);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    }
+    fetchProducts();
+  }, [user]);
+
+  const handleImportCSV = () => {
+    toast.info('CSV import feature coming soon! Upload your product catalog in CSV format.');
+  };
+
+  const handleExport = () => {
+    // Generate CSV from current products
+    if (products.length === 0) {
+      toast.error('No products to export');
+      return;
+    }
+    
+    const csvContent = [
+      ['SKU', 'Name', 'Brand', 'Price', 'Inventory', 'Status'].join(','),
+      ...products.map(p => [
+        p.sku,
+        `"${p.name}"`,
+        p.brand || '',
+        p.price,
+        p.inventory || 0,
+        p.status
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `products-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    toast.success('Products exported successfully!');
+  };
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,11 +80,11 @@ export default function ProductsPage() {
           <p className="text-gray-600">{filteredProducts.length} products</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleImportCSV}>
             <Upload className="h-4 w-4 mr-2" />
             Import CSV
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>

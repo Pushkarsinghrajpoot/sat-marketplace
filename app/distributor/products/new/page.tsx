@@ -85,26 +85,21 @@ export default function AddProductPage() {
 
     try {
       const productData = {
+        organization_id: user.organizationId,
         name: formData.name,
         sku: formData.sku,
-        category: formData.category,
         brand: formData.brand,
         description: formData.description,
         short_description: formData.shortDescription,
         price: Number(formData.price),
         currency: 'USD',
-        inventory_count: Number(formData.inventory),
+        inventory: Number(formData.inventory),
         low_stock_threshold: Number(formData.lowStockThreshold),
         availability: formData.availability,
         lead_time: formData.leadTime,
-        images: uploadedImages,
-        specifications: formData.specifications,
-        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-        featured: formData.featured,
         status: isDraft ? 'DRAFT' : 'ACTIVE',
-        distributor_id: user.id,
-        distributor_organization_id: user.organizationId,
         views: 0,
+        featured: formData.featured,
       };
 
       await createProduct(productData);

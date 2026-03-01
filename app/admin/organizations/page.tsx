@@ -61,8 +61,9 @@ export default function OrganizationsPage() {
   const filteredOrganizations = organizations.filter(org => {
     const matchesSearch = org.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'pending' && !org.verified) ||
-                         (statusFilter === 'verified' && org.verified === true);
+                         (statusFilter === 'pending' && (org.verified === false || org.verified === null)) ||
+                         (statusFilter === 'verified' && org.verified === true) ||
+                         (statusFilter === 'rejected' && org.verified === false);
     return matchesSearch && matchesStatus;
   });
 
@@ -125,23 +126,23 @@ export default function OrganizationsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {org.status === 'PENDING' ? (
+                  {!org.verified ? (
                     <>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => toast.info('Review feature coming soon')}>
                         <Eye className="h-4 w-4 mr-2" />
                         Review
                       </Button>
-                      <Button size="sm">
+                      <Button size="sm" onClick={() => handleApprove(org.id, org.name)}>
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Approve
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleReject(org.id, org.name)}>
                         <X className="h-4 w-4 mr-2" />
                         Reject
                       </Button>
                     </>
                   ) : (
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => toast.info('View details coming soon')}>
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </Button>

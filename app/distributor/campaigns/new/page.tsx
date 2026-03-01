@@ -6,12 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/store';
 import { generateId } from '@/lib/utils';
 
 export default function NewCampaignPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -20,27 +25,53 @@ export default function NewCampaignPage() {
     targetAudience: '',
     selectedProducts: [] as string[],
     discount: 0,
+    campaignType: '',
+    incentiveType: '',
+    targetRevenue: '',
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name || !formData.startDate || !formData.endDate) {
-      toast.error('Please fill all required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 
-    const campaign = {
-      id: generateId(),
-      ...formData,
-      status: 'ACTIVE',
-      createdAt: new Date().toISOString(),
-    };
+    if (!user?.organizationId) {
+      toast.error('User organization not found');
+      return;
+    }
 
-    const campaigns = JSON.parse(localStorage.getItem('campaigns') || '[]');
-    campaigns.push(campaign);
-    localStorage.setItem('campaigns', JSON.stringify(campaigns));
+    setLoading(true);
 
-    toast.success('Campaign created successfully!');
-    router.push('/distributor/campaigns');
+    try {
+      const campaignData = {
+        distributor_id: user.organizationId,
+        name: formData.name,
+        description: formData.description,
+        campaign_type: formData.campaignType,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        status: new Date(formData.startDate) > new Date() ? 'SCHEDULED' : 'ACTIVE',
+        target_audience_type: formData.targetAudience,
+        incentive_type: formData.incentiveType,
+        incentive_discount: formData.discount ? Number(formData.discount) : null,
+        goal_target_revenue: formData.targetRevenue ? parseFloat(formData.targetRevenue) : null,
+      };
+
+      const { error } = await supabase
+        .from('campaigns')
+        .insert([campaignData]);
+
+      if (error) throw error;
+
+      toast.success('Campaign created successfully!');
+      router.push('/distributor/campaigns');
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast.error('Failed to create campaign');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

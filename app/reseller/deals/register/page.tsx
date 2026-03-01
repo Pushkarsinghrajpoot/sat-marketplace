@@ -67,7 +67,8 @@ export default function RegisterDealPage() {
         return true;
       
       case 3: // Verification
-        if (!isVerified) {
+        // Only require verification for DEAL_REGISTRATION
+        if (dealType === 'DEAL_REGISTRATION' && !isVerified) {
           toast.error('Please verify customer email before proceeding');
           return false;
         }
@@ -87,6 +88,12 @@ export default function RegisterDealPage() {
 
   const handleNext = () => {
     if (!validateCurrentStep()) {
+      return;
+    }
+    
+    // Skip verification step for BIDDING and DIRECT_QUERY
+    if (currentStep === 2 && (dealType === 'BIDDING' || dealType === 'DIRECT_QUERY')) {
+      setCurrentStep(4); // Skip to declaration
       return;
     }
     

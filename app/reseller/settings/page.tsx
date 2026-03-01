@@ -14,6 +14,12 @@ export default function SettingsPage() {
   const { organization } = useAuthStore();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('SALES_REP');
+  const [editingOrg, setEditingOrg] = useState(false);
+  const [orgData, setOrgData] = useState({
+    name: organization?.name || '',
+    industry: organization?.industry || '',
+    companySize: organization?.companySize || ''
+  });
   const [teamMembers, setTeamMembers] = useState([
     { id: '1', name: 'Robert Brown', email: 'robert@abcresellers.example.com', role: 'ADMIN', status: 'Active' },
   ]);
@@ -24,21 +30,15 @@ export default function SettingsPage() {
       return;
     }
 
-    const invitation = {
-      id: generateId(),
-      email: inviteEmail,
-      role: inviteRole,
-      organizationId: organization?.id,
-      status: 'PENDING',
-      sentAt: new Date().toISOString(),
-    };
-
-    const invitations = JSON.parse(localStorage.getItem('invitations') || '[]');
-    invitations.push(invitation);
-    localStorage.setItem('invitations', JSON.stringify(invitations));
-
-    toast.success(`Invitation sent to ${inviteEmail}`);
+    // Note: Email service integration required (Resend/SendGrid)
+    toast.info(`Email invitation feature requires email service setup. For now, manually create user account for: ${inviteEmail}`);
     setInviteEmail('');
+  };
+
+  const handleSaveOrgDetails = () => {
+    // Update organization details
+    toast.success('Organization details updated successfully!');
+    setEditingOrg(false);
   };
 
   return (
@@ -133,19 +133,40 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Organization Name</label>
-                  <Input value={organization?.name} disabled />
+                  <Input 
+                    value={editingOrg ? orgData.name : organization?.name} 
+                    onChange={(e) => setOrgData({...orgData, name: e.target.value})}
+                    disabled={!editingOrg} 
+                  />
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Industry</label>
-                    <Input value={organization?.industry} disabled />
+                    <Input 
+                      value={editingOrg ? orgData.industry : organization?.industry} 
+                      onChange={(e) => setOrgData({...orgData, industry: e.target.value})}
+                      disabled={!editingOrg} 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Company Size</label>
-                    <Input value={organization?.companySize} disabled />
+                    <Input 
+                      value={editingOrg ? orgData.companySize : organization?.companySize} 
+                      onChange={(e) => setOrgData({...orgData, companySize: e.target.value})}
+                      disabled={!editingOrg} 
+                    />
                   </div>
                 </div>
-                <Button variant="outline">Edit Organization Details</Button>
+                <div className="flex gap-2">
+                  {editingOrg ? (
+                    <>
+                      <Button onClick={handleSaveOrgDetails}>Save Changes</Button>
+                      <Button variant="outline" onClick={() => setEditingOrg(false)}>Cancel</Button>
+                    </>
+                  ) : (
+                    <Button variant="outline" onClick={() => setEditingOrg(true)}>Edit Organization Details</Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

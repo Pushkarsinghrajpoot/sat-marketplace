@@ -1,40 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, Handshake, FileText, DollarSign, MoreVertical, Play, Pause, Edit } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/store';
 
 export default function CampaignsPage() {
   const [activeTab, setActiveTab] = useState('active');
-  
-  const campaigns = [
-    {
-      id: '1',
-      name: 'Q1 Networking Promotion',
-      status: 'ACTIVE',
-      startDate: '2024-01-15',
-      endDate: '2024-03-31',
-      targetAudience: '250 qualified resellers',
-      products: 12,
-      analytics: { views: 1240, engagements: 45, quotes: 12, conversions: 5 },
-      progress: 20,
-    },
-    {
-      id: '2',
-      name: 'Spring Security Sale',
-      status: 'ACTIVE',
-      startDate: '2024-02-01',
-      endDate: '2024-04-30',
-      targetAudience: '180 qualified resellers',
-      products: 8,
-      analytics: { views: 890, engagements: 32, quotes: 8, conversions: 3 },
-      progress: 15,
-    },
-  ];
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [user]);
+
+  const fetchCampaigns = async () => {
+    if (!user?.organizationId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('distributor_id', user.organizationId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setCampaigns(data || []);
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredCampaigns = campaigns.filter(c => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'active') return c.status === 'ACTIVE';
+    if (activeTab === 'scheduled') return c.status === 'SCHEDULED';
+    if (activeTab === 'ended') return c.status === 'ENDED';
+    return true;
+  });
 
   return (
     <div className="p-6 lg:p-8">
@@ -89,11 +100,9 @@ export default function CampaignsPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span>{campaign.startDate} - {campaign.endDate}</span>
+                        <span>{campaign.start_date} - {campaign.end_date}</span>
                         <span>•</span>
-                        <span>{campaign.targetAudience}</span>
-                        <span>•</span>
-                        <span>{campaign.products} products</span>
+                        <span>{campaign.target_audience_type || 'All Resellers'}</span>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm">
@@ -107,7 +116,7 @@ export default function CampaignsPage() {
                         <Eye className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics.views}</p>
+                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics_views || 0}</p>
                         <p className="text-xs text-gray-600">Views</p>
                       </div>
                     </div>
@@ -117,7 +126,7 @@ export default function CampaignsPage() {
                         <Handshake className="h-5 w-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics.engagements}</p>
+                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics_engagements || 0}</p>
                         <p className="text-xs text-gray-600">Engagements</p>
                       </div>
                     </div>
@@ -127,7 +136,7 @@ export default function CampaignsPage() {
                         <FileText className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics.quotes}</p>
+                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics_quotes || 0}</p>
                         <p className="text-xs text-gray-600">Quotes</p>
                       </div>
                     </div>
@@ -137,7 +146,7 @@ export default function CampaignsPage() {
                         <DollarSign className="h-5 w-5 text-orange-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics.conversions}</p>
+                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics_conversions || 0}</p>
                         <p className="text-xs text-gray-600">Conversions</p>
                       </div>
                     </div>
@@ -145,13 +154,21 @@ export default function CampaignsPage() {
 
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-gray-600">Progress to goal</span>
-                      <span className="font-semibold">{campaign.progress}%</span>
+                      <span className="text-gray-600">Engagement Rate</span>
+                      <span className="font-semibold">
+                        {campaign.analytics_views > 0 
+                          ? Math.round((campaign.analytics_engagements / campaign.analytics_views) * 100)
+                          : 0}%
+                      </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-blue-600 h-2 rounded-full transition-all"
-                        style={{ width: `${campaign.progress}%` }}
+                        style={{ 
+                          width: `${campaign.analytics_views > 0 
+                            ? Math.round((campaign.analytics_engagements / campaign.analytics_views) * 100)
+                            : 0}%` 
+                        }}
                       />
                     </div>
                   </div>

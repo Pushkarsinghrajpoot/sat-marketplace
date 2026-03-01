@@ -11,7 +11,7 @@ import { getDeals, getDirectQueries, getQuotes } from '@/lib/data-helpers';
 import { useAuthStore } from '@/lib/store';
 
 export default function DistributorDashboard() {
-  const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries'>('registrations');
+  const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries' | 'quotes'>('registrations');
   const [stats, setStats] = useState({
     totalProducts: 0,
     activeQuotes: 0,
@@ -25,6 +25,7 @@ export default function DistributorDashboard() {
   const [dealRegistrations, setDealRegistrations] = useState<any[]>([]);
   const [biddingDeals, setBiddingDeals] = useState<any[]>([]);
   const [directQueries, setDirectQueries] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
 
@@ -60,6 +61,7 @@ export default function DistributorDashboard() {
         setDealRegistrations(registrations);
         setBiddingDeals(bidding);
         setDirectQueries(queries);
+        setQuotes(quotes);
       } catch (error) {
         console.error('Error fetching distributor data:', error);
       } finally {
@@ -214,6 +216,20 @@ export default function DistributorDashboard() {
               <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">{stats.directQueries}</span>
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('quotes')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'quotes'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Quotes
+              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">{stats.activeQuotes}</span>
+            </div>
+          </button>
         </div>
 
         {activeTab === 'registrations' && (
@@ -334,6 +350,52 @@ export default function DistributorDashboard() {
                   <Send className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-600">No direct queries yet</p>
                   <p className="text-sm text-gray-500">Direct queries from resellers will appear here</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'quotes' && (
+          <div className="space-y-4">
+            {quotes.length > 0 ? (
+              quotes.map((quote: any) => (
+                <Card key={quote.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold">Quote #{quote.id.substring(0, 8)}</h3>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            quote.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' :
+                            quote.status === 'WON' ? 'bg-green-100 text-green-800' :
+                            quote.status === 'LOST' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {quote.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                          <span>Total: {formatCurrency(quote.total || 0)}</span>
+                          <span>•</span>
+                          <span>Created: {new Date(quote.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Link href={`/distributor/quotes/${quote.id}`}>
+                          <Button size="sm" variant="outline">View Details</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600">No quotes yet</p>
+                  <p className="text-sm text-gray-500">Your submitted quotes will appear here</p>
                 </CardContent>
               </Card>
             )}

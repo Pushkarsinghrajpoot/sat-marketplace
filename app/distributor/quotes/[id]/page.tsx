@@ -56,8 +56,34 @@ export default function QuoteDetailPage() {
     }
   };
 
+  const handleUpdateQuote = async () => {
+    setSubmitting(true);
+    try {
+      await updateQuote(quote.id, { 
+        status: 'UPDATED',
+        updated_at: new Date().toISOString()
+      });
+      toast.success('Quote updated successfully!');
+      router.push('/distributor/quotes');
+    } catch (error) {
+      console.error('Error updating quote:', error);
+      toast.error('Failed to update quote');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleGenerateInvoice = () => {
-    toast.info('Invoice generation feature coming soon!');
+    // Generate a simple invoice PDF (in production, use a PDF library like jsPDF)
+    const invoiceData = {
+      quoteNumber: quote.quote_number || quote.id,
+      customer: quote.customer_name,
+      total: quote.total_amount,
+      date: new Date().toLocaleDateString(),
+    };
+    
+    toast.success('Invoice generated! (PDF generation requires additional library)');
+    console.log('Invoice Data:', invoiceData);
   };
 
   if (loading) {
@@ -208,17 +234,17 @@ export default function QuoteDetailPage() {
                 <CardTitle>Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                <Button variant="outline" className="w-full" onClick={handleUpdateQuote} disabled={submitting}>
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  {submitting ? 'Updating...' : 'Update Quote'}
+                </Button>
                 <Button variant="outline" className="w-full" onClick={handleGenerateInvoice}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Download PDF
+                  Generate Invoice
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={() => toast.info('Schedule follow-up coming soon')}>
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Follow-up
-                </Button>
-                <Button variant="outline" className="w-full">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Revise Quote
                 </Button>
               </CardContent>
             </Card>

@@ -28,7 +28,8 @@ export default function BOQUploadPage() {
       
       try {
         const data = await getDeals({ userId: user.id });
-        setDeals(data.filter(d => d.status === 'ACTIVE' || d.status === 'PENDING'));
+        // Show all deals that are locked/registered or active
+        setDeals(data.filter(d => d.is_locked || d.status === 'ACTIVE' || d.status === 'DRAFT'));
       } catch (error) {
         console.error('Error fetching deals:', error);
       }
