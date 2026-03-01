@@ -197,6 +197,9 @@ export async function getDealStats(userId?: string, organizationId?: string) {
 }
 
 export async function createDeal(dealData: any) {
+  console.log('=== CREATE DEAL START ===');
+  console.log('Deal data being inserted:', JSON.stringify(dealData, null, 2));
+  
   const { data, error } = await supabase
     .from('deals')
     .insert([dealData])
@@ -204,9 +207,17 @@ export async function createDeal(dealData: any) {
     .single();
 
   if (error) {
-    console.error('Error creating deal:', error);
-    throw error;
+    console.error('=== CREATE DEAL ERROR ===');
+    console.error('Error object:', error);
+    console.error('Error message:', error.message);
+    console.error('Error details:', error.details);
+    console.error('Error hint:', error.hint);
+    console.error('Error code:', error.code);
+    throw new Error(`Failed to create deal: ${error.message}. Details: ${error.details || 'None'}`);
   }
+
+  console.log('=== CREATE DEAL SUCCESS ===');
+  console.log('Created deal data:', JSON.stringify(data, null, 2));
 
   return mapDeal(data);
 }
@@ -269,6 +280,19 @@ export async function createQuote(quoteData: any) {
     throw error;
   }
 
+  // Automatically update deal status to QUOTED when a quote is created
+  if (data && quoteData.deal_id) {
+    try {
+      await supabase
+        .from('deals')
+        .update({ status: 'QUOTED' })
+        .eq('id', quoteData.deal_id);
+    } catch (updateError) {
+      console.error('Error updating deal status:', updateError);
+      // Don't throw - quote was created successfully
+    }
+  }
+
   return data;
 }
 
@@ -283,6 +307,19 @@ export async function updateQuote(quoteId: string, updates: any) {
   if (error) {
     console.error('Error updating quote:', error);
     throw error;
+  }
+
+  // When a quote is submitted, update the deal status to QUOTED
+  if (data && updates.status === 'SUBMITTED' && data.deal_id) {
+    try {
+      await supabase
+        .from('deals')
+        .update({ status: 'QUOTED' })
+        .eq('id', data.deal_id);
+    } catch (updateError) {
+      console.error('Error updating deal status:', updateError);
+      // Don't throw - quote was updated successfully
+    }
   }
 
   return data;

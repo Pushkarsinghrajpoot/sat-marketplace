@@ -21,6 +21,7 @@ export default function RegisterDealPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [signature, setSignature] = useState('');
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     customerName: '',
     customerCompany: '',
@@ -144,43 +145,45 @@ export default function RegisterDealPage() {
       return;
     }
     
+    setLoading(true);
+    
     try {
-      // For DEAL_REGISTRATION, convert to BIDDING immediately after registration
-      // This makes it visible to distributors for competitive bidding
-      const finalDealType = dealType === 'DEAL_REGISTRATION' ? 'BIDDING' : dealType;
-      const isConverted = dealType === 'DEAL_REGISTRATION';
-      
+      // Keep deal type as-is - do NOT auto-convert
       const dealData = {
         opportunity_name: formData.opportunityName,
-        deal_type: finalDealType,
+        deal_type: dealType, // Keep original type
         customer_name: formData.customerName,
         customer_company: formData.customerCompany,
         customer_email: formData.customerEmail,
         customer_contact: formData.customerContact,
-        estimated_value: parseFloat(formData.estimatedValue),
+        estimated_value: parseFloat(formData.estimatedValue) || 0,
         close_date: formData.closeDate,
         notes: formData.notes,
-        status: 'ACTIVE', // Set to ACTIVE so distributors can see it
+        status: 'ACTIVE', // Set to ACTIVE after registration complete
         reseller_id: user.id,
         reseller_organization_id: user.organizationId,
         is_verified: isVerified,
         declaration_signature: signature,
         declaration_accepted: true,
         declaration_accepted_at: new Date().toISOString(),
-        is_locked: dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING', // Lock for DEAL_REGISTRATION and BIDDING
-        locked_by: (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING') ? user.id : null,
-        locked_at: (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING') ? new Date().toISOString() : null,
-        // Track if this was originally a DEAL_REGISTRATION
-        converted_to_bidding: isConverted,
-        converted_to_bidding_at: isConverted ? new Date().toISOString() : null,
+        // Lock mechanism - auto-lock for DEAL_REGISTRATION
+        is_locked: dealType === 'DEAL_REGISTRATION',
+        locked_by: dealType === 'DEAL_REGISTRATION' ? user.id : null,
+        locked_at: dealType === 'DEAL_REGISTRATION' ? new Date().toISOString() : null,
+        // Start with score 0 - will increase with activities
+        score: 0,
       };
       
-      await createDeal(dealData);
+      console.log('Creating deal with data:', dealData);
+      
+      const createdDeal = await createDeal(dealData);
+      
+      console.log('Deal created successfully:', createdDeal);
       
       // Show appropriate success message based on deal type
       let successMessage = 'Deal submitted successfully!';
-      if (isConverted) {
-        successMessage = 'Deal registered and opened for bidding!';
+      if (dealType === 'DEAL_REGISTRATION') {
+        successMessage = `Deal registered and locked! You can now add activities (meetings, demos, BOQ).`;
       } else if (dealType === 'DIRECT_QUERY') {
         successMessage = 'Direct query submitted! Distributors can now respond.';
       } else if (dealType === 'BIDDING') {
@@ -191,7 +194,10 @@ export default function RegisterDealPage() {
       router.push('/reseller/deals');
     } catch (error: any) {
       console.error('Error creating deal:', error);
-      toast.error(error.message || 'Failed to register deal');
+      console.error('Error stack:', error.stack);
+      toast.error(error.message || 'Failed to register deal. Check console for details.');
+    } finally {
+      setLoading(false);
     }
   };
 
