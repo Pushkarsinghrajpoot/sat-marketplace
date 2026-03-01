@@ -49,8 +49,29 @@ export default function BOQUploadPage() {
   };
 
   const handleSubmit = async () => {
-    if (!file || !dealId) {
-      toast.error('Please upload a file and select a deal');
+    // Validate file upload
+    if (!file) {
+      toast.error('Please upload a BOQ file first');
+      return;
+    }
+
+    // Validate deal selection
+    if (!dealId) {
+      toast.error('Please select a deal for this BOQ');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['.xlsx', '.xls', '.csv'];
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!allowedTypes.includes(fileExtension)) {
+      toast.error('Please upload a valid Excel or CSV file (.xlsx, .xls, .csv)');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
       return;
     }
 

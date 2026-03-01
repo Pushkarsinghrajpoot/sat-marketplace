@@ -88,6 +88,7 @@ export default function AddProductPage() {
         organization_id: user.organizationId,
         name: formData.name,
         sku: formData.sku,
+        category_id: formData.category || null,
         brand: formData.brand,
         description: formData.description,
         short_description: formData.shortDescription,

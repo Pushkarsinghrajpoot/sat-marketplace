@@ -1,13 +1,107 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Eye, CheckCircle, X, Download } from 'lucide-react';
+import { FileText, Eye, CheckCircle, X, Download, AlertCircle } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/store';
+import { toast } from 'sonner';
 
 export default function CreditRequestsPage() {
-  const requests = [
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    fetchCreditRequests();
+  }, [user]);
+
+  const fetchCreditRequests = async () => {
+    if (!user?.organizationId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('credit_requests')
+        .select('*, users(*)')
+        .eq('distributor_id', user.organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching credit requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (requestId: string, amount: number) => {
+    try {
+      const { error } = await supabase
+        .from('credit_requests')
+        .update({ 
+          status: 'APPROVED',
+          approved_limit: amount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast.success('Credit request approved!');
+      fetchCreditRequests();
+    } catch (error) {
+      console.error('Error approving request:', error);
+      toast.error('Failed to approve credit request');
+    }
+  };
+
+  const handleDecline = async (requestId: string) => {
+    try {
+      const { error } = await supabase
+        .from('credit_requests')
+        .update({ 
+          status: 'REJECTED',
+          review_notes: 'Request declined by distributor',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast.info('Credit request declined');
+      fetchCreditRequests();
+    } catch (error) {
+      console.error('Error declining request:', error);
+      toast.error('Failed to decline credit request');
+    }
+  };
+
+  const handleRequestMoreInfo = async (requestId: string) => {
+    try {
+      const { error } = await supabase
+        .from('credit_requests')
+        .update({ 
+          status: 'UNDER_REVIEW',
+          review_notes: 'Additional information requested',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast.success('Information request sent to reseller');
+      fetchCreditRequests();
+    } catch (error) {
+      console.error('Error requesting info:', error);
+      toast.error('Failed to request more information');
+    }
+  };
+
+  const sampleRequests = [
     {
       id: '1',
       reseller: 'ABC Resellers Inc.',
@@ -67,7 +161,7 @@ export default function CreditRequestsPage() {
               <div>
                 <h4 className="font-semibold text-sm mb-3">Submitted Documents</h4>
                 <div className="grid md:grid-cols-3 gap-3">
-                  {request.documents.map((doc, idx) => (
+                  {(request.documents || []).map((doc: string, idx: number) => (
                     <div key={idx} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-gray-600" />
@@ -100,19 +194,20 @@ export default function CreditRequestsPage() {
 
               {request.status === 'PENDING' && (
                 <div className="flex gap-3">
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => toast.info('Document review feature coming soon')}>
                     <Eye className="h-4 w-4 mr-2" />
                     Review Documents
                   </Button>
-                  <Button size="sm">
+                  <Button size="sm" onClick={() => handleApprove(request.id, request.amount)}>
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Approve
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => handleDecline(request.id)}>
                     <X className="h-4 w-4 mr-2" />
                     Decline
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => handleRequestMoreInfo(request.id)}>
+                    <AlertCircle className="h-4 w-4 mr-2" />
                     Request More Info
                   </Button>
                 </div>

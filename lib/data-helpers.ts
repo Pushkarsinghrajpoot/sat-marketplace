@@ -36,7 +36,7 @@ export async function getDeals(filters?: { userId?: string; organizationId?: str
     .order('created_at', { ascending: false });
 
   if (filters?.userId) {
-    query = query.or(`reseller_id.eq.${filters.userId},distributor_id.eq.${filters.userId},end_user_id.eq.${filters.userId}`);
+    query = query.eq('reseller_id', filters.userId);
   }
 
   if (filters?.organizationId) {
@@ -81,7 +81,7 @@ export async function getDirectQueries(filters?: { userId?: string; organization
     .order('created_at', { ascending: false });
 
   if (filters?.userId) {
-    query = query.or(`reseller_id.eq.${filters.userId},distributor_id.eq.${filters.userId}`);
+    query = query.eq('reseller_id', filters.userId);
   }
 
   if (filters?.organizationId) {
@@ -122,6 +122,46 @@ export async function getQuotes(filters?: { dealId?: string; distributorId?: str
   }
 
   return data || [];
+}
+
+export async function getEngagementRequests(filters?: { distributorId?: string; status?: string }) {
+  let query = supabase
+    .from('engagement_requests')
+    .select('*, deals(*), users(*)')
+    .order('created_at', { ascending: false });
+
+  if (filters?.distributorId) {
+    query = query.eq('distributor_id', filters.distributorId);
+  }
+
+  if (filters?.status) {
+    query = query.eq('status', filters.status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching engagement requests:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function updateEngagementRequest(id: string, updates: any) {
+  const { data, error } = await supabase
+    .from('engagement_requests')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating engagement request:', error);
+    throw error;
+  }
+
+  return data;
 }
 
 export async function getDealStats(userId?: string, organizationId?: string) {

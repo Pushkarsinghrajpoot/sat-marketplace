@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Star, CheckCircle, Target, Clock, Package } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
-import { getDeals, updateDeal } from '@/lib/data-helpers';
+import { getEngagementRequests, updateEngagementRequest } from '@/lib/data-helpers';
 import { useAuthStore } from '@/lib/store';
 
 export default function EngagementsPage() {
@@ -19,22 +19,50 @@ export default function EngagementsPage() {
   const { user } = useAuthStore();
 
   useEffect(() => {
-    async function fetchEngagements() {
-      if (!user?.id) return;
-      
-      try {
-        // Fetch deals where distributor can engage
-        const deals = await getDeals({ userId: user.id });
-        setEngagements(deals);
-      } catch (error) {
-        console.error('Error fetching engagements:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchEngagements();
-  }, [user]);
+  }, [user, activeTab]);
+
+  const fetchEngagements = async () => {
+    if (!user?.organizationId) return;
+    
+    try {
+      const statusFilter = activeTab === 'pending' ? 'PENDING' : activeTab === 'approved' ? 'APPROVED' : undefined;
+      const data = await getEngagementRequests({ 
+        distributorId: user.organizationId,
+        status: statusFilter
+      });
+      setEngagements(data);
+    } catch (error) {
+      console.error('Error fetching engagements:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (engagementId: string) => {
+    try {
+      await updateEngagementRequest(engagementId, { status: 'APPROVED' });
+      toast.success('Engagement approved!');
+      fetchEngagements();
+    } catch (error) {
+      console.error('Error approving engagement:', error);
+      toast.error('Failed to approve engagement');
+    }
+  };
+
+  const handleDecline = async (engagementId: string) => {
+    try {
+      await updateEngagementRequest(engagementId, { 
+        status: 'DECLINED',
+        decline_reason: 'Not interested at this time'
+      });
+      toast.info('Engagement declined');
+      fetchEngagements();
+    } catch (error) {
+      console.error('Error declining engagement:', error);
+      toast.error('Failed to decline engagement');
+    }
+  };
 
   const sampleEngagements = [
     {
@@ -77,33 +105,6 @@ export default function EngagementsPage() {
     },
   ];
 
-  const handleAccept = async (id: string) => {
-    try {
-      await updateDeal(id, { status: 'ACCEPTED' });
-      toast.success('Engagement request accepted! You can now submit a quote.');
-      
-      // Refresh engagements
-      const deals = await getDeals({ userId: user?.id });
-      setEngagements(deals);
-    } catch (error) {
-      console.error('Error accepting engagement:', error);
-      toast.error('Failed to accept engagement');
-    }
-  };
-
-  const handleDecline = async (id: string) => {
-    try {
-      await updateDeal(id, { status: 'DECLINED' });
-      toast.info('Engagement request declined');
-      
-      // Refresh engagements
-      const deals = await getDeals({ userId: user?.id });
-      setEngagements(deals);
-    } catch (error) {
-      console.error('Error declining engagement:', error);
-      toast.error('Failed to decline engagement');
-    }
-  };
 
   // Filter engagements based on search and tab
   const filteredEngagements = (engagements.length > 0 ? engagements : sampleEngagements).filter(eng => {
@@ -273,7 +274,7 @@ export default function EngagementsPage() {
                 <Button 
                   size="sm" 
                   className="flex-1"
-                  onClick={() => handleAccept(engagement.id)}
+                  onClick={() => handleApprove(engagement.id)}
                 >
                   Accept & Quote
                 </Button>

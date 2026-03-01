@@ -87,13 +87,16 @@ export default function RegisterDealPage() {
   };
 
   const handleNext = () => {
-    if (!validateCurrentStep()) {
+    // Skip verification step for BIDDING and DIRECT_QUERY
+    if (currentStep === 2 && (dealType === 'BIDDING' || dealType === 'DIRECT_QUERY')) {
+      if (!validateCurrentStep()) {
+        return;
+      }
+      setCurrentStep(4); // Skip to declaration
       return;
     }
     
-    // Skip verification step for BIDDING and DIRECT_QUERY
-    if (currentStep === 2 && (dealType === 'BIDDING' || dealType === 'DIRECT_QUERY')) {
-      setCurrentStep(4); // Skip to declaration
+    if (!validateCurrentStep()) {
       return;
     }
     

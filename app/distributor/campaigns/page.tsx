@@ -65,10 +65,10 @@ export default function CampaignsPage() {
       <div className="mb-6">
         <div className="flex gap-4 border-b border-gray-200">
           {[
-            { key: 'active', label: 'Active', count: 12 },
-            { key: 'scheduled', label: 'Scheduled', count: 5 },
-            { key: 'ended', label: 'Ended', count: 48 },
-            { key: 'all', label: 'All', count: 65 },
+            { key: 'active', label: 'Active', count: campaigns.filter(c => c.status === 'ACTIVE').length },
+            { key: 'scheduled', label: 'Scheduled', count: campaigns.filter(c => c.status === 'SCHEDULED').length },
+            { key: 'ended', label: 'Ended', count: campaigns.filter(c => c.status === 'ENDED').length },
+            { key: 'all', label: 'All', count: campaigns.length },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -86,7 +86,7 @@ export default function CampaignsPage() {
       </div>
 
       <div className="space-y-6">
-        {campaigns.map((campaign) => (
+        {filteredCampaigns.map((campaign) => (
           <Card key={campaign.id}>
             <CardContent className="p-6">
               <div className="flex items-start gap-6">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,33 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Search, FileText, Eye, Edit, Clock, TrendingUp } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
+import { getQuotes } from '@/lib/data-helpers';
+import { useAuthStore } from '@/lib/store';
 
 export default function QuotesPage() {
   const [activeTab, setActiveTab] = useState('to-submit');
-  
-  const quotes = [
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    fetchQuotes();
+  }, [user]);
+
+  const fetchQuotes = async () => {
+    if (!user?.organizationId) return;
+    
+    try {
+      const data = await getQuotes({ distributorId: user.organizationId });
+      setQuotes(data);
+    } catch (error) {
+      console.error('Error fetching quotes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sampleQuotes = [
     {
       id: 'Q-2024-1234',
       customer: 'XYZ Corporation',
@@ -123,7 +145,21 @@ export default function QuotesPage() {
       </Card>
 
       <div className="space-y-4">
-        {quotes.map((quote) => (
+        {loading ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <p className="text-gray-500">Loading quotes...</p>
+            </CardContent>
+          </Card>
+        ) : (quotes.length > 0 ? quotes : sampleQuotes).length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600 font-semibold">No quotes found</p>
+              <p className="text-sm text-gray-500 mt-2">Start creating quotes for your deals</p>
+            </CardContent>
+          </Card>
+        ) : (quotes.length > 0 ? quotes : sampleQuotes).map((quote) => (
           <Card key={quote.id}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">

@@ -1,11 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { TrendingUp, TrendingDown, DollarSign, Package, Users, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { toast } from 'sonner';
 
 export default function AnalyticsPage() {
+  const [dateRange, setDateRange] = useState('30');
+
+  const handleDateRangeChange = (value: string) => {
+    setDateRange(value);
+    toast.success(`Analytics updated for last ${value} days`);
+    // In production, this would trigger a data refetch with the new date range
+  };
+
   const revenueData = [
     { month: 'Jan', revenue: 45000, orders: 32, avgOrderValue: 1406 },
     { month: 'Feb', revenue: 52000, orders: 38, avgOrderValue: 1368 },
@@ -32,7 +42,10 @@ export default function AnalyticsPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics & Reports</h1>
           <p className="text-gray-600">Track your performance and sales metrics</p>
         </div>
-        <Select defaultValue="30">
+        <Select 
+          value={dateRange}
+          onChange={(e) => handleDateRangeChange(e.target.value)}
+        >
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>

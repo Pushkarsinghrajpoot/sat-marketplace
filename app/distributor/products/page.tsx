@@ -34,7 +34,48 @@ export default function ProductsPage() {
   }, [user]);
 
   const handleImportCSV = () => {
-    toast.info('CSV import feature coming soon! Upload your product catalog in CSV format.');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const csv = event.target?.result as string;
+          const lines = csv.split('\n');
+          const headers = lines[0].split(',');
+          
+          // Skip header row and parse products
+          const importedProducts = lines.slice(1).filter(line => line.trim()).map(line => {
+            const values = line.split(',');
+            return {
+              sku: values[0]?.trim(),
+              name: values[1]?.replace(/"/g, '').trim(),
+              brand: values[2]?.trim(),
+              price: parseFloat(values[3]) || 0,
+              inventory: parseInt(values[4]) || 0,
+              status: values[5]?.trim() || 'DRAFT',
+              organization_id: user?.organizationId,
+            };
+          });
+
+          if (importedProducts.length > 0) {
+            toast.success(`Parsed ${importedProducts.length} products from CSV. Import functionality requires bulk create API.`);
+            console.log('Imported products:', importedProducts);
+          } else {
+            toast.error('No valid products found in CSV');
+          }
+        } catch (error) {
+          console.error('CSV parse error:', error);
+          toast.error('Failed to parse CSV file');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   };
 
   const handleExport = () => {
