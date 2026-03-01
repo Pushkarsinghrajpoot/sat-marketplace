@@ -535,3 +535,140 @@ export async function updateCampaign(campaignId: string, updates: any) {
 
   return mapCampaign(data);
 }
+
+// Platform Configuration
+export async function getPlatformConfig() {
+  const { data, error } = await supabase
+    .from('platform_config')
+    .select('*')
+    .order('config_key', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching platform config:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function getPlatformConfigByKey(key: string) {
+  const { data, error } = await supabase
+    .from('platform_config')
+    .select('*')
+    .eq('config_key', key)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching config ${key}:`, error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function updatePlatformConfig(key: string, value: string) {
+  const { data, error } = await supabase
+    .from('platform_config')
+    .update({ config_value: value })
+    .eq('config_key', key)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating config ${key}:`, error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function createPlatformConfig(configData: any) {
+  const { data, error } = await supabase
+    .from('platform_config')
+    .insert([configData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating platform config:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+// Individual record lookups
+export async function getCategoryBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('slug', slug)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching category ${slug}:`, error);
+    return null;
+  }
+
+  return mapCategory(data);
+}
+
+export async function getProductById(id: string) {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching product ${id}:`, error);
+    return null;
+  }
+
+  return mapProduct(data);
+}
+
+export async function getUserById(id: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching user ${id}:`, error);
+    return null;
+  }
+
+  return mapUser(data);
+}
+
+export async function getUserByEmail(email: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (error) {
+    // Not found is expected for new users
+    return null;
+  }
+
+  return mapUser(data);
+}
+
+export async function getOrganizationById(id: string) {
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching organization ${id}:`, error);
+    return null;
+  }
+
+  return mapOrganization(data);
+}

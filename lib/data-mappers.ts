@@ -241,6 +241,22 @@ export function mapCreditRequest(dbCredit: any): any {
   };
 }
 
+export function mapQuoteLineItem(dbLineItem: any): any {
+  if (!dbLineItem) return null;
+  return {
+    id: dbLineItem.id,
+    quoteId: dbLineItem.quote_id,
+    productId: dbLineItem.product_id,
+    productName: dbLineItem.product_name,
+    sku: dbLineItem.sku,
+    quantity: dbLineItem.quantity,
+    unitPrice: dbLineItem.unit_price,
+    discount: dbLineItem.discount,
+    subtotal: dbLineItem.subtotal,
+    createdAt: dbLineItem.created_at,
+  };
+}
+
 // Helper to map arrays
 export function mapArray<T>(dbArray: any[], mapFn: (item: any) => T): T[] {
   if (!Array.isArray(dbArray)) return [];

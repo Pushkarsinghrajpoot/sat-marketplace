@@ -16,9 +16,9 @@ export default function BOQUploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [dealId, setDealId] = useState('');
   const [deals, setDeals] = useState<any[]>([]);
-  const [visibility, setVisibility] = useState('PUBLIC');
+  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'SELECTED_DISTRIBUTORS'>('PUBLIC');
   const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
-  const [parsed, setParsed] = useState(false);
+  const [parsedData, setParsedData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuthStore();
 
@@ -40,24 +40,31 @@ export default function BOQUploadPage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const uploadedFile = e.target.files[0];
+      setFile(uploadedFile);
+      
+      // Parse file (in production, use a library like xlsx or papaparse)
       setTimeout(() => {
-        setParsed(true);
-        toast.success('File parsed successfully!');
+        // Simulated parsing - in production, actually parse the file
+        const mockData = [
+          { sku: 'PARSE-001', product: 'Parsed Product 1', quantity: 1, specs: 'From file' },
+        ];
+        setParsedData(mockData);
+        toast.success(`File parsed successfully! ${mockData.length} items found`);
       }, 1000);
     }
   };
 
   const handleSubmit = async () => {
-    // Validate file upload
-    if (!file) {
-      toast.error('Please upload a BOQ file first');
+    // Validate deal selection first
+    if (!dealId) {
+      toast.error('Please select a deal for this BOQ');
       return;
     }
 
-    // Validate deal selection
-    if (!dealId) {
-      toast.error('Please select a deal for this BOQ');
+    // Validate file upload
+    if (!file) {
+      toast.error('Please upload a BOQ file first');
       return;
     }
 
@@ -89,7 +96,7 @@ export default function BOQUploadPage() {
           file_size: file.size,
           visibility,
           selected_distributors: selectedDistributors,
-          boq_data: mockPreviewData
+          boq_data: parsedData
         }
       });
 
@@ -153,23 +160,23 @@ export default function BOQUploadPage() {
                   )}
                 </div>
 
-                {file && !parsed && (
+                {file && parsedData.length === 0 && (
                   <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                     <span className="text-sm text-blue-900">Parsing file...</span>
                   </div>
                 )}
 
-                {parsed && (
+                {parsedData.length > 0 && (
                   <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
                     <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span className="text-sm text-green-900 font-medium">File parsed successfully - {mockPreviewData.length} items found</span>
+                    <span className="text-sm text-green-900 font-medium">File parsed successfully - {parsedData.length} items found</span>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {parsed && (
+            {parsedData.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>File Preview</CardTitle>
@@ -186,7 +193,7 @@ export default function BOQUploadPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {mockPreviewData.map((item, idx) => (
+                        {parsedData.map((item, idx) => (
                           <tr key={idx}>
                             <td className="px-4 py-3 font-mono text-xs">{item.sku}</td>
                             <td className="px-4 py-3">{item.product}</td>
@@ -220,7 +227,7 @@ export default function BOQUploadPage() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Visibility Settings *</label>
-                  <Select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
+                  <Select value={visibility} onChange={(e) => setVisibility(e.target.value as 'PUBLIC' | 'PRIVATE' | 'SELECTED_DISTRIBUTORS')}>
                     <option value="PUBLIC">Public Bidding (All qualified distributors)</option>
                     <option value="PRIVATE">Private Invites (Selected distributors only)</option>
                   </Select>

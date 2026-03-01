@@ -24,9 +24,10 @@ export default function QuoteDetailPage() {
   useEffect(() => {
     async function fetchQuote() {
       try {
-        const quotes = await getQuotes({ dealId: quoteId });
-        if (quotes.length > 0) {
-          setQuote(quotes[0]);
+        const quotes = await getQuotes({});
+        const foundQuote = quotes.find(q => q.id === quoteId);
+        if (foundQuote) {
+          setQuote(foundQuote);
         }
       } catch (error) {
         console.error('Error fetching quote:', error);
@@ -76,9 +77,9 @@ export default function QuoteDetailPage() {
   const handleGenerateInvoice = () => {
     // Generate a simple invoice PDF (in production, use a PDF library like jsPDF)
     const invoiceData = {
-      quoteNumber: quote.quote_number || quote.id,
-      customer: quote.customer_name,
-      total: quote.total_amount,
+      quoteNumber: quote.id,
+      customer: 'Customer',
+      total: quote.total,
       date: new Date().toLocaleDateString(),
     };
     
@@ -141,7 +142,7 @@ export default function QuoteDetailPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Quote Number</label>
-                    <Input value={quote.quote_number || quote.id} disabled />
+                    <Input value={quote.id} disabled />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Status</label>
@@ -152,27 +153,22 @@ export default function QuoteDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Deal Name</label>
-                  <Input value={quote.deal_name || 'N/A'} disabled />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Customer</label>
-                  <Input value={quote.customer_name || 'N/A'} disabled />
+                  <label className="block text-sm font-medium mb-2">Deal ID</label>
+                  <Input value={quote.dealId || 'N/A'} disabled />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Total Amount</label>
                     <Input 
-                      value={formatCurrency(quote.total_amount || 0)} 
+                      value={formatCurrency(quote.total || 0)} 
                       disabled 
                       className="font-bold"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Valid Until</label>
-                    <Input value={quote.valid_until || 'N/A'} type="date" disabled />
+                    <Input value={quote.validUntil || 'N/A'} type="date" disabled />
                   </div>
                 </div>
 
@@ -203,13 +199,13 @@ export default function QuoteDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {quote.line_items?.map((item: any, idx: number) => (
+                      {quote.lineItems?.map((item: any, idx: number) => (
                         <tr key={idx} className="border-b">
-                          <td className="p-3 text-sm">{item.name}</td>
+                          <td className="p-3 text-sm">{item.productName}</td>
                           <td className="p-3 text-sm text-right">{item.quantity}</td>
-                          <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
+                          <td className="p-3 text-sm text-right">{formatCurrency(item.unitPrice)}</td>
                           <td className="p-3 text-sm text-right font-medium">
-                            {formatCurrency(item.quantity * item.unit_price)}
+                            {formatCurrency(item.subtotal)}
                           </td>
                         </tr>
                       ))}
@@ -218,7 +214,7 @@ export default function QuoteDetailPage() {
                       <tr>
                         <td colSpan={3} className="p-3 text-right font-bold">Total:</td>
                         <td className="p-3 text-right font-bold text-lg">
-                          {formatCurrency(quote.total_amount || 0)}
+                          {formatCurrency(quote.total || 0)}
                         </td>
                       </tr>
                     </tfoot>
@@ -256,15 +252,15 @@ export default function QuoteDetailPage() {
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-medium">{formatCurrency(quote.total_amount || 0)}</span>
+                  <span className="font-medium">{formatCurrency(quote.subtotal || 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax:</span>
-                  <span className="font-medium">{formatCurrency(0)}</span>
+                  <span className="font-medium">{formatCurrency(quote.tax || 0)}</span>
                 </div>
                 <div className="flex justify-between pt-3 border-t">
                   <span className="font-bold">Total:</span>
-                  <span className="font-bold text-lg">{formatCurrency(quote.total_amount || 0)}</span>
+                  <span className="font-bold text-lg">{formatCurrency(quote.total || 0)}</span>
                 </div>
               </CardContent>
             </Card>

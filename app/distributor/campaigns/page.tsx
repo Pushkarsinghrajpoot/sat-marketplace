@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, Handshake, FileText, DollarSign, MoreVertical, Play, Pause, Edit } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { getCampaigns } from '@/lib/data-helpers';
+import { getCampaigns, updateCampaign } from '@/lib/data-helpers';
 import { useAuthStore } from '@/lib/store';
+import { toast } from 'sonner';
 
 export default function CampaignsPage() {
   const [activeTab, setActiveTab] = useState('active');
@@ -33,11 +34,37 @@ export default function CampaignsPage() {
     }
   };
 
+  const handlePauseCampaign = async (campaignId: string, campaignName: string) => {
+    try {
+      await updateCampaign(campaignId, { status: 'PAUSED' });
+      setCampaigns(campaigns.map(c => 
+        c.id === campaignId ? { ...c, status: 'PAUSED' } : c
+      ));
+      toast.success(`Campaign "${campaignName}" paused successfully`);
+    } catch (error) {
+      console.error('Error pausing campaign:', error);
+      toast.error('Failed to pause campaign');
+    }
+  };
+
+  const handleResumeCampaign = async (campaignId: string, campaignName: string) => {
+    try {
+      await updateCampaign(campaignId, { status: 'ACTIVE' });
+      setCampaigns(campaigns.map(c => 
+        c.id === campaignId ? { ...c, status: 'ACTIVE' } : c
+      ));
+      toast.success(`Campaign "${campaignName}" resumed successfully`);
+    } catch (error) {
+      console.error('Error resuming campaign:', error);
+      toast.error('Failed to resume campaign');
+    }
+  };
+
   const filteredCampaigns = campaigns.filter(c => {
     if (activeTab === 'all') return true;
     if (activeTab === 'active') return c.status === 'ACTIVE';
     if (activeTab === 'scheduled') return c.status === 'SCHEDULED';
-    if (activeTab === 'ended') return c.status === 'ENDED';
+    if (activeTab === 'ended') return c.status === 'COMPLETED' || c.status === 'CANCELLED';
     return true;
   });
 
@@ -61,7 +88,7 @@ export default function CampaignsPage() {
           {[
             { key: 'active', label: 'Active', count: campaigns.filter(c => c.status === 'ACTIVE').length },
             { key: 'scheduled', label: 'Scheduled', count: campaigns.filter(c => c.status === 'SCHEDULED').length },
-            { key: 'ended', label: 'Ended', count: campaigns.filter(c => c.status === 'ENDED').length },
+            { key: 'ended', label: 'Ended', count: campaigns.filter(c => c.status === 'COMPLETED' || c.status === 'CANCELLED' || c.status === 'PAUSED').length },
             { key: 'all', label: 'All', count: campaigns.length },
           ].map((tab) => (
             <button
@@ -94,9 +121,9 @@ export default function CampaignsPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span>{campaign.start_date} - {campaign.end_date}</span>
+                        <span>{campaign.startDate} - {campaign.endDate}</span>
                         <span>•</span>
-                        <span>{campaign.target_audience_type || 'All Resellers'}</span>
+                        <span>{campaign.targetAudienceType || 'All Resellers'}</span>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm">
@@ -110,7 +137,7 @@ export default function CampaignsPage() {
                         <Eye className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics_views || 0}</p>
+                        <p className="text-2xl font-bold text-gray-900">{campaign.analyticsViews || 0}</p>
                         <p className="text-xs text-gray-600">Views</p>
                       </div>
                     </div>
@@ -120,7 +147,7 @@ export default function CampaignsPage() {
                         <Handshake className="h-5 w-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics_engagements || 0}</p>
+                        <p className="text-2xl font-bold text-gray-900">{campaign.analyticsEngagements || 0}</p>
                         <p className="text-xs text-gray-600">Engagements</p>
                       </div>
                     </div>
@@ -130,7 +157,7 @@ export default function CampaignsPage() {
                         <FileText className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics_quotes || 0}</p>
+                        <p className="text-2xl font-bold text-gray-900">{campaign.analyticsQuotes || 0}</p>
                         <p className="text-xs text-gray-600">Quotes</p>
                       </div>
                     </div>
@@ -140,7 +167,7 @@ export default function CampaignsPage() {
                         <DollarSign className="h-5 w-5 text-orange-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{campaign.analytics_conversions || 0}</p>
+                        <p className="text-2xl font-bold text-gray-900">{campaign.analyticsConversions || 0}</p>
                         <p className="text-xs text-gray-600">Conversions</p>
                       </div>
                     </div>
@@ -150,8 +177,8 @@ export default function CampaignsPage() {
                     <div className="flex items-center justify-between text-sm mb-2">
                       <span className="text-gray-600">Engagement Rate</span>
                       <span className="font-semibold">
-                        {campaign.analytics_views > 0 
-                          ? Math.round((campaign.analytics_engagements / campaign.analytics_views) * 100)
+                        {campaign.analyticsViews > 0 
+                          ? Math.round((campaign.analyticsEngagements / campaign.analyticsViews) * 100)
                           : 0}%
                       </span>
                     </div>
@@ -159,8 +186,8 @@ export default function CampaignsPage() {
                       <div
                         className="bg-blue-600 h-2 rounded-full transition-all"
                         style={{ 
-                          width: `${campaign.analytics_views > 0 
-                            ? Math.round((campaign.analytics_engagements / campaign.analytics_views) * 100)
+                          width: `${campaign.analyticsViews > 0 
+                            ? Math.round((campaign.analyticsEngagements / campaign.analyticsViews) * 100)
                             : 0}%` 
                         }}
                       />
@@ -179,10 +206,25 @@ export default function CampaignsPage() {
                         Edit Campaign
                       </Button>
                     </Link>
-                    <Button variant="outline" size="sm">
-                      <Pause className="h-4 w-4 mr-2" />
-                      Pause
-                    </Button>
+                    {campaign.status === 'ACTIVE' ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handlePauseCampaign(campaign.id, campaign.name)}
+                      >
+                        <Pause className="h-4 w-4 mr-2" />
+                        Pause
+                      </Button>
+                    ) : campaign.status === 'PAUSED' ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleResumeCampaign(campaign.id, campaign.name)}
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Resume
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </div>

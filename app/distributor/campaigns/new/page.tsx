@@ -5,13 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/lib/store';
-import { generateId } from '@/lib/utils';
+import { toast } from 'sonner';
+import { createCampaign } from '@/lib/data-helpers';
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -58,11 +56,7 @@ export default function NewCampaignPage() {
         goal_target_revenue: formData.targetRevenue ? parseFloat(formData.targetRevenue) : null,
       };
 
-      const { error } = await supabase
-        .from('campaigns')
-        .insert([campaignData]);
-
-      if (error) throw error;
+      await createCampaign(campaignData);
 
       toast.success('Campaign created successfully!');
       router.push('/distributor/campaigns');

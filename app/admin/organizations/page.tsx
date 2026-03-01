@@ -60,10 +60,18 @@ export default function OrganizationsPage() {
 
   const filteredOrganizations = organizations.filter(org => {
     const matchesSearch = org.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'pending' && (org.verified === false || org.verified === null)) ||
-                         (statusFilter === 'verified' && org.verified === true) ||
-                         (statusFilter === 'rejected' && org.verified === false);
+    
+    // Better status filtering logic
+    let matchesStatus = true;
+    if (statusFilter === 'pending') {
+      matchesStatus = org.verified === null || org.verified === undefined;
+    } else if (statusFilter === 'verified') {
+      matchesStatus = org.verified === true;
+    } else if (statusFilter === 'rejected') {
+      matchesStatus = org.verified === false;
+    }
+    // 'all' filter shows everything
+    
     return matchesSearch && matchesStatus;
   });
 

@@ -7,12 +7,19 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { getCategories, createCategory, updateCategory, deleteCategory, getQualificationBands, createQualificationBand, updateQualificationBand } from '@/lib/data-helpers';
+import { getCategories, createCategory, updateCategory, deleteCategory, getQualificationBands, createQualificationBand, updateQualificationBand, getPlatformConfig, updatePlatformConfig } from '@/lib/data-helpers';
 
 export default function ConfigPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [qualificationBands, setQualificationBands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generalSettings, setGeneralSettings] = useState({
+    platformName: '',
+    supportEmail: '',
+    supportPhone: '',
+    currency: '',
+    timezone: ''
+  });
 
   useEffect(() => {
     loadConfig();
@@ -20,12 +27,27 @@ export default function ConfigPage() {
 
   const loadConfig = async () => {
     try {
-      const [cats, bands] = await Promise.all([
+      const [cats, bands, configData] = await Promise.all([
         getCategories(),
-        getQualificationBands()
+        getQualificationBands(),
+        getPlatformConfig()
       ]);
       setCategories(cats);
       setQualificationBands(bands);
+      
+      // Parse config from database
+      const configMap: any = {};
+      configData.forEach((item: any) => {
+        configMap[item.config_key] = item.config_value;
+      });
+      
+      setGeneralSettings({
+        platformName: configMap.platform_name || '',
+        supportEmail: configMap.support_email || '',
+        supportPhone: configMap.support_phone || '',
+        currency: configMap.currency || 'USD',
+        timezone: configMap.timezone || 'PST'
+      });
     } catch (error) {
       console.error('Error loading config:', error);
     } finally {
@@ -33,8 +55,28 @@ export default function ConfigPage() {
     }
   };
 
-  const handleSaveConfig = () => {
-    toast.success('All changes are saved automatically!');
+  const handleSaveConfig = async () => {
+    try {
+      // Save all settings to database
+      await Promise.all([
+        updatePlatformConfig('platform_name', generalSettings.platformName),
+        updatePlatformConfig('support_email', generalSettings.supportEmail),
+        updatePlatformConfig('support_phone', generalSettings.supportPhone),
+        updatePlatformConfig('currency', generalSettings.currency),
+        updatePlatformConfig('timezone', generalSettings.timezone)
+      ]);
+      toast.success('Configuration saved successfully!');
+    } catch (error) {
+      console.error('Error saving config:', error);
+      toast.error('Failed to save configuration');
+    }
+  };
+
+  const handleGeneralSettingChange = (field: string, value: string) => {
+    setGeneralSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleAddCategory = async () => {
@@ -126,7 +168,7 @@ export default function ConfigPage() {
                       className="max-w-md" 
                     />
                     <Badge variant="success">{category.status}</Badge>
-                    <span className="text-sm text-gray-600">{category.products} products</span>
+                    <span className="text-sm text-gray-600">{category.productCount || 0} products</span>
                   </div>
                   <div className="flex gap-2">
                     <Button 
@@ -197,22 +239,37 @@ export default function ConfigPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Platform Name</label>
-                <Input defaultValue="B2B Marketplace" />
+                <Input 
+                  value={generalSettings.platformName}
+                  onChange={(e) => handleGeneralSettingChange('platformName', e.target.value)}
+                />
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Support Email</label>
-                  <Input type="email" defaultValue="support@marketplace.example.com" />
+                  <Input 
+                    type="email" 
+                    value={generalSettings.supportEmail}
+                    onChange={(e) => handleGeneralSettingChange('supportEmail', e.target.value)}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Support Phone</label>
-                  <Input type="tel" defaultValue="+1-415-555-9999" />
+                  <Input 
+                    type="tel" 
+                    value={generalSettings.supportPhone}
+                    onChange={(e) => handleGeneralSettingChange('supportPhone', e.target.value)}
+                  />
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Currency</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    value={generalSettings.currency}
+                    onChange={(e) => handleGeneralSettingChange('currency', e.target.value)}
+                  >
                     <option value="USD">USD - US Dollar</option>
                     <option value="EUR">EUR - Euro</option>
                     <option value="GBP">GBP - British Pound</option>
@@ -220,7 +277,11 @@ export default function ConfigPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Timezone</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    value={generalSettings.timezone}
+                    onChange={(e) => handleGeneralSettingChange('timezone', e.target.value)}
+                  >
                     <option value="PST">PST - Pacific</option>
                     <option value="EST">EST - Eastern</option>
                     <option value="UTC">UTC</option>

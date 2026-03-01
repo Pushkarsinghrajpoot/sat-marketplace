@@ -41,8 +41,10 @@ export default function DealsPage() {
   );
 
   const dealsByStage = {
-    prospecting: filteredDeals.filter(d => d.status === 'DRAFT' && !d.isLocked),
+    prospecting: filteredDeals.filter(d => d.status === 'DRAFT' && !d.isLocked && d.dealType !== 'DIRECT_QUERY'),
     registered: filteredDeals.filter(d => (d.status === 'DRAFT' || d.status === 'ACTIVE') && d.isLocked && d.dealType === 'DEAL_REGISTRATION'),
+    bidding: filteredDeals.filter(d => d.dealType === 'BIDDING' && d.status === 'ACTIVE'),
+    directQueries: filteredDeals.filter(d => d.dealType === 'DIRECT_QUERY'),
     quoted: filteredDeals.filter(d => d.status === 'QUOTED'),
     won: filteredDeals.filter(d => d.status === 'WON'),
   };
@@ -165,6 +167,78 @@ export default function DealsPage() {
             ))}
             {dealsByStage.registered.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-4">No registered deals</p>
+            )}
+          </div>
+        </div>
+
+        {/* Bidding */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-700">Bidding</h2>
+            <Badge variant="info">{dealsByStage.bidding.length}</Badge>
+          </div>
+          <div className="space-y-3">
+            {dealsByStage.bidding.map((deal) => (
+              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
+                <Card className="bg-orange-50 border-orange-200 hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
+                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <DollarSign className="h-3 w-3 text-gray-400" />
+                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-orange-600">
+                        <Calendar className="h-3 w-3" />
+                        <span>{deal.closeDate}</span>
+                      </div>
+                    </div>
+                    <Button size="sm" className="w-full mt-3">
+                      View Quotes
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+            {dealsByStage.bidding.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-4">No bidding deals</p>
+            )}
+          </div>
+        </div>
+
+        {/* Direct Queries */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-700">Direct Queries</h2>
+            <Badge variant="default">{dealsByStage.directQueries.length}</Badge>
+          </div>
+          <div className="space-y-3">
+            {dealsByStage.directQueries.map((deal) => (
+              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
+                <Card className="bg-teal-50 border-teal-200 hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
+                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <DollarSign className="h-3 w-3 text-gray-400" />
+                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-teal-600">
+                        <Calendar className="h-3 w-3" />
+                        <span>{deal.closeDate}</span>
+                      </div>
+                    </div>
+                    <Button size="sm" className="w-full mt-3">
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+            {dealsByStage.directQueries.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-4">No direct queries</p>
             )}
           </div>
         </div>
