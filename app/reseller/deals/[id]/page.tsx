@@ -133,14 +133,14 @@ export default function DealDetailPage() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{deal.opportunity_name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{deal.opportunityName}</h1>
             <div className="flex items-center gap-3">
               <Badge variant={deal.status === 'WON' ? 'success' : 'warning'}>{deal.status}</Badge>
               <span className="text-gray-600">Deal ID: {deal.id}</span>
             </div>
           </div>
           <div className="flex gap-3">
-            {deal.deal_type === 'DEAL_REGISTRATION' && deal.is_locked && !deal.converted_to_bidding && (
+            {deal.dealType === 'DEAL_REGISTRATION' && deal.isLocked && !deal.convertedToBidding && (
               <Button variant="outline" onClick={() => setShowConvertModal(true)}>
                 Convert to Bidding
               </Button>
@@ -158,7 +158,7 @@ export default function DealDetailPage() {
                 <Building className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600">Customer</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{deal.customer_name}</p>
+              <p className="text-xl font-bold text-gray-900">{deal.customerName}</p>
             </CardContent>
           </Card>
 
@@ -168,7 +168,7 @@ export default function DealDetailPage() {
                 <DollarSign className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600">Deal Value</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(deal.estimated_value || 0)}</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</p>
             </CardContent>
           </Card>
 
@@ -178,13 +178,13 @@ export default function DealDetailPage() {
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600">Expected Close</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{deal.close_date}</p>
+              <p className="text-xl font-bold text-gray-900">{deal.closeDate}</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Lock Status Card */}
-        {deal.is_locked && (
+        {deal.isLocked && (
           <Card className="mb-6 bg-yellow-50 border-yellow-300">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -192,7 +192,7 @@ export default function DealDetailPage() {
                 <div>
                   <p className="font-semibold text-yellow-900">Deal Locked</p>
                   <p className="text-sm text-yellow-800">
-                    Locked on {deal.locked_at ? new Date(deal.locked_at).toLocaleDateString() : 'N/A'}
+                    Locked on {deal.lockedAt ? new Date(deal.lockedAt).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
                 {deal.score > 0 && (
@@ -209,7 +209,7 @@ export default function DealDetailPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Deal Information</CardTitle>
-              {deal.deal_type === 'DEAL_REGISTRATION' && (
+              {deal.dealType === 'DEAL_REGISTRATION' && (
                 <Button onClick={() => setShowMeetingModal(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Activity
@@ -222,7 +222,7 @@ export default function DealDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Deal Type</p>
-                  <Badge>{deal.deal_type.replace('_', ' ')}</Badge>
+                  <Badge>{deal.dealType.replace('_', ' ')}</Badge>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Status</p>
@@ -231,7 +231,7 @@ export default function DealDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Customer Email</p>
-                <p className="font-semibold">{deal.customer_email}</p>
+                <p className="font-semibold">{deal.customerEmail}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Notes</p>
@@ -242,7 +242,7 @@ export default function DealDetailPage() {
         </Card>
 
         {/* Meeting Activities */}
-        {(deal.deal_type === 'DEAL_REGISTRATION' || deal.deal_type === 'DIRECT_QUERY') && (
+        {(deal.dealType === 'DEAL_REGISTRATION' || deal.dealType === 'DIRECT_QUERY') && (
           <MeetingActivityList dealId={deal.id} userRole={user?.role as 'RESELLER' | 'DISTRIBUTOR' | 'END_USER'} />
         )}
 

@@ -97,16 +97,16 @@ export default function DealsPage() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="bg-gray-50 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunity_name}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
+                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimated_value || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <Calendar className="h-3 w-3" />
-                        <span>{deal.close_date}</span>
+                        <span>{deal.closeDate}</span>
                       </div>
                     </div>
                     <Button variant="outline" size="sm" className="w-full mt-3">
@@ -134,20 +134,20 @@ export default function DealsPage() {
                 <Card className="bg-blue-50 border-blue-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-sm line-clamp-2 flex-1">{deal.opportunity_name}</h3>
-                      {deal.is_locked && (
+                      <h3 className="font-semibold text-sm line-clamp-2 flex-1">{deal.opportunityName}</h3>
+                      {deal.isLocked && (
                         <Lock className="h-4 w-4 text-yellow-600 ml-2 flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
+                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimated_value || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-blue-600">
                         <Calendar className="h-3 w-3" />
-                        <span>{deal.close_date}</span>
+                        <span>{deal.closeDate}</span>
                       </div>
                       {deal.score > 0 && (
                         <div className="flex items-center gap-2 text-xs text-orange-600">
@@ -180,16 +180,16 @@ export default function DealsPage() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="bg-purple-50 border-purple-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunity_name}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
+                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimated_value || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-purple-600">
                         <Calendar className="h-3 w-3" />
-                        <span>{deal.close_date}</span>
+                        <span>{deal.closeDate}</span>
                       </div>
                     </div>
                     <Button size="sm" className="w-full mt-3">
@@ -216,15 +216,15 @@ export default function DealsPage() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="bg-green-50 border-green-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunity_name}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customer_name}</p>
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
+                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-green-700">{formatCurrency(deal.estimated_value || 0)}</span>
+                        <span className="font-bold text-green-700">{formatCurrency(deal.estimatedValue || 0)}</span>
                       </div>
                       <div className="text-xs text-gray-600">
-                        Closed: {deal.close_date}
+                        Closed: {deal.closeDate}
                       </div>
                     </div>
                     <Button variant="outline" size="sm" className="w-full mt-3">
