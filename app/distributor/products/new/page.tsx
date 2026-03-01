@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,12 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Minus, Upload, X } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
-import { createProduct } from '@/lib/data-helpers';
+import { createProduct, getCategories } from '@/lib/data-helpers';
 
 export default function AddProductPage() {
   const router = useRouter();
   const { user, organization } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: '',
@@ -34,6 +35,19 @@ export default function AddProductPage() {
     tags: '',
     featured: false,
   });
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast.error('Failed to load categories');
+      }
+    }
+    fetchCategories();
+  }, []);
 
   const addVolumePricing = () => {
     setFormData(prev => ({
@@ -176,12 +190,11 @@ export default function AddProductPage() {
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
                   >
                     <option value="">Select Category</option>
-                    <option value="cat1">Networking & Infrastructure</option>
-                    <option value="cat2">Cloud Services</option>
-                    <option value="cat3">Cybersecurity</option>
-                    <option value="cat4">Storage Solutions</option>
-                    <option value="cat5">Software Licensing</option>
-                    <option value="cat6">Hardware & Servers</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
                   </Select>
                 </div>
 

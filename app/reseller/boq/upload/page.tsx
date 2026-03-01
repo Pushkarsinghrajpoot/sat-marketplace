@@ -81,7 +81,7 @@ export default function BOQUploadPage() {
       // Create deal activity for BOQ upload
       await createDealActivity({
         deal_id: dealId,
-        user_id: user?.id,
+        reseller_id: user?.id,
         activity_type: 'BOQ_REVISION',
         description: `BOQ file uploaded: ${file.name}`,
         metadata: {

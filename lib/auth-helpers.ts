@@ -39,7 +39,22 @@ export async function getCurrentUser(): Promise<User | null> {
     return null;
   }
 
-  return userData as User;
+  // Map database snake_case fields to TypeScript camelCase
+  const user: User = {
+    id: userData.id,
+    email: userData.email,
+    name: userData.name,
+    avatar: userData.avatar,
+    organizationId: userData.organization_id, // Map snake_case to camelCase
+    role: userData.role,
+    phoneNumber: userData.phone_number,
+    isActive: userData.is_active,
+    lastLoginAt: userData.last_login_at,
+    createdAt: userData.created_at,
+    updatedAt: userData.updated_at,
+  };
+
+  return user;
 }
 
 export async function getUserWithOrganization(userId: string) {
@@ -53,8 +68,23 @@ export async function getUserWithOrganization(userId: string) {
     return { user: null, organization: null };
   }
 
+  // Map database snake_case fields to TypeScript camelCase
+  const user: User = {
+    id: userData.id,
+    email: userData.email,
+    name: userData.name,
+    avatar: userData.avatar,
+    organizationId: userData.organization_id, // Map snake_case to camelCase
+    role: userData.role,
+    phoneNumber: userData.phone_number,
+    isActive: userData.is_active,
+    lastLoginAt: userData.last_login_at,
+    createdAt: userData.created_at,
+    updatedAt: userData.updated_at,
+  };
+
   if (!userData.organization_id) {
-    return { user: userData as User, organization: null };
+    return { user, organization: null };
   }
 
   const { data: orgData, error: orgError } = await supabase
@@ -65,10 +95,10 @@ export async function getUserWithOrganization(userId: string) {
 
   if (orgError) {
     console.error('Error fetching organization:', orgError);
-    return { user: userData as User, organization: null };
+    return { user, organization: null };
   }
 
-  return { user: userData as User, organization: orgData };
+  return { user, organization: orgData };
 }
 
 export async function updateLastLogin(userId: string) {

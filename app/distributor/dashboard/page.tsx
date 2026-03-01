@@ -34,10 +34,12 @@ export default function DistributorDashboard() {
       if (!user?.id) return;
 
       try {
+        // Distributors should see ALL deals (not filtered by userId)
+        // They see deals they can engage with, not deals they created
         const [deals, queries, quotes] = await Promise.all([
-          getDeals({ userId: user.id }),
-          getDirectQueries({ userId: user.id }),
-          getQuotes({ distributorId: user.id }),
+          getDeals({}), // Fetch all deals for distributor view
+          getDirectQueries({}), // Fetch all queries for distributor view
+          getQuotes({ distributorId: user.organizationId }),
         ]);
 
         const registrations = deals.filter((d: any) => d.deal_type === 'DEAL_REGISTRATION');
