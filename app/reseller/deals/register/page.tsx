@@ -76,6 +76,10 @@ export default function RegisterDealPage() {
         return true;
       
       case 4: // Declaration
+        // DIRECT_QUERY doesn't need declaration or signature
+        if (dealType === 'DIRECT_QUERY') {
+          return true;
+        }
         if (!formData.confirmedRelationship || !formData.agreedToTerms || !signature) {
           toast.error('Please confirm all declarations and provide signature');
           return false;
@@ -88,19 +92,23 @@ export default function RegisterDealPage() {
   };
 
   const handleNext = () => {
-    // Skip verification step for BIDDING and DIRECT_QUERY
-    if (currentStep === 2 && (dealType === 'BIDDING' || dealType === 'DIRECT_QUERY')) {
-      if (!validateCurrentStep()) {
-        return;
-      }
-      setCurrentStep(4); // Skip to declaration
-      return;
-    }
-    
     if (!validateCurrentStep()) {
       return;
     }
     
+    // DIRECT_QUERY: Submit immediately after deal details (step 2)
+    if (currentStep === 2 && dealType === 'DIRECT_QUERY') {
+      handleSubmit();
+      return;
+    }
+    
+    // BIDDING: Skip verification, go to declaration
+    if (currentStep === 2 && dealType === 'BIDDING') {
+      setCurrentStep(4); // Skip to declaration
+      return;
+    }
+    
+    // Normal flow for DEAL_REGISTRATION
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -149,7 +157,7 @@ export default function RegisterDealPage() {
     
     try {
       // Keep deal type as-is - do NOT auto-convert
-      const dealData = {
+      const dealData: any = {
         opportunity_name: formData.opportunityName,
         deal_type: dealType, // Keep original type
         customer_name: formData.customerName,
@@ -159,20 +167,29 @@ export default function RegisterDealPage() {
         estimated_value: parseFloat(formData.estimatedValue) || 0,
         close_date: formData.closeDate,
         notes: formData.notes,
-        status: 'ACTIVE', // Set to ACTIVE after registration complete
+        status: 'ACTIVE',
         reseller_id: user.id,
         reseller_organization_id: user.organizationId,
-        is_verified: isVerified,
-        declaration_signature: signature,
-        declaration_accepted: true,
-        declaration_accepted_at: new Date().toISOString(),
-        // Lock mechanism - auto-lock for DEAL_REGISTRATION
+        // Lock mechanism - only for DEAL_REGISTRATION
         is_locked: dealType === 'DEAL_REGISTRATION',
         locked_by: dealType === 'DEAL_REGISTRATION' ? user.id : null,
         locked_at: dealType === 'DEAL_REGISTRATION' ? new Date().toISOString() : null,
-        // Start with score 0 - will increase with activities
-        score: 0,
+        // Score only for DEAL_REGISTRATION and converted BIDDING
+        score: dealType === 'DEAL_REGISTRATION' ? 0 : null,
       };
+      
+      // Add verification and declaration fields only if applicable
+      if (dealType === 'DEAL_REGISTRATION') {
+        dealData.is_verified = isVerified;
+        dealData.declaration_signature = signature;
+        dealData.declaration_accepted = true;
+        dealData.declaration_accepted_at = new Date().toISOString();
+      } else if (dealType === 'BIDDING') {
+        dealData.declaration_signature = signature;
+        dealData.declaration_accepted = true;
+        dealData.declaration_accepted_at = new Date().toISOString();
+      }
+      // DIRECT_QUERY: No verification, no declaration needed
       
       console.log('Creating deal with data:', dealData);
       
