@@ -35,15 +35,14 @@ export default function DealsPage() {
     fetchDeals();
   }, [user]);
 
-  const filteredDeals = deals.filter(deal => 
-    searchQuery === '' || 
-    deal.opportunity_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    deal.customer_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredDeals = deals.filter(deal =>
+    deal.opportunityName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    deal.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const dealsByStage = {
-    prospecting: filteredDeals.filter(d => d.status === 'DRAFT' && !d.is_locked),
-    registered: filteredDeals.filter(d => (d.status === 'DRAFT' || d.status === 'ACTIVE') && d.is_locked && d.deal_type === 'DEAL_REGISTRATION'),
+    prospecting: filteredDeals.filter(d => d.status === 'DRAFT' && !d.isLocked),
+    registered: filteredDeals.filter(d => (d.status === 'DRAFT' || d.status === 'ACTIVE') && d.isLocked && d.dealType === 'DEAL_REGISTRATION'),
     quoted: filteredDeals.filter(d => d.status === 'QUOTED'),
     won: filteredDeals.filter(d => d.status === 'WON'),
   };

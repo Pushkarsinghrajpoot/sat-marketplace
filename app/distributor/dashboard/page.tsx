@@ -42,19 +42,19 @@ export default function DistributorDashboard() {
           getQuotes({ distributorId: user.organizationId }),
         ]);
 
-        const registrations = deals.filter((d: any) => d.deal_type === 'DEAL_REGISTRATION');
-        const bidding = deals.filter((d: any) => d.deal_type === 'BIDDING');
+        const registrations = deals.filter((d: any) => d.dealType === 'DEAL_REGISTRATION');
+        const bidding = deals.filter((d: any) => d.dealType === 'BIDDING');
         
         const activeQuotes = quotes.filter((q: any) => q.status === 'SUBMITTED' || q.status === 'PENDING');
         const monthlyRevenue = quotes
           .filter((q: any) => q.status === 'ACCEPTED')
-          .reduce((sum, q) => sum + (q.total_amount || 0), 0);
+          .reduce((sum, q) => sum + (q.total || 0), 0);
         
         setStats({
           totalProducts: 0,
           activeQuotes: activeQuotes.length,
           monthlyRevenue,
-          activeCustomers: new Set(deals.map((d: any) => d.reseller_id)).size,
+          activeCustomers: new Set(deals.map((d: any) => d.resellerId)).size,
           dealRegistrations: registrations.length,
           biddingDeals: bidding.length,
           directQueries: queries.length,

@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
 import { ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import { getCampaign, updateCampaign } from '@/lib/data-helpers';
 
 export default function EditCampaignPage() {
   const router = useRouter();
@@ -32,24 +32,18 @@ export default function EditCampaignPage() {
 
   const fetchCampaign = async () => {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', params.id)
-        .single();
-
-      if (error) throw error;
+      const data = await getCampaign(params.id as string);
 
       if (data) {
         setFormData({
           name: data.name || '',
           description: data.description || '',
-          startDate: data.start_date || '',
-          endDate: data.end_date || '',
+          startDate: data.startDate || '',
+          endDate: data.endDate || '',
           status: data.status || 'ACTIVE',
-          targetAudience: data.target_audience_type || '',
-          incentiveType: data.incentive_type || '',
-          discount: data.incentive_discount || 0,
+          targetAudience: data.targetAudienceType || '',
+          incentiveType: data.incentiveType || '',
+          discount: data.incentiveDiscount || 0,
         });
       }
     } catch (error) {
@@ -69,21 +63,16 @@ export default function EditCampaignPage() {
     setSaving(true);
 
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .update({
-          name: formData.name,
-          description: formData.description,
-          start_date: formData.startDate,
-          end_date: formData.endDate,
-          status: formData.status,
-          target_audience_type: formData.targetAudience,
-          incentive_type: formData.incentiveType,
-          incentive_discount: formData.discount,
-        })
-        .eq('id', params.id);
-
-      if (error) throw error;
+      await updateCampaign(params.id as string, {
+        name: formData.name,
+        description: formData.description,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        status: formData.status,
+        target_audience_type: formData.targetAudience,
+        incentive_type: formData.incentiveType,
+        incentive_discount: formData.discount,
+      });
 
       toast.success('Campaign updated successfully!');
       router.push('/distributor/campaigns');

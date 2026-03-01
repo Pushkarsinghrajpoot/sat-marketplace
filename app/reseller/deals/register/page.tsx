@@ -145,9 +145,14 @@ export default function RegisterDealPage() {
     }
     
     try {
+      // For DEAL_REGISTRATION, convert to BIDDING immediately after registration
+      // This makes it visible to distributors for competitive bidding
+      const finalDealType = dealType === 'DEAL_REGISTRATION' ? 'BIDDING' : dealType;
+      const isConverted = dealType === 'DEAL_REGISTRATION';
+      
       const dealData = {
         opportunity_name: formData.opportunityName,
-        deal_type: dealType,
+        deal_type: finalDealType,
         customer_name: formData.customerName,
         customer_company: formData.customerCompany,
         customer_email: formData.customerEmail,
@@ -155,18 +160,34 @@ export default function RegisterDealPage() {
         estimated_value: parseFloat(formData.estimatedValue),
         close_date: formData.closeDate,
         notes: formData.notes,
-        status: 'DRAFT',
+        status: 'ACTIVE', // Set to ACTIVE so distributors can see it
         reseller_id: user.id,
         reseller_organization_id: user.organizationId,
         is_verified: isVerified,
         declaration_signature: signature,
-        is_locked: true,
-        locked_by: user.id,
-        locked_at: new Date().toISOString(),
+        declaration_accepted: true,
+        declaration_accepted_at: new Date().toISOString(),
+        is_locked: dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING', // Lock for DEAL_REGISTRATION and BIDDING
+        locked_by: (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING') ? user.id : null,
+        locked_at: (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING') ? new Date().toISOString() : null,
+        // Track if this was originally a DEAL_REGISTRATION
+        converted_to_bidding: isConverted,
+        converted_to_bidding_at: isConverted ? new Date().toISOString() : null,
       };
       
       await createDeal(dealData);
-      toast.success('Deal registered successfully!');
+      
+      // Show appropriate success message based on deal type
+      let successMessage = 'Deal submitted successfully!';
+      if (isConverted) {
+        successMessage = 'Deal registered and opened for bidding!';
+      } else if (dealType === 'DIRECT_QUERY') {
+        successMessage = 'Direct query submitted! Distributors can now respond.';
+      } else if (dealType === 'BIDDING') {
+        successMessage = 'Bidding deal created! Distributors can now submit quotes.';
+      }
+      
+      toast.success(successMessage);
       router.push('/reseller/deals');
     } catch (error: any) {
       console.error('Error creating deal:', error);

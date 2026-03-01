@@ -1,4 +1,17 @@
 import { supabase } from './supabase';
+import {
+  mapUser,
+  mapOrganization,
+  mapDeal,
+  mapProduct,
+  mapQuote,
+  mapCampaign,
+  mapCategory,
+  mapDirectQuery,
+  mapEngagementRequest,
+  mapCreditRequest,
+  mapArray,
+} from './data-mappers';
 
 export async function getOrganizations() {
   const { data, error } = await supabase
@@ -11,7 +24,7 @@ export async function getOrganizations() {
     return [];
   }
 
-  return data || [];
+  return mapArray(data || [], mapOrganization);
 }
 
 export async function getUsers() {
@@ -26,7 +39,7 @@ export async function getUsers() {
     return [];
   }
 
-  return data || [];
+  return mapArray(data || [], mapUser);
 }
 
 export async function getDeals(filters?: { userId?: string; organizationId?: string; dealType?: string }) {
@@ -55,7 +68,7 @@ export async function getDeals(filters?: { userId?: string; organizationId?: str
     return [];
   }
 
-  return data || [];
+  return mapArray(data || [], mapDeal);
 }
 
 export async function getDealActivities(dealId: string) {
@@ -96,7 +109,7 @@ export async function getDirectQueries(filters?: { userId?: string; organization
     return [];
   }
 
-  return data || [];
+  return mapArray(data || [], mapDirectQuery);
 }
 
 export async function getQuotes(filters?: { dealId?: string; distributorId?: string }) {
@@ -121,7 +134,7 @@ export async function getQuotes(filters?: { dealId?: string; distributorId?: str
     return [];
   }
 
-  return data || [];
+  return mapArray(data || [], mapQuote);
 }
 
 export async function getEngagementRequests(filters?: { distributorId?: string; status?: string }) {
@@ -145,7 +158,12 @@ export async function getEngagementRequests(filters?: { distributorId?: string; 
     return [];
   }
 
-  return data || [];
+  // Map engagement requests and nested objects
+  return mapArray(data || [], (item) => ({
+    ...mapEngagementRequest(item),
+    deals: mapDeal(item.deals),
+    users: mapUser(item.users),
+  }));
 }
 
 export async function updateEngagementRequest(id: string, updates: any) {
@@ -190,7 +208,7 @@ export async function createDeal(dealData: any) {
     throw error;
   }
 
-  return data;
+  return mapDeal(data);
 }
 
 export async function updateDeal(dealId: string, updates: any) {
@@ -206,7 +224,7 @@ export async function updateDeal(dealId: string, updates: any) {
     throw error;
   }
 
-  return data;
+  return mapDeal(data);
 }
 
 export async function createDealActivity(activityData: any) {
@@ -278,11 +296,11 @@ export async function getProducts(filters?: { distributorId?: string; category?:
     .order('created_at', { ascending: false });
 
   if (filters?.distributorId) {
-    query = query.eq('distributor_id', filters.distributorId);
+    query = query.eq('organization_id', filters.distributorId);
   }
 
   if (filters?.category) {
-    query = query.eq('category', filters.category);
+    query = query.eq('category_id', filters.category);
   }
 
   if (filters?.status) {
@@ -297,7 +315,7 @@ export async function getProducts(filters?: { distributorId?: string; category?:
     return [];
   }
 
-  return data || [];
+  return mapArray(data || [], mapProduct);
 }
 
 export async function createProduct(productData: any) {
@@ -312,7 +330,7 @@ export async function createProduct(productData: any) {
     throw error;
   }
 
-  return data;
+  return mapProduct(data);
 }
 
 export async function updateProduct(productId: string, updates: any) {
@@ -360,7 +378,7 @@ export async function getCategories() {
     return [];
   }
 
-  return data || [];
+  return mapArray(data || [], mapCategory);
 }
 
 export async function createCategory(categoryData: any) {
@@ -449,4 +467,71 @@ export async function updateQualificationBand(bandId: string, updates: any) {
   }
 
   return data;
+}
+
+// Campaign Management
+export async function getCampaigns(filters?: { distributorId?: string }) {
+  let query = supabase
+    .from('campaigns')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (filters?.distributorId) {
+    query = query.eq('distributor_id', filters.distributorId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching campaigns:', error);
+    return [];
+  }
+
+  return mapArray(data || [], mapCampaign);
+}
+
+export async function getCampaign(campaignId: string) {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('*')
+    .eq('id', campaignId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching campaign:', error);
+    throw error;
+  }
+
+  return mapCampaign(data);
+}
+
+export async function createCampaign(campaignData: any) {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .insert([campaignData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating campaign:', error);
+    throw error;
+  }
+
+  return mapCampaign(data);
+}
+
+export async function updateCampaign(campaignId: string, updates: any) {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .update(updates)
+    .eq('id', campaignId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating campaign:', error);
+    throw error;
+  }
+
+  return mapCampaign(data);
 }

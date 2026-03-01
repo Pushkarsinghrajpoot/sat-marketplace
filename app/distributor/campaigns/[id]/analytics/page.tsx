@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Eye, Handshake, FileText, DollarSign, TrendingUp } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
+import { getCampaign } from '@/lib/data-helpers';
 
 export default function CampaignAnalyticsPage() {
   const router = useRouter();
@@ -22,13 +22,7 @@ export default function CampaignAnalyticsPage() {
 
   const fetchCampaign = async () => {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', params.id)
-        .single();
-
-      if (error) throw error;
+      const data = await getCampaign(params.id as string);
       setCampaign(data);
     } catch (error) {
       console.error('Error fetching campaign:', error);
@@ -55,18 +49,18 @@ export default function CampaignAnalyticsPage() {
   }
 
   const metrics = [
-    { label: 'Views', value: campaign.analytics_views || 0, icon: Eye, color: 'blue' },
-    { label: 'Engagements', value: campaign.analytics_engagements || 0, icon: Handshake, color: 'green' },
-    { label: 'Quotes', value: campaign.analytics_quotes || 0, icon: FileText, color: 'purple' },
-    { label: 'Conversions', value: campaign.analytics_conversions || 0, icon: DollarSign, color: 'orange' },
+    { label: 'Views', value: campaign.analyticsViews || 0, icon: Eye, color: 'blue' },
+    { label: 'Engagements', value: campaign.analyticsEngagements || 0, icon: Handshake, color: 'green' },
+    { label: 'Quotes', value: campaign.analyticsQuotes || 0, icon: FileText, color: 'purple' },
+    { label: 'Conversions', value: campaign.analyticsConversions || 0, icon: DollarSign, color: 'orange' },
   ];
 
-  const conversionRate = campaign.analytics_views > 0 
-    ? ((campaign.analytics_conversions / campaign.analytics_views) * 100).toFixed(2)
+  const conversionRate = campaign.analyticsViews > 0 
+    ? ((campaign.analyticsConversions / campaign.analyticsViews) * 100).toFixed(2)
     : '0.00';
 
-  const engagementRate = campaign.analytics_views > 0
-    ? ((campaign.analytics_engagements / campaign.analytics_views) * 100).toFixed(2)
+  const engagementRate = campaign.analyticsViews > 0
+    ? ((campaign.analyticsEngagements / campaign.analyticsViews) * 100).toFixed(2)
     : '0.00';
 
   return (

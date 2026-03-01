@@ -29,7 +29,7 @@ export default function BOQUploadPage() {
       try {
         const data = await getDeals({ userId: user.id });
         // Show all deals that are locked/registered or active
-        setDeals(data.filter(d => d.is_locked || d.status === 'ACTIVE' || d.status === 'DRAFT'));
+        setDeals(data.filter(d => d.isLocked || d.status === 'ACTIVE' || d.status === 'DRAFT'));
       } catch (error) {
         console.error('Error fetching deals:', error);
       }
@@ -212,7 +212,7 @@ export default function BOQUploadPage() {
                     <option value="">Select a deal</option>
                     {deals.map((deal) => (
                       <option key={deal.id} value={deal.id}>
-                        {deal.deal_name} - {deal.customer_name}
+                        {deal.opportunityName} - {deal.customerName}
                       </option>
                     ))}
                   </Select>

@@ -40,11 +40,11 @@ export default function ResellerDashboard() {
           getDirectQueries({ userId: user.id }),
         ]);
 
-        const registrations = deals.filter((d: any) => d.deal_type === 'DEAL_REGISTRATION');
-        const bidding = deals.filter((d: any) => d.deal_type === 'BIDDING');
+        const registrations = deals.filter((d: any) => d.dealType === 'DEAL_REGISTRATION');
+        const bidding = deals.filter((d: any) => d.dealType === 'BIDDING');
         
         const wonDeals = deals.filter((d: any) => d.status === 'WON');
-        const totalValue = deals.reduce((sum: number, d: any) => sum + (d.deal_value || 0), 0);
+        const totalValue = deals.reduce((sum: number, d: any) => sum + (d.estimatedValue || 0), 0);
         const avgDealSize = deals.length > 0 ? totalValue / deals.length : 0;
         const winRate = deals.length > 0 ? (wonDeals.length / deals.length) * 100 : 0;
         

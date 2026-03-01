@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, Handshake, FileText, DollarSign, MoreVertical, Play, Pause, Edit } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { getCampaigns } from '@/lib/data-helpers';
 import { useAuthStore } from '@/lib/store';
 
 export default function CampaignsPage() {
@@ -24,14 +24,8 @@ export default function CampaignsPage() {
     if (!user?.organizationId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('distributor_id', user.organizationId)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setCampaigns(data || []);
+      const data = await getCampaigns({ distributorId: user.organizationId });
+      setCampaigns(data);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
     } finally {
