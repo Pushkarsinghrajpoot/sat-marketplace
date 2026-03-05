@@ -62,7 +62,7 @@ export default function CampaignsPage() {
 
   const filteredCampaigns = campaigns.filter(c => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'active') return c.status === 'ACTIVE';
+    if (activeTab === 'active') return c.status === 'ACTIVE' || c.status === 'PAUSED';
     if (activeTab === 'scheduled') return c.status === 'SCHEDULED';
     if (activeTab === 'ended') return c.status === 'COMPLETED' || c.status === 'CANCELLED';
     return true;
@@ -86,9 +86,9 @@ export default function CampaignsPage() {
       <div className="mb-6">
         <div className="flex gap-4 border-b border-gray-200">
           {[
-            { key: 'active', label: 'Active', count: campaigns.filter(c => c.status === 'ACTIVE').length },
+            { key: 'active', label: 'Active', count: campaigns.filter(c => c.status === 'ACTIVE' || c.status === 'PAUSED').length },
             { key: 'scheduled', label: 'Scheduled', count: campaigns.filter(c => c.status === 'SCHEDULED').length },
-            { key: 'ended', label: 'Ended', count: campaigns.filter(c => c.status === 'COMPLETED' || c.status === 'CANCELLED' || c.status === 'PAUSED').length },
+            { key: 'ended', label: 'Ended', count: campaigns.filter(c => c.status === 'COMPLETED' || c.status === 'CANCELLED').length },
             { key: 'all', label: 'All', count: campaigns.length },
           ].map((tab) => (
             <button

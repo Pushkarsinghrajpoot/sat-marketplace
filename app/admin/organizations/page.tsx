@@ -134,7 +134,8 @@ export default function OrganizationsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {!org.verified ? (
+                  {org.verified === null || org.verified === undefined ? (
+                    // Pending - show approve/reject
                     <>
                       <Button size="sm" variant="outline" onClick={() => toast.info('Review feature coming soon')}>
                         <Eye className="h-4 w-4 mr-2" />
@@ -149,11 +150,21 @@ export default function OrganizationsPage() {
                         Reject
                       </Button>
                     </>
-                  ) : (
+                  ) : org.verified === true ? (
+                    // Verified - show view details
                     <Button size="sm" variant="outline" onClick={() => toast.info('View details coming soon')}>
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </Button>
+                  ) : (
+                    // Rejected - show re-review option
+                    <>
+                      <Badge variant="danger">Rejected</Badge>
+                      <Button size="sm" onClick={() => handleApprove(org.id, org.name)}>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Re-approve
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>

@@ -9,12 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Calendar, DollarSign, Users, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Lock, TrendingUp } from 'lucide-react';
-import { getDeals } from '@/lib/data-helpers';
+import { getDeals, getDirectQueries } from '@/lib/data-helpers';
 import { useAuthStore } from '@/lib/store';
 
 export default function DealsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deals, setDeals] = useState<any[]>([]);
+  const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
 
@@ -23,8 +24,12 @@ export default function DealsPage() {
       if (!user?.id) return;
       
       try {
-        const data = await getDeals({ userId: user.id });
-        setDeals(data);
+        const [dealsData, queriesData] = await Promise.all([
+          getDeals({ userId: user.id }),
+          getDirectQueries({ userId: user.id })
+        ]);
+        setDeals(dealsData);
+        setDirectQueries(queriesData);
       } catch (error) {
         console.error('Error fetching deals:', error);
       } finally {
@@ -40,11 +45,16 @@ export default function DealsPage() {
     deal.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredQueries = directQueries.filter(query =>
+    query.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    query.requirement?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const dealsByStage = {
     prospecting: filteredDeals.filter(d => d.status === 'DRAFT' && !d.isLocked && d.dealType !== 'DIRECT_QUERY'),
     registered: filteredDeals.filter(d => (d.status === 'DRAFT' || d.status === 'ACTIVE') && d.isLocked && d.dealType === 'DEAL_REGISTRATION'),
     bidding: filteredDeals.filter(d => d.dealType === 'BIDDING' && d.status === 'ACTIVE'),
-    directQueries: filteredDeals.filter(d => d.dealType === 'DIRECT_QUERY'),
+    directQueries: filteredQueries, // Use actual direct queries from direct_queries table
     quoted: filteredDeals.filter(d => d.status === 'QUOTED'),
     won: filteredDeals.filter(d => d.status === 'WON'),
   };
@@ -104,7 +114,7 @@ export default function DealsPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <Calendar className="h-3 w-3" />
@@ -145,7 +155,7 @@ export default function DealsPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-blue-600">
                         <Calendar className="h-3 w-3" />
@@ -187,7 +197,7 @@ export default function DealsPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-orange-600">
                         <Calendar className="h-3 w-3" />
@@ -214,20 +224,19 @@ export default function DealsPage() {
             <Badge variant="default">{dealsByStage.directQueries.length}</Badge>
           </div>
           <div className="space-y-3">
-            {dealsByStage.directQueries.map((deal) => (
-              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
+            {dealsByStage.directQueries.map((query) => (
+              <Link key={query.id} href={`/reseller/queries/${query.id}`}>
                 <Card className="bg-teal-50 border-teal-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{query.title}</h3>
+                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">{query.requirement}</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
+                        <span className="font-bold text-gray-900">{query.estimatedBudget ? formatCurrency(Number(query.estimatedBudget)) : 'Not specified'}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-teal-600">
-                        <Calendar className="h-3 w-3" />
-                        <span>{deal.closeDate}</span>
+                        <Badge variant="default">{query.urgency || 'MEDIUM'}</Badge>
                       </div>
                     </div>
                     <Button size="sm" className="w-full mt-3">
@@ -259,7 +268,7 @@ export default function DealsPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(deal.estimatedValue || 0)}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-purple-600">
                         <Calendar className="h-3 w-3" />

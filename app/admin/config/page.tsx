@@ -80,15 +80,19 @@ export default function ConfigPage() {
   };
 
   const handleAddCategory = async () => {
+    const categoryName = prompt('Enter category name:');
+    if (!categoryName) return;
+    
     try {
       const newCategory = await createCategory({
-        name: 'New Category',
-        slug: `new-category-${Date.now()}`,
+        name: categoryName,
+        slug: categoryName.toLowerCase().replace(/\s+/g, '-'),
         status: 'ACTIVE',
         product_count: 0,
       });
-      setCategories([...categories, newCategory]);
-      toast.success('Category added');
+      // Refresh categories list to get updated data from database
+      await loadConfig();
+      toast.success(`Category "${categoryName}" added successfully`);
     } catch (error) {
       console.error('Error adding category:', error);
       toast.error('Failed to add category');
@@ -108,8 +112,9 @@ export default function ConfigPage() {
 
   const handleUpdateCategory = async (id: string, name: string) => {
     try {
-      await updateCategory(id, { name });
-      setCategories(categories.map(c => c.id === id ? { ...c, name } : c));
+      const updated = await updateCategory(id, { name });
+      setCategories(categories.map(c => c.id === id ? updated : c));
+      toast.success('Category updated successfully');
     } catch (error) {
       console.error('Error updating category:', error);
       toast.error('Failed to update category');
@@ -117,16 +122,28 @@ export default function ConfigPage() {
   };
 
   const handleAddBand = async () => {
+    const bandName = prompt('Enter band name (e.g., Gold, Silver, Bronze):');
+    if (!bandName) return;
+    
+    const minRevenue = prompt('Enter minimum revenue:');
+    const maxRevenue = prompt('Enter maximum revenue:');
+    const discount = prompt('Enter discount percentage:');
+    
+    if (!minRevenue || !maxRevenue || !discount) {
+      toast.error('All fields are required');
+      return;
+    }
+    
     try {
       const newBand = await createQualificationBand({
-        name: 'New Band',
-        min_revenue: 0,
-        max_revenue: 50000,
-        discount_percentage: 0,
+        name: bandName,
+        min_revenue: parseFloat(minRevenue),
+        max_revenue: parseFloat(maxRevenue),
+        discount_percentage: parseFloat(discount),
         status: 'ACTIVE',
       });
-      setQualificationBands([...qualificationBands, newBand]);
-      toast.success('Qualification band added');
+      await loadConfig();
+      toast.success(`Band "${bandName}" added successfully`);
     } catch (error) {
       console.error('Error adding band:', error);
       toast.error('Failed to add band');

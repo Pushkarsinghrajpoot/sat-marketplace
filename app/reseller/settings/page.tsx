@@ -9,6 +9,7 @@ import { UserPlus, Mail, X, Send } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
 import { generateId } from '@/lib/utils';
+import { updateOrganization } from '@/lib/data-helpers';
 
 export default function SettingsPage() {
   const { organization } = useAuthStore();
@@ -35,10 +36,24 @@ export default function SettingsPage() {
     setInviteEmail('');
   };
 
-  const handleSaveOrgDetails = () => {
-    // Update organization details
-    toast.success('Organization details updated successfully!');
-    setEditingOrg(false);
+  const handleSaveOrgDetails = async () => {
+    if (!organization?.id) {
+      toast.error('Organization not found');
+      return;
+    }
+
+    try {
+      await updateOrganization(organization.id, {
+        name: orgData.name,
+        industry: orgData.industry,
+        company_size: orgData.companySize
+      });
+      toast.success('Organization details updated successfully!');
+      setEditingOrg(false);
+    } catch (error) {
+      console.error('Error updating organization:', error);
+      toast.error('Failed to update organization details');
+    }
   };
 
   return (
