@@ -133,9 +133,9 @@ export default function DealDetailPage() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{deal.opportunityName}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{deal.opportunityName || 'Untitled Deal'}</h1>
             <div className="flex items-center gap-3">
-              <Badge variant={deal.status === 'WON' ? 'success' : 'warning'}>{deal.status}</Badge>
+              <Badge variant={deal.status === 'WON' ? 'success' : 'warning'}>{deal.status || 'Unknown'}</Badge>
               <span className="text-gray-600">Deal ID: {deal.id}</span>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function DealDetailPage() {
                 <Building className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600">Customer</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{deal.customerName}</p>
+              <p className="text-xl font-bold text-gray-900">{deal.customerName || 'N/A'}</p>
             </CardContent>
           </Card>
 
@@ -178,7 +178,7 @@ export default function DealDetailPage() {
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600">Expected Close</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{deal.closeDate}</p>
+              <p className="text-xl font-bold text-gray-900">{deal.closeDate || 'Not set'}</p>
             </CardContent>
           </Card>
         </div>
@@ -222,16 +222,16 @@ export default function DealDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Deal Type</p>
-                  <Badge>{deal.dealType.replace('_', ' ')}</Badge>
+                  <Badge>{deal.dealType ? deal.dealType.replace('_', ' ') : 'Unknown'}</Badge>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Status</p>
-                  <Badge variant="info">{deal.status}</Badge>
+                  <Badge variant="info">{deal.status || 'Unknown'}</Badge>
                 </div>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Customer Email</p>
-                <p className="font-semibold">{deal.customerEmail}</p>
+                <p className="font-semibold">{deal.customerEmail || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Notes</p>

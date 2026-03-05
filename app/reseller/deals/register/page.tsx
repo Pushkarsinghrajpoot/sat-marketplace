@@ -207,8 +207,10 @@ export default function RegisterDealPage() {
         successMessage = 'Bidding deal created! Distributors can now submit quotes.';
       }
       
-      toast.success(successMessage);
+      toast.success('Direct Query submitted successfully!');
       router.push('/reseller/deals');
+      router.refresh(); // Force refresh to show new direct query
+      return;
     } catch (error: any) {
       console.error('Error creating deal:', error);
       console.error('Error stack:', error.stack);
