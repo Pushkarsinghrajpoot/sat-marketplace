@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,12 +51,10 @@ export default function ServicesPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Services</h1>
           <p className="text-gray-600">Manage your service offerings</p>
         </div>
-        <Link href="/reseller/services/add">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Service
-          </Button>
-        </Link>
+        <Button onClick={() => toast.info('Add service feature coming soon!')}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Service
+        </Button>
       </div>
 
       <Card className="mb-6">
@@ -106,16 +103,12 @@ export default function ServicesPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Link href={`/reseller/services/${service.id}`}>
-                    <Button variant="outline" size="sm">View Details</Button>
-                  </Link>
-                  <Button size="sm" onClick={() => toast.info('Quote request feature coming soon!')}>Request Quote</Button>
-                  <Link href={`/reseller/services/${service.id}/edit`}>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Button variant="ghost" size="sm" onClick={() => toast.info('Delete feature coming soon!')}>
+                  <Button variant="outline" size="sm" onClick={() => toast.info('Service details coming soon!')}>View Details</Button>
+                  <Button size="sm" onClick={() => toast.info('Quote request coming soon!')}>Request Quote</Button>
+                  <Button variant="ghost" size="sm" onClick={() => toast.info('Edit service coming soon!')}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => toast.info('Delete service coming soon!')}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -134,12 +127,10 @@ export default function ServicesPage() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No services yet</h3>
               <p className="text-gray-600 mb-6">Start adding your service offerings to attract more clients</p>
-              <Link href="/reseller/services/add">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Service
-                </Button>
-              </Link>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Service
+              </Button>
             </div>
           </CardContent>
         </Card>

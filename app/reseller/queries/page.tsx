@@ -6,30 +6,28 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Send, Search, MessageCircle, Clock, CheckCircle } from 'lucide-react';
-import { getDirectQueries } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
 
 export default function QueriesPage() {
-  const [queries, setQueries] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
-
-  useEffect(() => {
-    fetchQueries();
-  }, [user]);
-
-  const fetchQueries = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const data = await getDirectQueries({ userId: user.id });
-      setQueries(data);
-    } catch (error) {
-      console.error('Error fetching queries:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [queries, setQueries] = useState([
+    {
+      id: '1',
+      title: 'Network Equipment Pricing Request',
+      requirement: 'Need pricing for Cisco switches and routers',
+      urgency: 'HIGH',
+      status: 'RESPONDED',
+      responses: 3,
+      createdAt: '2024-01-20',
+    },
+    {
+      id: '2',
+      title: 'Cloud Storage Solutions',
+      requirement: 'Looking for enterprise cloud storage options',
+      urgency: 'MEDIUM',
+      status: 'OPEN',
+      responses: 0,
+      createdAt: '2024-01-22',
+    },
+  ]);
 
   const getUrgencyBadge = (urgency: string) => {
     const colors = {
@@ -106,10 +104,10 @@ export default function QueriesPage() {
                   </div>
                   <p className="text-gray-600 mb-3">{query.requirement}</p>
                   <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>Created: {new Date(query.created_at).toLocaleDateString()}</span>
+                    <span>Created: {new Date(query.createdAt).toLocaleDateString()}</span>
                     <span className="flex items-center gap-1">
                       <MessageCircle className="h-4 w-4" />
-                      0 responses
+                      {query.responses} response{query.responses !== 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>

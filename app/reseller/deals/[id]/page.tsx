@@ -222,7 +222,7 @@ export default function DealDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Deal Type</p>
-                  <Badge>{deal.dealType?.replace('_', ' ') || deal.dealType}</Badge>
+                  <Badge>{deal.dealType.replace('_', ' ')}</Badge>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Status</p>
