@@ -25,11 +25,8 @@ export default function ClientProvider({ children }: { children: React.ReactNode
           }
         }
       } else {
-        // No session - redirect to login if not on public pages
-        const publicPaths = ['/auth/login', '/auth/signup', '/'];
-        if (!publicPaths.includes(pathname) && !pathname.startsWith('/auth/')) {
-          router.push('/auth/login');
-        }
+        // No session - middleware will handle redirect
+        // Just restore user data if we have a session but no user in store
       }
     };
 
