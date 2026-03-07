@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { getDeals, createDealActivity } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function BOQUploadPage() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function BOQUploadPage() {
   const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchDeals() {

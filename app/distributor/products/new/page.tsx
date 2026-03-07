@@ -8,13 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Minus, Upload, X } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { createProduct, getCategories } from '@/lib/data-helpers';
 
 export default function AddProductPage() {
   const router = useRouter();
-  const { user, organization } = useAuthStore();
+  const { user, organization } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);

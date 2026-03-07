@@ -13,7 +13,8 @@ import { supabase } from '@/lib/supabase';
 import { updateDeal } from '@/lib/data-helpers';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import MeetingActivityList from '@/components/meetings/MeetingActivityList';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
+import { mapDeal } from '@/lib/data-mappers';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -31,7 +32,7 @@ export default function DealDetailPage() {
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [converting, setConverting] = useState(false);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchDeal() {
@@ -43,7 +44,10 @@ export default function DealDetailPage() {
           .single();
         
         if (error) throw error;
-        setDeal(data);
+        
+        // Map database fields to camelCase
+        const mappedDeal = mapDeal(data);
+        setDeal(mappedDeal);
       } catch (error) {
         console.error('Error fetching deal:', error);
         toast.error('Failed to load deal');

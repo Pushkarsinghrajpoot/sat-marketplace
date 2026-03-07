@@ -8,14 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, Handshake, FileText, DollarSign, MoreVertical, Play, Pause, Edit } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getCampaigns, updateCampaign } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
 export default function CampaignsPage() {
   const [activeTab, setActiveTab] = useState('active');
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchCampaigns();

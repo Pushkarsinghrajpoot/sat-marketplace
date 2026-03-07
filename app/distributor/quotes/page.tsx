@@ -10,13 +10,13 @@ import { Select } from '@/components/ui/select';
 import { Search, FileText, Eye, Edit, Clock, TrendingUp } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { getQuotes } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function QuotesPage() {
   const [activeTab, setActiveTab] = useState('to-submit');
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchQuotes();

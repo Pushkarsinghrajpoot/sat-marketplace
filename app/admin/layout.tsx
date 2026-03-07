@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Building, Settings as SettingsIcon, LogOut, Bell, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import { useState } from 'react';
 
 const navigation = [
@@ -16,7 +16,7 @@ const navigation = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {

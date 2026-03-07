@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Search, Send, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { createDeal } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 
 const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Declaration'];
 
@@ -96,9 +97,10 @@ export default function RegisterDealPage() {
       return;
     }
     
-    // DIRECT_QUERY: Submit immediately after deal details (step 2)
+    // DIRECT_QUERY: Skip verification and declaration, go straight to final review
     if (currentStep === 2 && dealType === 'DIRECT_QUERY') {
-      handleSubmit();
+      // User has filled deal details, now show final step with submit button
+      setCurrentStep(currentStep + 1);
       return;
     }
     
@@ -141,7 +143,7 @@ export default function RegisterDealPage() {
     }
   };
 
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   const handleSubmit = async () => {
     if (!user?.id) {
@@ -156,7 +158,38 @@ export default function RegisterDealPage() {
     setLoading(true);
     
     try {
-      // Keep deal type as-is - do NOT auto-convert
+      // DIRECT_QUERY: Insert into direct_queries table
+      if (dealType === 'DIRECT_QUERY') {
+        const directQueryData = {
+          reseller_id: user.id,
+          reseller_organization_id: user.organizationId,
+          title: formData.opportunityName,
+          requirement: formData.notes || formData.opportunityName,
+          estimated_budget: parseFloat(formData.estimatedValue) || 0,
+          urgency: 'MEDIUM',
+          status: 'OPEN',
+        };
+        
+        console.log('Creating direct query with data:', directQueryData);
+        
+        const { data, error } = await supabase
+          .from('direct_queries')
+          .insert([directQueryData])
+          .select();
+        
+        if (error) {
+          console.error('Error creating direct query:', error);
+          throw new Error(`Failed to create direct query: ${error.message}`);
+        }
+        
+        console.log('Direct query created successfully:', data);
+        toast.success('Direct Query submitted successfully!');
+        router.push('/reseller/deals');
+        setTimeout(() => window.location.reload(), 100); // Force full page reload
+        return;
+      }
+      
+      // For DEAL_REGISTRATION and BIDDING: Insert into deals table
       const dealData: any = {
         opportunity_name: formData.opportunityName,
         deal_type: dealType, // Keep original type
@@ -189,7 +222,6 @@ export default function RegisterDealPage() {
         dealData.declaration_accepted = true;
         dealData.declaration_accepted_at = new Date().toISOString();
       }
-      // DIRECT_QUERY: No verification, no declaration needed
       
       console.log('Creating deal with data:', dealData);
       
@@ -201,15 +233,12 @@ export default function RegisterDealPage() {
       let successMessage = 'Deal submitted successfully!';
       if (dealType === 'DEAL_REGISTRATION') {
         successMessage = `Deal registered and locked! You can now add activities (meetings, demos, BOQ).`;
-      } else if (dealType === 'DIRECT_QUERY') {
-        successMessage = 'Direct query submitted! Distributors can now respond.';
       } else if (dealType === 'BIDDING') {
         successMessage = 'Bidding deal created! Distributors can now submit quotes.';
       }
       
-      toast.success('Direct Query submitted successfully!');
+      toast.success(successMessage);
       router.push('/reseller/deals');
-      router.refresh(); // Force refresh to show new direct query
       return;
     } catch (error: any) {
       console.error('Error creating deal:', error);
@@ -553,14 +582,69 @@ export default function RegisterDealPage() {
               </div>
             )}
 
-            {/* Skip verification for Bidding and Direct Query */}
-            {currentStep === 3 && dealType !== 'DEAL_REGISTRATION' && (
+            {/* Review step for Direct Query */}
+            {currentStep === 3 && dealType === 'DIRECT_QUERY' && (
+              <div className="space-y-6">
+                <CardHeader className="px-0 pt-0">
+                  <CardTitle>Review Your Direct Query</CardTitle>
+                  <p className="text-sm text-gray-600">Review your query details before submitting</p>
+                </CardHeader>
+
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <p className="font-semibold text-blue-900">Customer Information</p>
+                        <p className="text-blue-800">{formData.customerName} - {formData.customerCompany}</p>
+                        <p className="text-blue-800">{formData.customerEmail}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-blue-900">Query Details</p>
+                        <p className="text-blue-800">Opportunity: {formData.opportunityName}</p>
+                        <p className="text-blue-800">Budget: ${formData.estimatedValue}</p>
+                        <p className="text-blue-800">Close Date: {formData.closeDate}</p>
+                      </div>
+                      {formData.notes && (
+                        <div>
+                          <p className="font-semibold text-blue-900">Additional Notes</p>
+                          <p className="text-blue-800">{formData.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-sm text-green-900 mb-1">Ready to Submit</p>
+                        <p className="text-xs text-green-800">
+                          Your direct query will be sent to distributors who can respond with quotes. 
+                          No verification or declaration required for direct queries.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="text-center pt-4">
+                  <Button onClick={handleSubmit} disabled={loading} size="lg">
+                    {loading ? 'Submitting...' : 'Submit Direct Query'}
+                    <Send className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Skip verification for Bidding (goes to declaration) */}
+            {currentStep === 3 && dealType === 'BIDDING' && (
               <div className="space-y-6">
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-6 text-center">
                     <p className="text-sm text-blue-900">
-                      No verification required for {dealType === 'BIDDING' ? 'Bidding' : 'Direct Query'} deals. 
-                      Click Next to continue.
+                      No verification required for Bidding deals. Click Next to continue to declaration.
                     </p>
                   </CardContent>
                 </Card>

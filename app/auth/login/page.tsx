@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Tag, Lock, Star, Mail, Lock as LockIcon } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { signInWithEmail, updateLastLogin, getUserWithOrganization } from '@/lib/auth-helpers';
 
@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

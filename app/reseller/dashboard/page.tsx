@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { DollarSign, Briefcase, TrendingUp, Target, Plus, ArrowRight, Lock, Search, Send } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function ResellerDashboard() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function ResellerDashboard() {
   const [biddingDeals, setBiddingDeals] = useState<any[]>([]);
   const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchData() {
@@ -206,10 +206,10 @@ export default function ResellerDashboard() {
                 <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                   <Card className="bg-gray-50 hover:shadow-md transition-shadow cursor-pointer">
                     <CardContent className="p-4">
-                      <h4 className="font-semibold text-sm mb-2 line-clamp-2">{deal.name}</h4>
-                      <p className="text-xs text-gray-600 mb-3">{deal.customer}</p>
+                      <h4 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h4>
+                      <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gray-900">{formatCurrency(deal.value)}</span>
+                        <span className="text-xs font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                         <span className="text-xs text-gray-500">{deal.closeDate}</span>
                       </div>
                     </CardContent>
@@ -239,10 +239,10 @@ export default function ResellerDashboard() {
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-6">
-                    <h4 className="font-semibold text-lg mb-2">{deal.name}</h4>
-                    <p className="text-sm text-gray-600 mb-3">{deal.customer}</p>
+                    <h4 className="font-semibold text-lg mb-2">{deal.opportunityName}</h4>
+                    <p className="text-sm text-gray-600 mb-3">{deal.customerName}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-gray-900">{formatCurrency(deal.value)}</span>
+                      <span className="text-sm font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       <Badge variant="warning">Bidding</Badge>
                     </div>
                   </CardContent>

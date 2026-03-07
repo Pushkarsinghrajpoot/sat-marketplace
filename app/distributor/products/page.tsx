@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Upload, Download, Edit, Copy, Trash2, MoreVertical } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import type { Product } from '@/lib/types';
 import { toast } from 'sonner';
 import { getProducts } from '@/lib/data-helpers';

@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { UserPlus, Mail, X, Send } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { generateId } from '@/lib/utils';
 import { updateOrganization } from '@/lib/data-helpers';
 
 export default function SettingsPage() {
-  const { organization } = useAuthStore();
+  const { organization } = useAuth();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('SALES_REP');
   const [editingOrg, setEditingOrg] = useState(false);

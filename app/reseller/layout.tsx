@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import { useState, useEffect } from 'react';
 
 const navigation = [
@@ -20,7 +20,7 @@ const navigation = [
 export default function ResellerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, organization, logout } = useAuthStore();
+  const { user, organization, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {

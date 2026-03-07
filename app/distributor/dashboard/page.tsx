@@ -8,7 +8,7 @@ import { Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock, Searc
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries, getQuotes } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function DistributorDashboard() {
   const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries' | 'quotes'>('registrations');
@@ -27,7 +27,7 @@ export default function DistributorDashboard() {
   const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchData() {

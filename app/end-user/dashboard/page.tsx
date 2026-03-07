@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Lock, Search, Send, TrendingUp, Eye, Clock, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function EndUserDashboard() {
   const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries'>('registrations');
@@ -20,7 +20,7 @@ export default function EndUserDashboard() {
   const [biddingDeals, setBiddingDeals] = useState<any[]>([]);
   const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchData() {

@@ -9,14 +9,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Mail, Lock as LockIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { signInWithEmail, updateLastLogin } from '@/lib/auth-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function LoginSupabasePage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuthStore();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

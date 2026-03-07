@@ -7,13 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Eye, CheckCircle, X, Download, AlertCircle } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
 export default function CreditRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchCreditRequests();

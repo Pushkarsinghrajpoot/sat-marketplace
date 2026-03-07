@@ -7,13 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { createCampaign } from '@/lib/data-helpers';
 
 export default function NewCampaignPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -60,6 +60,7 @@ export default function NewCampaignPage() {
 
       toast.success('Campaign created successfully!');
       router.push('/distributor/campaigns');
+      setTimeout(() => router.refresh(), 100);
     } catch (error) {
       console.error('Error creating campaign:', error);
       toast.error('Failed to create campaign');

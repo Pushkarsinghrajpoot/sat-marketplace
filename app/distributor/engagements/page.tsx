@@ -9,14 +9,14 @@ import { Search, Star, CheckCircle, Target, Clock, Package } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getEngagementRequests, updateEngagementRequest } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function EngagementsPage() {
   const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [engagements, setEngagements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchEngagements();

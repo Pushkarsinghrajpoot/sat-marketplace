@@ -2,22 +2,24 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuthStore } from '@/lib/store';
+import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { getUserWithOrganization } from '@/lib/auth-helpers';
 
-export default function ClientProvider({ children }: { children: React.ReactNode }) {
+function AuthChecker({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, login } = useAuthStore();
+  const { user, login, loading } = useAuth();
 
   useEffect(() => {
+    if (loading) return; // Wait for initial load
+    
     // Check for existing Supabase session on mount
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        // Restore user data from session if Zustand store is empty
+        // Restore user data from session if context is empty
         if (!user) {
           const { user: userData, organization } = await getUserWithOrganization(session.user.id);
           if (userData) {
@@ -25,10 +27,19 @@ export default function ClientProvider({ children }: { children: React.ReactNode
           }
         }
       } else {
-        // No session - redirect to login if not on public pages
+        // No Supabase session - check if user exists in Context from localStorage
+        // Only redirect to login if BOTH Supabase session AND context user are missing
         const publicPaths = ['/auth/login', '/auth/signup', '/'];
-        if (!publicPaths.includes(pathname) && !pathname.startsWith('/auth/')) {
+        const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith('/auth/');
+        
+        if (!user && !isPublicPath) {
+          // No session and no user in context - redirect to login
+          console.log('No auth state found, redirecting to login');
           router.push('/auth/login');
+        } else if (user && !isPublicPath) {
+          // User exists in context but no Supabase session
+          // This is okay - user was loaded from localStorage
+          console.log('User loaded from localStorage, Supabase session will be restored on next API call');
         }
       }
     };
@@ -50,7 +61,15 @@ export default function ClientProvider({ children }: { children: React.ReactNode
     return () => {
       subscription.unsubscribe();
     };
-  }, [pathname, router, user, login]);
+  }, [pathname, router, user, login, loading]);
 
   return <>{children}</>;
+}
+
+export default function ClientProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <AuthChecker>{children}</AuthChecker>
+    </AuthProvider>
+  );
 }

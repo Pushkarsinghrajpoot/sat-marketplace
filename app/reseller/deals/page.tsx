@@ -10,35 +10,44 @@ import { Search, Plus, Calendar, DollarSign, Users, FileText } from 'lucide-reac
 import { formatCurrency } from '@/lib/utils';
 import { Lock, TrendingUp } from 'lucide-react';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
-import { useAuthStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function DealsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deals, setDeals] = useState<any[]>([]);
   const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchDeals() {
-      if (!user?.id) return;
+      console.log('DealsPage: Fetching deals, user:', user);
+      
+      if (!user?.id) {
+        console.log('DealsPage: No user ID, setting loading to false');
+        setLoading(false);
+        return;
+      }
       
       try {
+        console.log('DealsPage: Fetching deals for user:', user.id);
         const [dealsData, queriesData] = await Promise.all([
           getDeals({ userId: user.id }),
           getDirectQueries({ userId: user.id })
         ]);
+        console.log('DealsPage: Deals fetched:', dealsData.length, 'Direct queries:', queriesData.length);
         setDeals(dealsData);
         setDirectQueries(queriesData);
       } catch (error) {
-        console.error('Error fetching deals:', error);
+        console.error('DealsPage: Error fetching deals:', error);
       } finally {
+        console.log('DealsPage: Setting loading to false');
         setLoading(false);
       }
     }
 
     fetchDeals();
-  }, [user]);
+  }, [user?.id]);
 
   const filteredDeals = deals.filter(deal =>
     deal.opportunityName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
