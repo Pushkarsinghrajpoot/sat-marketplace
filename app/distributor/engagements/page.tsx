@@ -40,8 +40,9 @@ export default function EngagementsPage() {
   };
 
   const handleApprove = async (engagementId: string) => {
+    if (!user?.id) return;
     try {
-      await updateEngagementRequest(engagementId, { status: 'APPROVED' });
+      await updateEngagementRequest(engagementId, { status: 'APPROVED' }, user.id);
       toast.success('Engagement approved!');
       fetchEngagements();
     } catch (error) {
@@ -51,11 +52,12 @@ export default function EngagementsPage() {
   };
 
   const handleDecline = async (engagementId: string) => {
+    if (!user?.id) return;
     try {
       await updateEngagementRequest(engagementId, { 
         status: 'DECLINED',
         decline_reason: 'Not interested at this time'
-      });
+      }, user.id);
       toast.info('Engagement declined');
       fetchEngagements();
     } catch (error) {
@@ -64,73 +66,36 @@ export default function EngagementsPage() {
     }
   };
 
-  const sampleEngagements = [
-    {
-      id: '1',
-      reseller: 'ABC Resellers Inc.',
-      resellerLogo: 'A',
-      rating: 4.5,
-      verified: true,
-      deal: {
-        title: 'Enterprise Network Upgrade - XYZ Corp',
-        value: 125000,
-        closeDate: '2024-03-15',
-        customer: 'XYZ Corporation',
-        industry: 'Healthcare',
-      },
-      products: ['Cisco Catalyst 9300', 'Fortinet FortiGate 600E', 'NetApp Storage'],
-      effort: { dealRegistered: true, boqUploaded: true, timeInvested: 15, customerVerified: true },
-      message: 'Looking for best pricing on Cisco Catalyst switches for healthcare client. Need quote by Jan 20.',
-      status: 'PENDING',
-      requestedAt: '2024-01-18T10:30:00Z',
-    },
-    {
-      id: '2',
-      reseller: 'Premier Solutions Group',
-      resellerLogo: 'P',
-      rating: 4.9,
-      verified: true,
-      deal: {
-        title: 'Data Center Modernization',
-        value: 450000,
-        closeDate: '2024-04-10',
-        customer: 'Tech Corp',
-        industry: 'Technology',
-      },
-      products: ['Dell PowerEdge R750', 'NetApp AFF A400'],
-      effort: { dealRegistered: true, boqUploaded: true, timeInvested: 22, customerVerified: true },
-      message: 'Major data center upgrade project. Multiple locations. Need comprehensive quote with support.',
-      status: 'PENDING',
-      requestedAt: '2024-01-17T14:20:00Z',
-    },
-  ];
-
+  // Helper function for score-based badging
+  const getBadge = (score: number) => {
+    if (score >= 250) return { label: 'Gold', color: 'bg-yellow-500' };
+    if (score >= 100) return { label: 'Silver', color: 'bg-gray-400' };
+    return { label: 'Bronze', color: 'bg-orange-600' };
+  };
 
   // Filter engagements based on search and tab
-  const filteredEngagements = (engagements.length > 0 ? engagements : sampleEngagements).filter(eng => {
+  const filteredEngagements = engagements.filter((eng: any) => {
     // Search filter
     const matchesSearch = searchQuery === '' || 
-      eng.deal?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      eng.reseller?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      eng.deal_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      eng.customer_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      eng.deals?.opportunityName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eng.deals?.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eng.message?.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Tab filter
     const matchesTab = activeTab === 'all' || 
-      (activeTab === 'pending' && (eng.status === 'PENDING' || eng.status === 'ACTIVE')) ||
-      (activeTab === 'accepted' && eng.status === 'ACCEPTED') ||
-      (activeTab === 'declined' && (eng.status === 'DECLINED' || eng.status === 'REJECTED'));
+      (activeTab === 'pending' && eng.status === 'PENDING') ||
+      (activeTab === 'approved' && eng.status === 'APPROVED') ||
+      (activeTab === 'declined' && eng.status === 'DECLINED');
     
     return matchesSearch && matchesTab;
   });
 
   const getCounts = () => {
-    const allDeals = engagements.length > 0 ? engagements : sampleEngagements;
     return {
-      pending: allDeals.filter(e => e.status === 'PENDING' || e.status === 'ACTIVE').length,
-      accepted: allDeals.filter(e => e.status === 'ACCEPTED').length,
-      declined: allDeals.filter(e => e.status === 'DECLINED' || e.status === 'REJECTED').length,
-      all: allDeals.length,
+      pending: engagements.filter((e: any) => e.status === 'PENDING').length,
+      approved: engagements.filter((e: any) => e.status === 'APPROVED').length,
+      declined: engagements.filter((e: any) => e.status === 'DECLINED').length,
+      all: engagements.length,
     };
   };
 
@@ -147,7 +112,7 @@ export default function EngagementsPage() {
         <div className="flex gap-4 border-b border-gray-200">
           {[
             { key: 'pending', label: 'Pending', count: counts.pending },
-            { key: 'accepted', label: 'Accepted', count: counts.accepted },
+            { key: 'approved', label: 'Approved', count: counts.approved },
             { key: 'declined', label: 'Declined', count: counts.declined },
             { key: 'all', label: 'All', count: counts.all },
           ].map((tab) => (

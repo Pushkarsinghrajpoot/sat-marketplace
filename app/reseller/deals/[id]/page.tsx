@@ -10,11 +10,12 @@ import { Award, X, Star, DollarSign, Calendar, Building, Users, Plus, Lock } fro
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { updateDeal } from '@/lib/data-helpers';
+import { updateDeal, convertDealToBidding, getQuotes } from '@/lib/data-helpers';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import MeetingActivityList from '@/components/meetings/MeetingActivityList';
 import { useAuth } from '@/lib/auth-context';
 import { mapDeal } from '@/lib/data-mappers';
+import Link from 'next/link';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -32,6 +33,7 @@ export default function DealDetailPage() {
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [quotesCount, setQuotesCount] = useState(0);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -48,6 +50,12 @@ export default function DealDetailPage() {
         // Map database fields to camelCase
         const mappedDeal = mapDeal(data);
         setDeal(mappedDeal);
+
+        // Fetch quotes count for bidding deals
+        if (mappedDeal.dealType === 'BIDDING') {
+          const quotes = await getQuotes({ dealId: params.id as string });
+          setQuotesCount(quotes.length);
+        }
       } catch (error) {
         console.error('Error fetching deal:', error);
         toast.error('Failed to load deal');
@@ -57,6 +65,24 @@ export default function DealDetailPage() {
     }
     fetchDeal();
   }, [params.id]);
+
+  const handleConvertToBidding = async () => {
+    if (!user?.id) return;
+    setConverting(true);
+    try {
+      await convertDealToBidding(params.id as string, user.id);
+      toast.success('Deal converted to bidding successfully!');
+      // Refresh deal data
+      const { data } = await supabase.from('deals').select('*').eq('id', params.id).single();
+      if (data) setDeal(mapDeal(data));
+      setShowConvertModal(false);
+    } catch (error) {
+      console.error('Error converting deal:', error);
+      toast.error('Failed to convert deal to bidding');
+    } finally {
+      setConverting(false);
+    }
+  };
 
   const handleCloseDeal = async () => {
     if (closeStatus === 'WON' && !wonAmount) {
@@ -90,26 +116,6 @@ export default function DealDetailPage() {
     router.push('/reseller/deals');
   };
 
-  const handleConvertToBidding = async () => {
-    setConverting(true);
-    try {
-      await updateDeal(params.id as string, {
-        deal_type: 'BIDDING',
-        converted_to_bidding: true,
-        converted_to_bidding_at: new Date().toISOString(),
-        status: 'ACTIVE',
-      });
-      
-      toast.success('Deal converted to bidding successfully!');
-      setShowConvertModal(false);
-      window.location.reload();
-    } catch (error) {
-      console.error('Error converting deal:', error);
-      toast.error('Failed to convert deal to bidding');
-    } finally {
-      setConverting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -148,6 +154,13 @@ export default function DealDetailPage() {
               <Button variant="outline" onClick={() => setShowConvertModal(true)}>
                 Convert to Bidding
               </Button>
+            )}
+            {deal.dealType === 'BIDDING' && (
+              <Link href={`/reseller/deals/${deal.id}/quotes`}>
+                <Button variant="outline">
+                  View Quotes ({quotesCount})
+                </Button>
+              </Link>
             )}
             <Button variant="outline" onClick={() => setShowCloseModal(true)}>
               Close Deal

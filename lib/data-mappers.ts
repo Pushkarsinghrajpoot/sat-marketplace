@@ -194,6 +194,7 @@ export function mapCategory(dbCategory: any): any {
 
 export function mapDirectQuery(dbQuery: any): any {
   if (!dbQuery) return null;
+
   return {
     id: dbQuery.id,
     resellerId: dbQuery.reseller_id,
@@ -206,6 +207,42 @@ export function mapDirectQuery(dbQuery: any): any {
     status: dbQuery.status || 'OPEN',
     createdAt: dbQuery.created_at,
     updatedAt: dbQuery.updated_at,
+  };
+}
+
+export function mapBOQ(dbBOQ: any): any {
+  if (!dbBOQ) return null;
+
+  return {
+    id: dbBOQ.id,
+    dealId: dbBOQ.deal_id,
+    resellerId: dbBOQ.reseller_id,
+    fileName: dbBOQ.file_name || 'Unknown File',
+    fileUrl: dbBOQ.file_url || '',
+    visibility: dbBOQ.visibility || 'PUBLIC',
+    createdAt: dbBOQ.created_at,
+    updatedAt: dbBOQ.updated_at,
+    // Nested objects
+    deal: dbBOQ.deals ? mapDeal(dbBOQ.deals) : null,
+    reseller: dbBOQ.users ? {
+      id: dbBOQ.users.id,
+      name: dbBOQ.users.name || 'Unknown User',
+      email: dbBOQ.users.email || '',
+      organizationId: dbBOQ.users.organization_id,
+    } : null,
+    items: dbBOQ.boq_items ? dbBOQ.boq_items.map((item: any) => ({
+      id: item.id,
+      productSku: item.product_sku || '',
+      productName: item.product_name || 'Unknown Product',
+      quantity: item.quantity || 0,
+      specifications: item.specifications || '',
+      createdAt: item.created_at,
+    })) : [],
+    invitedDistributors: dbBOQ.boq_invited_distributors ? dbBOQ.boq_invited_distributors.map((invite: any) => ({
+      id: invite.id,
+      distributorId: invite.distributor_id,
+      invitedAt: invite.invited_at,
+    })) : [],
   };
 }
 

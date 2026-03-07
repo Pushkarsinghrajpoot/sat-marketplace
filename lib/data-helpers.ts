@@ -11,13 +11,20 @@ import {
   mapEngagementRequest,
   mapCreditRequest,
   mapArray,
+  mapBOQ, // Import mapBOQ function
 } from './data-mappers';
 
-export async function getOrganizations() {
-  const { data, error } = await supabase
+export async function getOrganizations(filters?: { type?: string }) {
+  let query = supabase
     .from('organizations')
     .select('*')
     .order('created_at', { ascending: false });
+
+  if (filters?.type) {
+    query = query.eq('type', filters.type);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching organizations:', error);
@@ -25,6 +32,10 @@ export async function getOrganizations() {
   }
 
   return mapArray(data || [], mapOrganization);
+}
+
+export async function getDistributors() {
+  return getOrganizations({ type: 'DISTRIBUTOR' });
 }
 
 export async function getUsers() {
@@ -137,7 +148,93 @@ export async function getQuotes(filters?: { dealId?: string; distributorId?: str
   return mapArray(data || [], mapQuote);
 }
 
-export async function getEngagementRequests(filters?: { distributorId?: string; status?: string }) {
+export async function getBOQs(filters?: { distributorId?: string; visibility?: string }) {
+  let query = supabase
+    .from('boqs')
+    .select(`
+      *,
+      deals!inner(*),
+      users!boqs_reseller_id_fkey(*),
+      boq_items(*),
+      boq_invited_distributors(*)
+    `)
+    .order('created_at', { ascending: false });
+
+  // BOQs are visible to distributors based on visibility settings
+  if (filters?.distributorId) {
+    query = query.or(`
+      visibility.eq.PUBLIC,
+      and(visibility.eq.PRIVATE,boq_invited_distributors.distributor_id.eq.${filters.distributorId})
+    `);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching BOQs:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    return [];
+  }
+
+  return mapArray(data || [], mapBOQ);
+}
+
+export async function createEngagementRequest(requestData: any) {
+  const { data, error } = await supabase
+    .from('engagement_requests')
+    .insert([requestData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating engagement request:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updateEngagementRequest(requestId: string, updates: any, userId: string) {
+  const { data, error } = await supabase
+    .from('engagement_requests')
+    .update(updates)
+    .eq('id', requestId)
+    .select('*, deals(*)')
+    .single();
+
+  if (error) {
+    console.error('Error updating engagement request:', error);
+    throw error;
+  }
+
+  // If approved, update deal activity
+  if (updates.status === 'APPROVED') {
+    await supabase.from('deal_activities').insert({
+      deal_id: data.deal_id,
+      reseller_id: data.reseller_id,
+      activity_type: 'MEETING',
+      title: 'Engagement Request Approved',
+      description: data.message,
+      status: 'ACKNOWLEDGED',
+      acknowledged_by: userId,
+      acknowledged_at: new Date().toISOString(),
+      points: 10,
+    });
+
+    // Notify reseller
+    await supabase.from('notifications').insert({
+      user_id: data.reseller_id,
+      notification_type: 'ENGAGEMENT_APPROVED',
+      title: 'Engagement Request Approved',
+      message: `Your engagement request for "${data.deals?.opportunity_name}" has been approved.`,
+      link: `/reseller/deals/${data.deal_id}`,
+    });
+  }
+
+  return data;
+}
+
+export async function getEngagementRequests(filters?: { distributorId?: string; resellerId?: string; status?: string }) {
   let query = supabase
     .from('engagement_requests')
     .select('*, deals(*), users(*)')
@@ -145,6 +242,10 @@ export async function getEngagementRequests(filters?: { distributorId?: string; 
 
   if (filters?.distributorId) {
     query = query.eq('distributor_id', filters.distributorId);
+  }
+
+  if (filters?.resellerId) {
+    query = query.eq('reseller_id', filters.resellerId);
   }
 
   if (filters?.status) {
@@ -164,22 +265,6 @@ export async function getEngagementRequests(filters?: { distributorId?: string; 
     deals: mapDeal(item.deals),
     users: mapUser(item.users),
   }));
-}
-
-export async function updateEngagementRequest(id: string, updates: any) {
-  const { data, error } = await supabase
-    .from('engagement_requests')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error updating engagement request:', error);
-    throw error;
-  }
-
-  return data;
 }
 
 export async function getDealStats(userId?: string, organizationId?: string) {
@@ -236,6 +321,47 @@ export async function updateDeal(dealId: string, updates: any) {
   }
 
   return mapDeal(data);
+}
+
+export async function convertDealToBidding(dealId: string, userId: string) {
+  const { data: deal, error: dealError } = await supabase
+    .from('deals')
+    .update({
+      deal_type: 'BIDDING',
+      converted_to_bidding: true,
+      converted_to_bidding_at: new Date().toISOString(),
+      status: 'ACTIVE',
+    })
+    .eq('id', dealId)
+    .select()
+    .single();
+
+  if (dealError) {
+    console.error('Error converting deal to bidding:', dealError);
+    throw dealError;
+  }
+
+  // Create notification for reseller
+  await supabase.from('notifications').insert({
+    user_id: userId,
+    notification_type: 'DEAL_CONVERTED',
+    title: 'Deal Converted to Bidding',
+    message: `Your deal "${deal.opportunity_name}" has been converted to bidding and is now open for quotes.`,
+    link: `/reseller/deals/${dealId}`,
+  });
+
+  // Create activity record
+  await supabase.from('deal_activities').insert({
+    deal_id: dealId,
+    reseller_id: userId,
+    activity_type: 'MEETING',
+    title: 'Deal Converted to Bidding',
+    description: 'Deal registration successfully converted to bidding deal',
+    status: 'ACKNOWLEDGED',
+    points: 20,
+  });
+
+  return mapDeal(deal);
 }
 
 export async function createDealActivity(activityData: any) {

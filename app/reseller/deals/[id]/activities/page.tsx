@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Video, FileEdit, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 
 const ACTIVITY_TYPES = [
   { 
@@ -39,58 +41,87 @@ const ACTIVITY_TYPES = [
 export default function DealActivitiesPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
+  const dealId = params.id as string;
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   const [scheduledDate, setScheduledDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [activities, setActivities] = useState([
-    {
-      id: '1',
-      type: 'MEETING',
-      scheduledDate: '2024-02-01',
-      status: 'ACKNOWLEDGED',
-      points: 10,
-      createdAt: '2024-01-25',
-      acknowledgedAt: '2024-01-26',
-    },
-    {
-      id: '2',
-      type: 'DEMO',
-      scheduledDate: '2024-02-05',
-      status: 'PENDING',
-      points: 10,
-      createdAt: '2024-01-26',
-    },
-  ]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [dealId]);
+
+  const fetchActivities = async () => {
+    if (!dealId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('deal_activities')
+        .select('*')
+        .eq('deal_id', dealId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setActivities(data || []);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const totalScore = activities
     .filter(a => a.status === 'ACKNOWLEDGED')
-    .reduce((sum, a) => sum + a.points, 0);
+    .reduce((sum, a) => sum + (a.points || 0), 0);
 
-  const handleAddActivity = () => {
+  const handleAddActivity = async () => {
     if (!selectedActivity) {
       toast.error('Please select an activity type');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('Please login to add activity');
       return;
     }
 
     const activityType = ACTIVITY_TYPES.find(a => a.type === selectedActivity);
     if (!activityType) return;
 
-    const newActivity = {
-      id: Date.now().toString(),
-      type: selectedActivity,
-      scheduledDate: scheduledDate || new Date().toISOString().split('T')[0],
-      status: 'PENDING' as const,
-      points: activityType.points,
-      notes,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
+    try {
+      const { data, error } = await supabase
+        .from('deal_activities')
+        .insert({
+          deal_id: dealId,
+          reseller_id: user.id,
+          activity_type: selectedActivity,
+          title: title || activityType.label,
+          description: description || activityType.description,
+          scheduled_date: scheduledDate || new Date().toISOString(),
+          notes,
+          status: 'PENDING',
+        })
+        .select()
+        .single();
 
-    setActivities([newActivity, ...activities]);
-    toast.success(`${activityType.label} added successfully! +${activityType.points} points pending`);
-    
-    setSelectedActivity(null);
-    setScheduledDate('');
-    setNotes('');
+      if (error) throw error;
+
+      toast.success(`${activityType.label} added successfully! +${activityType.points} points pending acknowledgment`);
+      
+      setSelectedActivity(null);
+      setScheduledDate('');
+      setNotes('');
+      setTitle('');
+      setDescription('');
+      fetchActivities();
+    } catch (error) {
+      console.error('Error adding activity:', error);
+      toast.error('Failed to add activity');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -119,8 +150,8 @@ export default function DealActivitiesPage() {
     }
   };
 
-  const getActivityIcon = (type: string) => {
-    const activity = ACTIVITY_TYPES.find(a => a.type === type);
+  const getActivityIcon = (activityType: string) => {
+    const activity = ACTIVITY_TYPES.find(a => a.type === activityType);
     if (!activity) return Calendar;
     return activity.icon;
   };
@@ -250,8 +281,8 @@ export default function DealActivitiesPage() {
                 ) : (
                   <div className="space-y-4">
                     {activities.map((activity) => {
-                      const Icon = getActivityIcon(activity.type);
-                      const activityType = ACTIVITY_TYPES.find(a => a.type === activity.type);
+                      const Icon = getActivityIcon(activity.activity_type);
+                      const activityType = ACTIVITY_TYPES.find(a => a.type === activity.activity_type);
 
                       return (
                         <Card key={activity.id}>
@@ -264,23 +295,41 @@ export default function DealActivitiesPage() {
                               <div className="flex-1">
                                 <div className="flex items-start justify-between mb-2">
                                   <div>
-                                    <h4 className="font-semibold">{activityType?.label}</h4>
+                                    <h4 className="font-semibold">{activity.title || activityType?.label}</h4>
                                     <p className="text-sm text-gray-600">
-                                      Scheduled: {new Date(activity.scheduledDate).toLocaleDateString()}
+                                      {activity.description || activityType?.description}
                                     </p>
+                                    {activity.scheduled_date && (
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Scheduled: {new Date(activity.scheduled_date).toLocaleDateString()}
+                                      </p>
+                                    )}
                                   </div>
                                   {getStatusBadge(activity.status)}
                                 </div>
 
+                                {activity.notes && (
+                                  <p className="text-sm text-gray-600 mb-2 p-2 bg-gray-50 rounded">
+                                    {activity.notes}
+                                  </p>
+                                )}
+
                                 <div className="flex items-center gap-4 text-xs text-gray-500">
-                                  <span>Created: {new Date(activity.createdAt).toLocaleDateString()}</span>
-                                  {activity.acknowledgedAt && (
-                                    <span>Acknowledged: {new Date(activity.acknowledgedAt).toLocaleDateString()}</span>
+                                  <span>Created: {new Date(activity.created_at).toLocaleDateString()}</span>
+                                  {activity.acknowledged_at && (
+                                    <span>Acknowledged: {new Date(activity.acknowledged_at).toLocaleDateString()}</span>
                                   )}
                                   <span className="font-semibold text-blue-600">
                                     {activity.status === 'ACKNOWLEDGED' ? `+${activity.points} points` : `${activity.points} points pending`}
                                   </span>
                                 </div>
+
+                                {activity.status === 'REJECTED' && activity.rejection_reason && (
+                                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                                    <p className="text-xs text-red-900 font-semibold">Rejection Reason:</p>
+                                    <p className="text-sm text-red-800">{activity.rejection_reason}</p>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </CardContent>

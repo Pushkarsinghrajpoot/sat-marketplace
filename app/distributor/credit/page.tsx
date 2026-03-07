@@ -101,29 +101,6 @@ export default function CreditRequestsPage() {
     }
   };
 
-  const sampleRequests = [
-    {
-      id: '1',
-      reseller: 'ABC Resellers Inc.',
-      amount: 50000,
-      terms: 'Net 60',
-      status: 'PENDING',
-      documents: ['Financial Statement Q4 2023', 'Bank Reference Letter', 'Tax ID Certificate'],
-      submittedAt: '2024-01-20T10:00:00Z',
-    },
-    {
-      id: '2',
-      reseller: 'Premier Solutions Group',
-      amount: 100000,
-      terms: 'Net 90',
-      status: 'APPROVED',
-      approvedLimit: 100000,
-      documents: ['Financial Statement Q4 2023', 'Bank Reference Letter'],
-      submittedAt: '2024-01-15T14:30:00Z',
-      reviewedAt: '2024-01-18T09:00:00Z',
-    },
-  ];
-
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
@@ -131,8 +108,25 @@ export default function CreditRequestsPage() {
         <p className="text-gray-600">Review and approve credit requests from resellers</p>
       </div>
 
-      <div className="space-y-6">
-        {requests.map((request) => (
+      {loading ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-gray-500">Loading credit requests...</p>
+          </CardContent>
+        </Card>
+      ) : requests.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 font-semibold">No credit requests yet</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Credit requests from resellers will appear here
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {requests.map((request) => (
           <Card key={request.id}>
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -214,8 +208,9 @@ export default function CreditRequestsPage() {
               )}
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

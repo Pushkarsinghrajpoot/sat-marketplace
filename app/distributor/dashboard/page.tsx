@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock, Search, Send, TrendingUp, Clock } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries, getQuotes } from '@/lib/data-helpers';
 import { useAuth } from '@/lib/auth-context';
@@ -73,23 +72,6 @@ export default function DistributorDashboard() {
 
     fetchData();
   }, [user]);
-
-  const revenueData = [
-    { month: 'Jan', revenue: 45000 },
-    { month: 'Feb', revenue: 52000 },
-    { month: 'Mar', revenue: 48000 },
-    { month: 'Apr', revenue: 61000 },
-    { month: 'May', revenue: 55000 },
-    { month: 'Jun', revenue: 67000 },
-  ];
-
-  const salesByCategory = [
-    { category: 'Networking', sales: 35 },
-    { category: 'Security', sales: 25 },
-    { category: 'Storage', sales: 20 },
-    { category: 'Servers', sales: 15 },
-    { category: 'Cloud', sales: 5 },
-  ];
 
   return (
     <div className="p-6 lg:p-8">
@@ -267,8 +249,12 @@ export default function DistributorDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline">View</Button>
-                        <Button size="sm">Acknowledge</Button>
+                        <Link href={`/distributor/deals/${deal.id}`}>
+                          <Button size="sm" variant="outline">View</Button>
+                        </Link>
+                        <Link href="/distributor/activities">
+                          <Button size="sm">Acknowledge</Button>
+                        </Link>
                       </div>
                     </div>
                   </CardContent>
@@ -303,8 +289,12 @@ export default function DistributorDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline">View</Button>
-                        <Button size="sm">Submit Quote</Button>
+                        <Link href={`/distributor/deals/${deal.id}`}>
+                          <Button size="sm" variant="outline">View</Button>
+                        </Link>
+                        <Link href={`/distributor/quotes/create?dealId=${deal.id}`}>
+                          <Button size="sm">Submit Quote</Button>
+                        </Link>
                       </div>
                     </div>
                   </CardContent>
@@ -341,7 +331,9 @@ export default function DistributorDashboard() {
                           <span>Responses: {query.responses?.length || 0}</span>
                         </div>
                       </div>
-                      <Button size="sm">Respond</Button>
+                      <Link href={`/distributor/queries/${query.id}/respond`}>
+                        <Button size="sm">Respond</Button>
+                      </Link>
                     </div>
                   </CardContent>
                 </Card>
@@ -405,53 +397,25 @@ export default function DistributorDashboard() {
         )}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Revenue Trend</CardTitle>
-              <Link href="/distributor/analytics">
-                <Button variant="ghost" size="sm">View All</Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="#0066CC" strokeWidth={2} name="Revenue ($)" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Sales by Category</CardTitle>
-              <Link href="/distributor/analytics">
-                <Button variant="ghost" size="sm">View All</Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={salesByCategory}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="category" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="sales" fill="#0066CC" name="Sales (%)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="mb-8">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Analytics Overview</CardTitle>
+            <Link href="/distributor/analytics">
+              <Button variant="ghost" size="sm">View Detailed Analytics</Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12">
+            <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 font-semibold mb-2">Analytics Coming Soon</p>
+            <p className="text-sm text-gray-500">
+              Revenue trends and sales analytics will be available once you have quote and order data
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

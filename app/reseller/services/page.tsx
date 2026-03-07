@@ -1,48 +1,74 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Star, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Star, DollarSign, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 
 export default function ServicesPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
-  const services = [
-    {
-      id: '1',
-      name: 'IT Consulting Services',
-      category: 'Professional Services',
-      description: 'End-to-end IT consulting for enterprise clients',
-      pricing: 'Starting at $5,000/project',
-      status: 'Active',
-      rating: 4.8,
-      reviews: 24,
-    },
-    {
-      id: '2',
-      name: 'Cloud Migration Support',
-      category: 'Cloud Services',
-      description: 'Seamless cloud migration with zero downtime',
-      pricing: 'Starting at $10,000/project',
-      status: 'Active',
-      rating: 4.9,
-      reviews: 18,
-    },
-    {
-      id: '3',
-      name: 'Network Implementation',
-      category: 'Infrastructure',
-      description: 'Complete network setup and configuration',
-      pricing: 'Custom pricing',
-      status: 'Active',
-      rating: 4.7,
-      reviews: 31,
-    },
-  ];
+  useEffect(() => {
+    fetchServices();
+  }, [user]);
+
+  const fetchServices = async () => {
+    if (!user?.organizationId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('organization_id', user.organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setServices(data || []);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (serviceId: string) => {
+    if (!confirm('Are you sure you want to delete this service?')) return;
+
+    setDeleting(serviceId);
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', serviceId);
+
+      if (error) throw error;
+
+      toast.success('Service deleted successfully');
+      fetchServices();
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      toast.error('Failed to delete service');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const filteredServices = services.filter(service =>
+    service.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    service.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="p-6 lg:p-8">
@@ -51,10 +77,12 @@ export default function ServicesPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Services</h1>
           <p className="text-gray-600">Manage your service offerings</p>
         </div>
-        <Button onClick={() => toast.info('Add service feature coming soon!')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Service
-        </Button>
+        <Link href="/reseller/services/add">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Service
+          </Button>
+        </Link>
       </div>
 
       <Card className="mb-6">
@@ -72,53 +100,86 @@ export default function ServicesPage() {
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service) => (
-          <Card key={service.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-lg">{service.name}</CardTitle>
-                <Badge variant="success">{service.status}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">{service.category}</p>
-                  <p className="text-sm text-gray-700">{service.description}</p>
+      {loading ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-gray-500">Loading services...</p>
+          </CardContent>
+        </Card>
+      ) : filteredServices.length === 0 && searchQuery ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Search className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 font-semibold">No services found</p>
+            <p className="text-sm text-gray-500 mt-2">Try adjusting your search query</p>
+          </CardContent>
+        </Card>
+      ) : filteredServices.length > 0 ? (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredServices.map((service) => (
+            <Card key={service.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <CardTitle className="text-lg">{service.name}</CardTitle>
+                  <Badge variant={service.status === 'ACTIVE' ? 'success' : 'default'}>
+                    {service.status || 'Active'}
+                  </Badge>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex text-yellow-400 text-xs">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 fill-current" />
-                    ))}
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">{service.category || 'General'}</p>
+                    <p className="text-sm text-gray-700">{service.description || 'No description'}</p>
                   </div>
-                  <span className="text-xs text-gray-600">({service.rating}) {service.reviews} reviews</span>
-                </div>
 
-                <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-4 w-4 text-gray-400" />
-                  <span className="font-semibold text-gray-900">{service.pricing}</span>
-                </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <DollarSign className="h-4 w-4 text-gray-400" />
+                    <span className="font-semibold text-gray-900">
+                      {service.pricing || 'Custom pricing'}
+                    </span>
+                  </div>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => toast.info('Service details coming soon!')}>View Details</Button>
-                  <Button size="sm" onClick={() => toast.info('Quote request coming soon!')}>Request Quote</Button>
-                  <Button variant="ghost" size="sm" onClick={() => toast.info('Edit service coming soon!')}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => toast.info('Delete service coming soon!')}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/reseller/services/${service.id}`} className="flex-1 min-w-[120px]">
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                    </Link>
+                    <Button 
+                      size="sm" 
+                      className="flex-1 min-w-[120px]"
+                      onClick={() => toast.info('Quote request feature coming soon')}
+                    >
+                      Request Quote
+                    </Button>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Link href={`/reseller/services/${service.id}/edit`} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleDelete(service.id)}
+                      disabled={deleting === service.id}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {deleting === service.id ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {services.length === 0 && (
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
         <Card>
           <CardContent className="p-12 text-center">
             <div className="max-w-md mx-auto">
@@ -127,10 +188,12 @@ export default function ServicesPage() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No services yet</h3>
               <p className="text-gray-600 mb-6">Start adding your service offerings to attract more clients</p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Service
-              </Button>
+              <Link href="/reseller/services/add">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Service
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

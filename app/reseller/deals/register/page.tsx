@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
 import { CheckCircle, Search, Send, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { createDeal } from '@/lib/data-helpers';
+import { createDeal, getDistributors, createEngagementRequest } from '@/lib/data-helpers';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 
@@ -23,6 +24,10 @@ export default function RegisterDealPage() {
   const [isVerified, setIsVerified] = useState(false);
   const [signature, setSignature] = useState('');
   const [loading, setLoading] = useState(false);
+  const [distributors, setDistributors] = useState<any[]>([]);
+  const [selectedDistributor, setSelectedDistributor] = useState('');
+  const [engagementType, setEngagementType] = useState('');
+  const [engagementMessage, setEngagementMessage] = useState('');
   const [formData, setFormData] = useState({
     customerName: '',
     customerCompany: '',
@@ -36,6 +41,16 @@ export default function RegisterDealPage() {
     confirmedRelationship: false,
     agreedToTerms: false,
   });
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    async function fetchDistributors() {
+      const data = await getDistributors();
+      setDistributors(data);
+    }
+    fetchDistributors();
+  }, []);
 
   const validateCurrentStep = () => {
     switch (currentStep) {
@@ -143,8 +158,6 @@ export default function RegisterDealPage() {
     }
   };
 
-  const { user } = useAuth();
-
   const handleSubmit = async () => {
     if (!user?.id) {
       toast.error('Please login to register a deal');
@@ -160,9 +173,16 @@ export default function RegisterDealPage() {
     try {
       // DIRECT_QUERY: Insert into direct_queries table
       if (dealType === 'DIRECT_QUERY') {
+        if (!selectedDistributor) {
+          toast.error('Please select a distributor for direct query');
+          setLoading(false);
+          return;
+        }
+
         const directQueryData = {
           reseller_id: user.id,
           reseller_organization_id: user.organizationId,
+          distributor_id: selectedDistributor,
           title: formData.opportunityName,
           requirement: formData.notes || formData.opportunityName,
           estimated_budget: parseFloat(formData.estimatedValue) || 0,
@@ -183,9 +203,20 @@ export default function RegisterDealPage() {
         }
         
         console.log('Direct query created successfully:', data);
-        toast.success('Direct Query submitted successfully!');
+        
+        // Create activity record with points
+        await supabase.from('deal_activities').insert({
+          reseller_id: user.id,
+          activity_type: 'MEETING',
+          title: 'Direct Query Submitted',
+          description: `Direct query "${formData.opportunityName}" submitted to distributor`,
+          status: 'ACKNOWLEDGED',
+          points: 15,
+        });
+
+        toast.success('Direct Query submitted successfully! You earned 15 points.');
         router.push('/reseller/deals');
-        setTimeout(() => window.location.reload(), 100); // Force full page reload
+        setTimeout(() => window.location.reload(), 100);
         return;
       }
       
@@ -229,12 +260,56 @@ export default function RegisterDealPage() {
       
       console.log('Deal created successfully:', createdDeal);
       
-      // Show appropriate success message based on deal type
-      let successMessage = 'Deal submitted successfully!';
+      // Create engagement request if selected
+      if (engagementType && createdDeal.id) {
+        try {
+          await createEngagementRequest({
+            reseller_id: user.id,
+            distributor_id: null, // Will be assigned when distributor responds
+            deal_id: createdDeal.id,
+            message: engagementMessage || `Request for ${engagementType.replace('_', ' ')}`,
+            status: 'PENDING',
+          });
+
+          // Send notification to distributors
+          await supabase.from('notifications').insert({
+            notification_type: 'ENGAGEMENT_REQUEST',
+            title: `New ${engagementType.replace('_', ' ')} Request`,
+            message: `${user.name} requested ${engagementType.replace('_', ' ')} for deal "${formData.opportunityName}"`,
+          });
+
+          console.log('Engagement request created');
+        } catch (err) {
+          console.error('Error creating engagement request:', err);
+          // Don't fail the whole submission if engagement fails
+        }
+      }
+
+      // Add activity points for deal registration
+      let totalPoints = 0;
       if (dealType === 'DEAL_REGISTRATION') {
-        successMessage = `Deal registered and locked! You can now add activities (meetings, demos, BOQ).`;
+        totalPoints = 70; // Base points for complete registration
+        if (engagementType) totalPoints += 10; // Bonus for engagement request
       } else if (dealType === 'BIDDING') {
-        successMessage = 'Bidding deal created! Distributors can now submit quotes.';
+        totalPoints = 50;
+      }
+
+      await supabase.from('deal_activities').insert({
+        deal_id: createdDeal.id,
+        reseller_id: user.id,
+        activity_type: 'MEETING',
+        title: 'Deal Registration Completed',
+        description: `Successfully registered ${dealType ? dealType.replace('_', ' ') : ''} deal`,
+        status: 'ACKNOWLEDGED',
+        points: totalPoints,
+      });
+      
+      // Show appropriate success message based on deal type
+      let successMessage = `Deal submitted successfully! You earned ${totalPoints} points.`;
+      if (dealType === 'DEAL_REGISTRATION') {
+        successMessage = `Deal registered and locked! You earned ${totalPoints} points. You can now add activities (meetings, demos, BOQ).`;
+      } else if (dealType === 'BIDDING') {
+        successMessage = `Bidding deal created! You earned ${totalPoints} points. Distributors can now submit quotes.`;
       }
       
       toast.success(successMessage);
@@ -496,6 +571,28 @@ export default function RegisterDealPage() {
                     placeholder="Any special requirements, timelines, or constraints..."
                   />
                 </div>
+
+                {/* Distributor Selection for Direct Query */}
+                {dealType === 'DIRECT_QUERY' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Select Distributor *</label>
+                    <Select
+                      value={selectedDistributor}
+                      onChange={(e) => setSelectedDistributor(e.target.value)}
+                      required
+                    >
+                      <option value="">Select a distributor</option>
+                      {distributors.map((dist) => (
+                        <option key={dist.id} value={dist.id}>
+                          {dist.name} - {dist.city || 'N/A'}
+                        </option>
+                      ))}
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      This query will only be visible to the selected distributor
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -651,8 +748,65 @@ export default function RegisterDealPage() {
               </div>
             )}
 
-            {/* Step 4: Declaration */}
-            {currentStep === 4 && (
+            {/* Step 3.5: Engagement Request (Optional) - for DEAL_REGISTRATION after verification */}
+            {currentStep === 4 && dealType === 'DEAL_REGISTRATION' && isVerified && (
+              <div className="space-y-6">
+                <CardHeader className="px-0 pt-0">
+                  <CardTitle>Request Engagement (Optional)</CardTitle>
+                  <p className="text-sm text-gray-600">Request distributor support before finalizing deal registration</p>
+                </CardHeader>
+
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-blue-900">
+                      <strong>Optional:</strong> Request technical support or demonstration from distributors.
+                      You can skip this and proceed directly to finalize your registration.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Engagement Type</label>
+                  <Select
+                    value={engagementType}
+                    onChange={(e) => setEngagementType(e.target.value)}
+                  >
+                    <option value="">Skip - No engagement needed</option>
+                    <option value="TECHNICAL_MEETING">Technical Meeting</option>
+                    <option value="DEMO_POC">Request Demo/POC</option>
+                    <option value="BOQ_REVISION">Request BOQ Revision</option>
+                    <option value="TECH_DISCUSSION">Request Tech Discussion</option>
+                  </Select>
+                </div>
+
+                {engagementType && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Message to Distributor</label>
+                    <Textarea
+                      value={engagementMessage}
+                      onChange={(e) => setEngagementMessage(e.target.value)}
+                      rows={3}
+                      placeholder="Provide details about your engagement request..."
+                    />
+                  </div>
+                )}
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-900">
+                    <strong>What happens next:</strong>
+                  </p>
+                  <ul className="text-sm text-green-800 mt-2 space-y-1 ml-4">
+                    <li>• Your deal will be registered and locked to you</li>
+                    <li>• {engagementType ? 'Distributor will be notified of your engagement request' : 'You can request engagement later from deal details'}</li>
+                    <li>• You'll earn activity points for each step</li>
+                    <li>• Proceed to finalize your registration</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Declaration (for BIDDING) or Step 5 (for DEAL_REGISTRATION) */}
+            {((currentStep === 4 && dealType === 'BIDDING') || (currentStep === 5 && dealType === 'DEAL_REGISTRATION')) && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle>Declaration & E-Sign</CardTitle>
