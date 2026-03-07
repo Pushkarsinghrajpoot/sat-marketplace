@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { getProducts } from '@/lib/data-helpers';
 
 export default function ProductsPage() {
-  const { user, organization } = useAuthStore();
+  const { user, organization } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
