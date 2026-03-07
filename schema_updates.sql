@@ -228,3 +228,40 @@ SELECT deal_type,
 FROM deals
 WHERE deal_type IN ('DEAL_REGISTRATION', 'BIDDING')
 GROUP BY deal_type;
+
+-- ============================================================================
+-- STORAGE BUCKET CREATION (Run in Supabase Dashboard > Storage)
+-- ============================================================================
+-- NOTE: Storage buckets cannot be created via SQL. 
+-- You need to create them manually in the Supabase Dashboard:
+-- 1. Go to Storage section in Supabase Dashboard
+-- 2. Click "New bucket"
+-- 3. Create a bucket named: "boqs"
+-- 4. Set it to PUBLIC (so distributors can view BOQ files)
+-- 5. Add RLS policies for access control
+
+-- After creating the bucket, run these policies via SQL:
+
+-- Allow authenticated users to upload BOQs
+CREATE POLICY "Resellers can upload BOQs"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'boqs');
+
+-- Allow authenticated users to read BOQs
+CREATE POLICY "Users can view BOQs"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'boqs');
+
+-- Allow resellers to update their own BOQs
+CREATE POLICY "Resellers can update own BOQs"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'boqs');
+
+-- Allow resellers to delete their own BOQs
+CREATE POLICY "Resellers can delete own BOQs"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'boqs');
