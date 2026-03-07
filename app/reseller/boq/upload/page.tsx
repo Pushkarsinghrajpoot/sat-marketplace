@@ -24,19 +24,31 @@ export default function BOQUploadPage() {
 
   useEffect(() => {
     async function fetchDeals() {
-      if (!user?.id) return;
+      if (!user?.id) {
+        console.log('BOQ: No user ID, skipping deal fetch');
+        return;
+      }
       
       try {
+        console.log('BOQ: Fetching deals for user:', user.id);
         const data = await getDeals({ userId: user.id });
-        // Show all deals that are locked/registered or active
-        setDeals(data.filter(d => d.isLocked || d.status === 'ACTIVE' || d.status === 'DRAFT'));
+        console.log('BOQ: Fetched deals:', data.length, data);
+        
+        // Show ALL deals - user can select any deal for BOQ upload
+        setDeals(data);
+        
+        if (data.length === 0) {
+          console.warn('BOQ: No deals found for user');
+          toast.info('No deals found. Please create a deal first.');
+        }
       } catch (error) {
-        console.error('Error fetching deals:', error);
+        console.error('BOQ: Error fetching deals:', error);
+        toast.error('Failed to load deals');
       }
     }
 
     fetchDeals();
-  }, [user]);
+  }, [user?.id]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
