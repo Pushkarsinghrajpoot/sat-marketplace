@@ -103,16 +103,18 @@ export default function EngagementsPage() {
   const getBadge = (score: number) => {
     if (score >= 250) return { label: 'Gold', color: 'bg-yellow-500' };
     if (score >= 100) return { label: 'Silver', color: 'bg-gray-400' };
-    return { label: 'Bronze', color: 'bg-orange-600' };
+    if (score >= 50) return { label: 'Bronze', color: 'bg-orange-600' };
+    return { label: 'Starter', color: 'bg-blue-600' };
   };
 
   // Filter engagements based on search and tab
   const filteredEngagements = engagements.filter((eng: any) => {
     // Search filter
     const matchesSearch = searchQuery === '' || 
-      eng.deals?.opportunityName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      eng.deals?.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      eng.message?.toLowerCase().includes(searchQuery.toLowerCase());
+      eng.deals?.opportunity_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eng.deals?.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eng.message?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eng.users?.name?.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Tab filter
     const matchesTab = activeTab === 'all' || 
@@ -189,13 +191,13 @@ export default function EngagementsPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">{engagement.users?.name || 'Unknown Reseller'}</h3>
                     <p className="text-xs text-gray-600">{engagement.reseller_organizations?.name || 'N/A'}</p>
-                    {engagement.deals?.score && (
-                      <div className="mt-1">
-                        <Badge className={`text-xs text-white ${getBadge(engagement.deals.score).color}`}>
-                          {getBadge(engagement.deals.score).label}
-                        </Badge>
-                      </div>
-                    )}
+                    {engagement.deals?.score !== undefined && (
+                    <div className="mt-1">
+                      <Badge className={`text-xs text-white ${getBadge(engagement.deals.score).color}`}>
+                        {getBadge(engagement.deals.score).label}
+                      </Badge>
+                    </div>
+                  )}
                     {engagement.deals?.is_verified && (
                       <div className="flex items-center gap-1 mt-1">
                         <CheckCircle className="h-3 w-3 text-green-600" />
