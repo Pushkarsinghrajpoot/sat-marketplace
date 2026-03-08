@@ -61,7 +61,7 @@ export default function QuoteDetailPage() {
     setSubmitting(true);
     try {
       await updateQuote(quote.id, { 
-        status: 'UPDATED',
+        status: 'UNDER_REVIEW',
         updated_at: new Date().toISOString()
       });
       toast.success('Quote updated successfully!');
@@ -75,16 +75,11 @@ export default function QuoteDetailPage() {
   };
 
   const handleGenerateInvoice = () => {
-    // Generate a simple invoice PDF (in production, use a PDF library like jsPDF)
-    const invoiceData = {
-      quoteNumber: quote.id,
-      customer: 'Customer',
-      total: quote.total,
-      date: new Date().toLocaleDateString(),
-    };
-    
-    toast.success('Invoice generated! (PDF generation requires additional library)');
-    console.log('Invoice Data:', invoiceData);
+    router.push(`/distributor/quotes/${quote.id}/invoice`);
+  };
+
+  const handleScheduleFollowUp = () => {
+    router.push(`/distributor/quotes/${quote.id}/followup`);
   };
 
   if (loading) {
@@ -238,7 +233,7 @@ export default function QuoteDetailPage() {
                   <FileText className="h-4 w-4 mr-2" />
                   Generate Invoice
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => toast.info('Schedule follow-up coming soon')}>
+                <Button variant="outline" className="w-full" onClick={handleScheduleFollowUp}>
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Follow-up
                 </Button>
