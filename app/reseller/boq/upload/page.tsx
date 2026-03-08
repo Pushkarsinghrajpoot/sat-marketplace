@@ -30,7 +30,7 @@ export default function BOQUploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [dealId, setDealId] = useState('');
   const [deals, setDeals] = useState<any[]>([]);
-  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'SELECTED_DISTRIBUTORS'>('PUBLIC');
+  const [visibility, setVisibility] = useState<'PROTECTED' | 'BIDDING'>('PROTECTED');
   const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -194,8 +194,8 @@ export default function BOQUploadPage() {
         }
       }
 
-      // 4. If visibility is PRIVATE, insert invited distributors
-      if (visibility === 'PRIVATE' && selectedDistributors.length > 0 && boqData.id) {
+      // 4. If visibility is PROTECTED, insert invited distributors
+      if (visibility === 'PROTECTED' && selectedDistributors.length > 0 && boqData.id) {
         // Note: selectedDistributors currently contains names, need to map to IDs
         // For now, we'll skip this - you'd need to fetch distributor IDs first
         console.log('Private BOQ - distributors to invite:', selectedDistributors);
@@ -345,13 +345,13 @@ export default function BOQUploadPage() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Visibility Settings *</label>
-                  <Select value={visibility} onChange={(e) => setVisibility(e.target.value as 'PUBLIC' | 'PRIVATE' | 'SELECTED_DISTRIBUTORS')}>
-                    <option value="PUBLIC">Public Bidding (All qualified distributors)</option>
-                    <option value="PRIVATE">Private Invites (Selected distributors only)</option>
+                  <Select value={visibility} onChange={(e) => setVisibility(e.target.value as 'PROTECTED' | 'BIDDING')}>
+                    <option value="PROTECTED">Protected (Selected distributors only)</option>
+                    <option value="BIDDING">Open Bidding (All qualified distributors)</option>
                   </Select>
                 </div>
 
-                {visibility === 'PRIVATE' && (
+                {visibility === 'PROTECTED' && (
                   <div>
                     <label className="block text-sm font-medium mb-2">Select Distributors</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
