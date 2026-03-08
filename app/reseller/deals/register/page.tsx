@@ -13,7 +13,7 @@ import { createDeal, getDistributors, createEngagementRequest } from '@/lib/data
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 
-const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Declaration'];
+const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Engagement', 'Declaration'];
 
 export default function RegisterDealPage() {
   const router = useRouter();
@@ -91,14 +91,16 @@ export default function RegisterDealPage() {
         }
         return true;
       
-      case 4: // Declaration
-        // DIRECT_QUERY doesn't need declaration or signature
-        if (dealType === 'DIRECT_QUERY') {
-          return true;
-        }
-        if (!formData.confirmedRelationship || !formData.agreedToTerms || !signature) {
-          toast.error('Please confirm all declarations and provide signature');
-          return false;
+      case 4: // Engagement Request (DEAL_REGISTRATION only)
+        // This is engagement request step - always valid, optional
+        return true;
+      
+      case 5: // Declaration (both BIDDING and DEAL_REGISTRATION)
+        if (dealType === 'BIDDING' || dealType === 'DEAL_REGISTRATION') {
+          if (!formData.confirmedRelationship || !formData.agreedToTerms || !signature) {
+            toast.error('Please confirm all declarations and provide signature');
+            return false;
+          }
         }
         return true;
       
@@ -119,9 +121,9 @@ export default function RegisterDealPage() {
       return;
     }
     
-    // BIDDING: Skip verification, go to declaration
+    // BIDDING: Skip verification and engagement, go to declaration (step 5)
     if (currentStep === 2 && dealType === 'BIDDING') {
-      setCurrentStep(4); // Skip to declaration
+      setCurrentStep(5); // Skip to declaration (step 5 in new array)
       return;
     }
     
@@ -805,8 +807,8 @@ export default function RegisterDealPage() {
               </div>
             )}
 
-            {/* Step 4: Declaration (for BIDDING) or Step 5 (for DEAL_REGISTRATION) */}
-            {((currentStep === 4 && dealType === 'BIDDING') || (currentStep === 5 && dealType === 'DEAL_REGISTRATION')) && (
+            {/* Step 5: Declaration (for both BIDDING and DEAL_REGISTRATION) */}
+            {currentStep === 5 && (dealType === 'BIDDING' || dealType === 'DEAL_REGISTRATION') && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle>Declaration & E-Sign</CardTitle>
@@ -902,7 +904,7 @@ export default function RegisterDealPage() {
                 onClick={handleNext}
                 disabled={currentStep === 0 && !dealType}
               >
-                {currentStep === steps.length - 1 ? (
+                {currentStep === 5 && (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING') ? (
                   <>
                     <Lock className="h-4 w-4 mr-2" />
                     {dealType === 'DEAL_REGISTRATION' ? 'Lock & Register Deal' : 'Submit Deal'}
