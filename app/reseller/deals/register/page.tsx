@@ -114,10 +114,9 @@ export default function RegisterDealPage() {
       return;
     }
     
-    // DIRECT_QUERY: Skip verification and declaration, go straight to final review
+    // DIRECT_QUERY: Skip verification, go to engagement step
     if (currentStep === 2 && dealType === 'DIRECT_QUERY') {
-      // User has filled deal details, now show final step with submit button
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(4); // Go to engagement step
       return;
     }
     
@@ -265,10 +264,22 @@ export default function RegisterDealPage() {
       // Create engagement request if selected
       if (engagementType && createdDeal.id) {
         try {
+          // For BIDDING deals, engagement goes to all distributors
+          // For DEAL_REGISTRATION, engagement goes to selected distributor if any
+          let distributorId = null;
+          if (dealType === 'BIDDING') {
+            // For bidding, we'll create engagement requests for all distributors
+            // Or create a generic one that distributors can claim
+            distributorId = null; // Will be visible to all distributors
+          } else if (dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
+            distributorId = selectedDistributor;
+          }
+
           await createEngagementRequest({
             reseller_id: user.id,
-            distributor_id: null, // Will be assigned when distributor responds
+            distributor_id: distributorId,
             deal_id: createdDeal.id,
+            engagement_type: engagementType,
             message: engagementMessage || `Request for ${engagementType.replace('_', ' ')}`,
             status: 'PENDING',
           });
@@ -681,62 +692,7 @@ export default function RegisterDealPage() {
               </div>
             )}
 
-            {/* Review step for Direct Query */}
-            {currentStep === 3 && dealType === 'DIRECT_QUERY' && (
-              <div className="space-y-6">
-                <CardHeader className="px-0 pt-0">
-                  <CardTitle>Review Your Direct Query</CardTitle>
-                  <p className="text-sm text-gray-600">Review your query details before submitting</p>
-                </CardHeader>
-
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="space-y-3 text-sm">
-                      <div>
-                        <p className="font-semibold text-blue-900">Customer Information</p>
-                        <p className="text-blue-800">{formData.customerName} - {formData.customerCompany}</p>
-                        <p className="text-blue-800">{formData.customerEmail}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-blue-900">Query Details</p>
-                        <p className="text-blue-800">Opportunity: {formData.opportunityName}</p>
-                        <p className="text-blue-800">Budget: ${formData.estimatedValue}</p>
-                        <p className="text-blue-800">Close Date: {formData.closeDate}</p>
-                      </div>
-                      {formData.notes && (
-                        <div>
-                          <p className="font-semibold text-blue-900">Additional Notes</p>
-                          <p className="text-blue-800">{formData.notes}</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-green-50 border-green-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-sm text-green-900 mb-1">Ready to Submit</p>
-                        <p className="text-xs text-green-800">
-                          Your direct query will be sent to distributors who can respond with quotes. 
-                          No verification or declaration required for direct queries.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="text-center pt-4">
-                  <Button onClick={handleSubmit} disabled={loading} size="lg">
-                    {loading ? 'Submitting...' : 'Submit Direct Query'}
-                    <Send className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
+            
             {/* Skip verification for Bidding (goes to declaration) */}
             {currentStep === 3 && dealType === 'BIDDING' && (
               <div className="space-y-6">
@@ -750,19 +706,20 @@ export default function RegisterDealPage() {
               </div>
             )}
 
-            {/* Step 3.5: Engagement Request (Optional) - for DEAL_REGISTRATION after verification */}
-            {currentStep === 4 && dealType === 'DEAL_REGISTRATION' && isVerified && (
+            {/* Step 4: Engagement Request (Optional) - for DEAL_REGISTRATION after verification and DIRECT_QUERY */}
+            {((currentStep === 4 && dealType === 'DEAL_REGISTRATION' && isVerified) || 
+              (currentStep === 4 && dealType === 'DIRECT_QUERY')) && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle>Request Engagement (Optional)</CardTitle>
-                  <p className="text-sm text-gray-600">Request distributor support before finalizing deal registration</p>
+                  <p className="text-sm text-gray-600">Request distributor support before submitting your query</p>
                 </CardHeader>
 
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
                     <p className="text-sm text-blue-900">
                       <strong>Optional:</strong> Request technical support or demonstration from distributors.
-                      You can skip this and proceed directly to finalize your registration.
+                      You can skip this and proceed directly to submit your query.
                     </p>
                   </CardContent>
                 </Card>
@@ -798,17 +755,17 @@ export default function RegisterDealPage() {
                     <strong>What happens next:</strong>
                   </p>
                   <ul className="text-sm text-green-800 mt-2 space-y-1 ml-4">
-                    <li>• Your deal will be registered and locked to you</li>
+                    <li>• {dealType === 'DEAL_REGISTRATION' ? 'Your deal will be registered and locked to you' : 'Your query will be sent to distributors'}</li>
                     <li>• {engagementType ? 'Distributor will be notified of your engagement request' : 'You can request engagement later from deal details'}</li>
                     <li>• You'll earn activity points for each step</li>
-                    <li>• Proceed to finalize your registration</li>
+                    <li>• {dealType === 'DEAL_REGISTRATION' ? 'Proceed to finalize your registration' : 'Proceed to declaration and submit your query'}</li>
                   </ul>
                 </div>
               </div>
             )}
 
-            {/* Step 5: Declaration (for both BIDDING and DEAL_REGISTRATION) */}
-            {currentStep === 5 && (dealType === 'BIDDING' || dealType === 'DEAL_REGISTRATION') && (
+            {/* Step 5: Declaration (for BIDDING, DEAL_REGISTRATION, and DIRECT_QUERY) */}
+            {currentStep === 5 && (dealType === 'BIDDING' || dealType === 'DEAL_REGISTRATION' || dealType === 'DIRECT_QUERY') && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle>Declaration & E-Sign</CardTitle>
@@ -888,6 +845,22 @@ export default function RegisterDealPage() {
                     </CardContent>
                   </Card>
                 )}
+
+                {dealType === 'DIRECT_QUERY' && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Send className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm text-blue-900 mb-1">Query Will Be Sent</p>
+                          <p className="text-xs text-blue-800">
+                            Once submitted, your direct query will be sent to distributors who can respond with quotes and pricing. You'll be able to track responses and communicate directly with interested distributors.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 
@@ -904,10 +877,11 @@ export default function RegisterDealPage() {
                 onClick={handleNext}
                 disabled={currentStep === 0 && !dealType}
               >
-                {currentStep === 5 && (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING') ? (
+                {currentStep === 5 && (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING' || dealType === 'DIRECT_QUERY') ? (
                   <>
                     <Lock className="h-4 w-4 mr-2" />
-                    {dealType === 'DEAL_REGISTRATION' ? 'Lock & Register Deal' : 'Submit Deal'}
+                    {dealType === 'DEAL_REGISTRATION' ? 'Lock & Register Deal' : 
+                   dealType === 'DIRECT_QUERY' ? 'Submit Direct Query' : 'Submit Deal'}
                   </>
                 ) : (
                   'Next'

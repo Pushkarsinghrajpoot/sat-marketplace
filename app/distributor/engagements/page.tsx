@@ -44,13 +44,14 @@ export default function EngagementsPage() {
           users:reseller_id(
             id,
             name,
-            email,
-            organizations:organization_id(
-              name
-            )
+            email
+          ),
+          reseller_organizations:reseller_id->organization_id(
+            name
           )
         `)
-        .eq('distributor_id', user.organizationId)
+        // Show engagement requests assigned to this distributor OR generic ones (distributor_id is null)
+        .or(`distributor_id.eq.${user.organizationId},distributor_id.is.null`)
         .order('created_at', { ascending: false });
 
       if (activeTab === 'pending') {
@@ -190,7 +191,7 @@ export default function EngagementsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">{engagement.users?.name || 'Unknown Reseller'}</h3>
-                    <p className="text-xs text-gray-600">{engagement.users?.organizations?.name || 'N/A'}</p>
+                    <p className="text-xs text-gray-600">{engagement.reseller_organizations?.name || 'N/A'}</p>
                     {engagement.deals?.is_verified && (
                       <div className="flex items-center gap-1 mt-1">
                         <CheckCircle className="h-3 w-3 text-green-600" />
@@ -251,6 +252,9 @@ export default function EngagementsPage() {
                   <Badge variant="success" className="mt-2 text-xs">
                     {engagement.deals?.score >= 100 ? 'High' : engagement.deals?.score >= 50 ? 'Medium' : 'Low'} Effort
                   </Badge>
+                  <div className="mt-2 text-xs text-green-700">
+                    <span className="font-semibold">Points Earned:</span> 70 {engagement.engagement_type && ' + 10 bonus'}
+                  </div>
                 </div>
 
                 {engagement.message && (
