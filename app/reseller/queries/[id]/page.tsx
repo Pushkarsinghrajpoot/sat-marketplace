@@ -31,10 +31,7 @@ export default function DirectQueryDetailPage() {
           *,
           distributor:distributor_id (
             id,
-            name,
-            organizations:organization_id (
-              name
-            )
+            name
           )
         `)
         .eq('id', queryId)
@@ -145,7 +142,7 @@ export default function DirectQueryDetailPage() {
                     <Building2 className="h-5 w-5 text-blue-600" />
                     <div>
                       <p className="text-xs text-gray-600">Sent to Distributor</p>
-                      <p className="font-semibold">{query.distributor?.organizations?.name || 'N/A'}</p>
+                      <p className="font-semibold">{query.distributor?.name || 'Not assigned'}</p>
                     </div>
                   </div>
                 </div>
