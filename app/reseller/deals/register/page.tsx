@@ -120,12 +120,6 @@ export default function RegisterDealPage() {
       return;
     }
     
-    // BIDDING: Skip verification and engagement, go to declaration (step 5)
-    if (currentStep === 2 && dealType === 'BIDDING') {
-      setCurrentStep(5); // Skip to declaration (step 5 in new array)
-      return;
-    }
-    
     // Normal flow for DEAL_REGISTRATION
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
