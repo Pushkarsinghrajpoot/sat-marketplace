@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock, Search, Send, TrendingUp, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock, Search, Send, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries, getQuotes } from '@/lib/data-helpers';
 import { useAuth } from '@/lib/auth-context';
@@ -282,10 +283,35 @@ export default function DistributorDashboard() {
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold mb-2">{deal.opportunityName}</h3>
                         <p className="text-sm text-gray-600 mb-3">{deal.customerCompany}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
                           <span>Created: {new Date(deal.createdAt).toLocaleDateString()}</span>
                           <span>•</span>
                           <span>Value: {formatCurrency(deal.estimatedValue)}</span>
+                        </div>
+                        
+                        {/* Effort Signals */}
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {deal.isLocked && (
+                            <Badge variant="success" className="text-xs">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Deal Registered
+                            </Badge>
+                          )}
+                          {deal.isVerified && (
+                            <Badge variant="success" className="text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Customer Verified
+                            </Badge>
+                          )}
+                          {deal.score > 0 && (
+                            <Badge variant="info" className="text-xs">
+                              <TrendingUp className="h-3 w-3 mr-1" />
+                              Score: {deal.score}
+                            </Badge>
+                          )}
+                          <Badge variant={deal.score >= 100 ? 'success' : deal.score >= 50 ? 'warning' : 'default'} className="text-xs">
+                            {deal.score >= 100 ? 'High' : deal.score >= 50 ? 'Medium' : 'Low'} Effort
+                          </Badge>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -328,12 +354,17 @@ export default function DistributorDashboard() {
                             {query.urgency}
                           </span>
                           <span>•</span>
-                          <span>Responses: {query.responses?.length || 0}</span>
+                          <span>Budget: {query.estimated_budget ? formatCurrency(query.estimated_budget) : 'N/A'}</span>
                         </div>
                       </div>
-                      <Link href={`/distributor/queries/${query.id}/respond`}>
-                        <Button size="sm">Respond</Button>
-                      </Link>
+                      <div className="flex gap-2">
+                        <Link href={`/distributor/queries/${query.id}`}>
+                          <Button size="sm" variant="outline">View</Button>
+                        </Link>
+                        <Link href={`/distributor/queries/${query.id}/respond`}>
+                          <Button size="sm">Respond</Button>
+                        </Link>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

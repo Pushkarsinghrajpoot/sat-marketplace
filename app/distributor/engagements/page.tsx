@@ -10,6 +10,7 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getEngagementRequests, updateEngagementRequest } from '@/lib/data-helpers';
 import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 
 export default function EngagementsPage() {
   const [activeTab, setActiveTab] = useState('pending');
@@ -26,14 +27,48 @@ export default function EngagementsPage() {
     if (!user?.organizationId) return;
     
     try {
-      const statusFilter = activeTab === 'pending' ? 'PENDING' : activeTab === 'approved' ? 'APPROVED' : undefined;
-      const data = await getEngagementRequests({ 
-        distributorId: user.organizationId,
-        status: statusFilter
-      });
-      setEngagements(data);
+      let query = supabase
+        .from('engagement_requests')
+        .select(`
+          *,
+          deals!inner(
+            id,
+            opportunity_name,
+            customer_name,
+            customer_company,
+            estimated_value,
+            close_date,
+            is_verified,
+            score
+          ),
+          users:reseller_id(
+            id,
+            name,
+            email,
+            organizations:organization_id(
+              name
+            )
+          )
+        `)
+        .eq('distributor_id', user.organizationId)
+        .order('created_at', { ascending: false });
+
+      if (activeTab === 'pending') {
+        query = query.eq('status', 'PENDING');
+      } else if (activeTab === 'approved') {
+        query = query.eq('status', 'APPROVED');
+      } else if (activeTab === 'declined') {
+        query = query.eq('status', 'DECLINED');
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      setEngagements(data || []);
     } catch (error) {
       console.error('Error fetching engagements:', error);
+      toast.error('Failed to load engagement requests');
     } finally {
       setLoading(false);
     }
@@ -145,115 +180,120 @@ export default function EngagementsPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {engagements.map((engagement) => (
-          <Card key={engagement.id} className="border-l-4 border-l-orange-500">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-                  {engagement.resellerLogo}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 truncate">{engagement.reseller}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex text-yellow-400 text-xs">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="h-3 w-3 fill-current" />
-                      ))}
-                    </div>
-                    <span className="text-xs text-gray-600">({engagement.rating})</span>
-                    {engagement.verified && (
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+        {filteredEngagements.length > 0 ? (
+          filteredEngagements.map((engagement) => (
+            <Card key={engagement.id} className="border-l-4 border-l-orange-500">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                    {engagement.users?.name?.charAt(0) || 'R'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">{engagement.users?.name || 'Unknown Reseller'}</h3>
+                    <p className="text-xs text-gray-600">{engagement.users?.organizations?.name || 'N/A'}</p>
+                    {engagement.deals?.is_verified && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <CheckCircle className="h-3 w-3 text-green-600" />
+                        <span className="text-xs text-green-600">Verified</span>
+                      </div>
                     )}
                   </div>
+                  <Badge variant={
+                    engagement.status === 'PENDING' ? 'warning' :
+                    engagement.status === 'APPROVED' ? 'success' : 'default'
+                  }>
+                    {engagement.status}
+                  </Badge>
                 </div>
-                <Badge variant="warning">Pending</Badge>
-              </div>
 
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-sm mb-2">{engagement.deal.title}</h4>
-                <div className="space-y-1 text-xs text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-3 w-3" />
-                    <span>{engagement.deal.customer}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">{formatCurrency(engagement.deal.value)}</span>
-                    <span>•</span>
-                    <span>Close: {engagement.deal.closeDate}</span>
-                  </div>
-                  <div>
-                    <Badge variant="info" className="text-xs">{engagement.deal.industry}</Badge>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-xs font-semibold text-gray-700 mb-2">Products Requested:</p>
-                <div className="flex items-center gap-1 text-xs">
-                  <Package className="h-3 w-3 text-gray-400" />
-                  <span className="text-gray-600">{engagement.products.length} products</span>
-                </div>
-                <div className="mt-2 space-y-1">
-                  {engagement.products?.slice(0, 2).map((product: string, idx: number) => (
-                    <p key={idx} className="text-xs text-gray-700">• {product}</p>
-                  ))}
-                  {engagement.products.length > 2 && (
-                    <p className="text-xs text-blue-600">+{engagement.products.length - 2} more</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-xs font-semibold text-green-800 mb-2">Effort Signals:</p>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-green-600" />
-                    <span className="text-green-700">Deal Registered</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-green-600" />
-                    <span className="text-green-700">BOQ Uploaded</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3 text-green-600" />
-                    <span className="text-green-700">{engagement.effort.timeInvested} days active</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-green-600" />
-                    <span className="text-green-700">Customer Verified</span>
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold text-sm mb-2">{engagement.deals?.opportunity_name || 'N/A'}</h4>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-3 w-3" />
+                      <span>{engagement.deals?.customer_company || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900">{formatCurrency(engagement.deals?.estimated_value || 0)}</span>
+                      {engagement.deals?.close_date && (
+                        <>
+                          <span>•</span>
+                          <span>Close: {new Date(engagement.deals.close_date).toLocaleDateString()}</span>
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <Badge variant="info" className="text-xs">{engagement.engagement_type || 'General Request'}</Badge>
+                    </div>
                   </div>
                 </div>
-                <Badge variant="success" className="mt-2 text-xs">High Effort Score</Badge>
-              </div>
 
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs font-semibold text-gray-700 mb-1">Message:</p>
-                <p className="text-xs text-gray-600 italic">"{engagement.message}"</p>
-              </div>
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-xs font-semibold text-green-800 mb-2">Effort Signals:</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <span className="text-green-700">Deal Registered</span>
+                    </div>
+                    {engagement.deals?.is_verified && (
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3 text-green-600" />
+                        <span className="text-green-700">Customer Verified</span>
+                      </div>
+                    )}
+                    {engagement.deals?.score > 0 && (
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3 text-green-600" />
+                        <span className="text-green-700">Score: {engagement.deals.score}</span>
+                      </div>
+                    )}
+                  </div>
+                  <Badge variant="success" className="mt-2 text-xs">
+                    {engagement.deals?.score >= 100 ? 'High' : engagement.deals?.score >= 50 ? 'Medium' : 'Low'} Effort
+                  </Badge>
+                </div>
 
-              <div className="text-xs text-gray-500 mb-4">
-                Requested {formatRelativeTime(engagement.requestedAt)}
-              </div>
+                {engagement.message && (
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs font-semibold text-gray-700 mb-1">Message:</p>
+                    <p className="text-xs text-gray-600 italic">"{engagement.message}"</p>
+                  </div>
+                )}
 
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => handleApprove(engagement.id)}
-                >
-                  Accept & Quote
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleDecline(engagement.id)}
-                >
-                  Decline
-                </Button>
-              </div>
+                <div className="text-xs text-gray-500 mb-4">
+                  Requested {formatRelativeTime(engagement.created_at)}
+                </div>
+
+                {engagement.status === 'PENDING' && (
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleApprove(engagement.id)}
+                    >
+                      Accept & Quote
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDecline(engagement.id)}
+                    >
+                      Decline
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card className="col-span-3">
+            <CardContent className="p-12 text-center">
+              <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600">No engagement requests found</p>
+              <p className="text-sm text-gray-500">Engagement requests from resellers will appear here</p>
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
     </div>
   );
