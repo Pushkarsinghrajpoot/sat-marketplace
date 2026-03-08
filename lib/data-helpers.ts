@@ -340,22 +340,51 @@ export async function updateDeal(dealId: string, updates: any) {
 export async function convertDealToBidding(dealId: string, userId: string) {
   console.log('Converting deal to bidding:', { dealId, userId });
   
+  // First, get the current deal to understand its current status
+  const { data: currentDeal, error: fetchError } = await supabase
+    .from('deals')
+    .select('*')
+    .eq('id', dealId)
+    .single();
+    
+  if (fetchError) {
+    console.error('Error fetching current deal:', fetchError);
+    throw fetchError;
+  }
+  
+  console.log('Current deal status:', currentDeal.status);
+  
+  // Try updating without status change first, then update status separately
   const { data: deal, error: dealError } = await supabase
     .from('deals')
     .update({
       deal_type: 'BIDDING',
       converted_to_bidding: true,
       converted_to_bidding_at: new Date().toISOString(),
-      status: 'ACTIVE',
     })
     .eq('id', dealId)
     .select()
     .single();
 
   if (dealError) {
-    console.error('Error converting deal to bidding:', dealError);
+    console.error('Error converting deal to bidding (step 1):', dealError);
     console.error('Error details:', JSON.stringify(dealError, null, 2));
     throw dealError;
+  }
+  
+  // Now try to update status separately if needed
+  if (currentDeal.status !== 'ACTIVE') {
+    const { error: statusError } = await supabase
+      .from('deals')
+      .update({ status: 'ACTIVE' })
+      .eq('id', dealId);
+      
+    if (statusError) {
+      console.error('Error updating deal status:', statusError);
+      console.error('Status error details:', JSON.stringify(statusError, null, 2));
+      // Don't throw here - the conversion succeeded, just status update failed
+      console.warn('Deal converted to bidding but status update failed');
+    }
   }
 
   // Create notification for reseller
