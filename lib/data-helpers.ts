@@ -162,10 +162,7 @@ export async function getBOQs(filters?: { distributorId?: string; visibility?: s
 
   // BOQs are visible to distributors based on visibility settings
   if (filters?.distributorId) {
-    query = query.or(`
-      visibility.eq.PUBLIC,
-      and(visibility.eq.PRIVATE,boq_invited_distributors.distributor_id.eq.${filters.distributorId})
-    `);
+    query = query.or(`visibility.eq.BIDDING,visibility.eq.PROTECTED`);
   }
 
   const { data, error } = await query;

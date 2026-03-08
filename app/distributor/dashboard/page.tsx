@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock, Search, Send, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock, Search, Send, TrendingUp, Clock, CheckCircle, FileSpreadsheet } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { getDeals, getDirectQueries, getQuotes } from '@/lib/data-helpers';
+import { getDeals, getDirectQueries, getQuotes, getBOQs } from '@/lib/data-helpers';
 import { useAuth } from '@/lib/auth-context';
 
 export default function DistributorDashboard() {
-  const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries' | 'quotes'>('registrations');
+  const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries' | 'quotes' | 'boqs'>('registrations');
   const [stats, setStats] = useState({
     totalProducts: 0,
     activeQuotes: 0,
@@ -20,12 +20,14 @@ export default function DistributorDashboard() {
     dealRegistrations: 0,
     biddingDeals: 0,
     directQueries: 0,
+    boqs: 0,
   });
 
   const [dealRegistrations, setDealRegistrations] = useState<any[]>([]);
   const [biddingDeals, setBiddingDeals] = useState<any[]>([]);
   const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
+  const [boqs, setBoqs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -36,11 +38,14 @@ export default function DistributorDashboard() {
       try {
         // Distributors should see ALL deals (not filtered by userId)
         // They see deals they can engage with, not deals they created
-        const [deals, queries, quotes] = await Promise.all([
+        const [deals, queries, quotes, boqData] = await Promise.all([
           getDeals({}), // Fetch all deals for distributor view
           getDirectQueries({}), // Fetch all queries for distributor view
           getQuotes({ distributorId: user.organizationId }),
+          getBOQs({ distributorId: user.organizationId }),
         ]);
+
+        console.log('Dashboard - Fetched BOQs:', boqData.length, boqData);
 
         const registrations = deals.filter((d: any) => d.dealType === 'DEAL_REGISTRATION');
         const bidding = deals.filter((d: any) => d.dealType === 'BIDDING');
@@ -58,12 +63,14 @@ export default function DistributorDashboard() {
           dealRegistrations: registrations.length,
           biddingDeals: bidding.length,
           directQueries: queries.length,
+          boqs: boqData.length,
         });
         
         setDealRegistrations(registrations);
         setBiddingDeals(bidding);
         setDirectQueries(queries);
         setQuotes(quotes);
+        setBoqs(boqData);
       } catch (error) {
         console.error('Error fetching distributor data:', error);
       } finally {
@@ -113,6 +120,24 @@ export default function DistributorDashboard() {
                 <p className="text-3xl font-bold text-gray-900">{stats.activeQuotes}</p>
                 <p className="text-sm text-gray-600 mt-1">Active Quotes</p>
                 <p className="text-xs text-green-600 mt-2">Click to view</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/distributor/quotes">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <FileSpreadsheet className="h-6 w-6 text-orange-600" />
+                </div>
+                <ArrowRight className="h-5 w-5 text-gray-400" />
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-gray-900">{stats.boqs}</p>
+                <p className="text-sm text-gray-600 mt-1">BOQ Requests</p>
+                <p className="text-xs text-orange-600 mt-2">Click to view</p>
               </div>
             </CardContent>
           </Card>
@@ -212,7 +237,7 @@ export default function DistributorDashboard() {
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
               Quotes
-              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">{stats.activeQuotes}</span>
+              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">{stats.activeQuotes + stats.boqs}</span>
             </div>
           </button>
         </div>
@@ -383,44 +408,107 @@ export default function DistributorDashboard() {
 
         {activeTab === 'quotes' && (
           <div className="space-y-4">
-            {quotes.length > 0 ? (
-              quotes.map((quote: any) => (
-                <Card key={quote.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold">Quote #{quote.id.substring(0, 8)}</h3>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            quote.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' :
-                            quote.status === 'WON' ? 'bg-green-100 text-green-800' :
-                            quote.status === 'LOST' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {quote.status}
-                          </span>
+            {/* Show BOQs first */}
+            {boqs.length > 0 && (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">BOQ Requests</h3>
+                {boqs.map((boq: any) => (
+                  <Card key={boq.id} className="hover:shadow-md transition-shadow border-orange-200">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold">BOQ-{boq.id.slice(-8)}</h3>
+                            <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">BOQ Request</span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              boq.visibility === 'BIDDING' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {boq.visibility}
+                            </span>
+                          </div>
+                          <div className="space-y-1 mb-2">
+                            <p className="font-semibold text-gray-700">{boq.deal?.opportunityName || 'Deal Opportunity'}</p>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span>Customer: {boq.deal?.customerName || 'Unknown'}</span>
+                              <span>•</span>
+                              <span>Reseller: {boq.reseller?.name || 'Unknown'}</span>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span>File: {boq.fileName}</span>
+                              <span>•</span>
+                              <span>Items: {boq.items?.length || 0}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span>Created: {new Date(boq.created_at).toLocaleDateString()}</span>
+                            <span>•</span>
+                            <span>Value: {boq.deal?.estimatedValue ? formatCurrency(boq.deal.estimatedValue) : 'TBD'}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
-                          <span>Total: {formatCurrency(quote.total || 0)}</span>
-                          <span>•</span>
-                          <span>Created: {new Date(quote.created_at).toLocaleDateString()}</span>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => window.open(boq.fileUrl, '_blank')}
+                          >
+                            View BOQ
+                          </Button>
+                          <Link href={`/distributor/quotes/create?boqId=${boq.id}&dealId=${boq.dealId}`}>
+                            <Button size="sm">Create Quote</Button>
+                          </Link>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Link href={`/distributor/quotes/${quote.id}`}>
-                          <Button size="sm" variant="outline">View Details</Button>
-                        </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            )}
+
+            {/* Show regular quotes */}
+            {quotes.length > 0 && (
+              <>
+                {boqs.length > 0 && <h3 className="text-lg font-semibold text-gray-900 mb-4 mt-6">Submitted Quotes</h3>}
+                {quotes.map((quote: any) => (
+                  <Card key={quote.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold">Quote #{quote.id.substring(0, 8)}</h3>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              quote.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' :
+                              quote.status === 'WON' ? 'bg-green-100 text-green-800' :
+                              quote.status === 'LOST' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {quote.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                            <span>Total: {formatCurrency(quote.total || 0)}</span>
+                            <span>•</span>
+                            <span>Created: {new Date(quote.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Link href={`/distributor/quotes/${quote.id}`}>
+                            <Button size="sm" variant="outline">View Details</Button>
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            )}
+
+            {/* Show empty state if no BOQs and no quotes */}
+            {boqs.length === 0 && quotes.length === 0 && (
               <Card>
                 <CardContent className="p-12 text-center">
                   <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600">No quotes yet</p>
-                  <p className="text-sm text-gray-500">Your submitted quotes will appear here</p>
+                  <p className="text-gray-600">No quotes or BOQ requests yet</p>
+                  <p className="text-sm text-gray-500">BOQ requests and your submitted quotes will appear here</p>
                 </CardContent>
               </Card>
             )}

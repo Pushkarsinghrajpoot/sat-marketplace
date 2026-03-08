@@ -138,7 +138,7 @@ export default function QuotesPage() {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-bold text-gray-900">BOQ-{boq.id.slice(-8)}</h3>
                         <Badge variant="info">BOQ Request</Badge>
-                        <Badge variant={boq.visibility === 'PUBLIC' ? 'success' : 'warning'}>
+                        <Badge variant={boq.visibility === 'BIDDING' ? 'success' : 'warning'}>
                           {boq.visibility}
                         </Badge>
                       </div>
