@@ -29,7 +29,24 @@ export default function DealQuotesPage() {
     try {
       const data = await getQuotes({ dealId });
       console.log('Fetched quotes for deal:', dealId, data);
-      setQuotes(data);
+      
+      // Fetch distributor details for each quote
+      const quotesWithDetails = await Promise.all(
+        data.map(async (quote) => {
+          if (quote.distributor_id) {
+            const { data: distributor } = await supabase
+              .from('organizations')
+              .select('name, email')
+              .eq('id', quote.distributor_id)
+              .single();
+            
+            return { ...quote, distributor };
+          }
+          return quote;
+        })
+      );
+      
+      setQuotes(quotesWithDetails);
     } catch (error) {
       console.error('Error fetching quotes:', error);
     } finally {

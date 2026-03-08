@@ -198,7 +198,7 @@ export default function DealsPage() {
           </div>
           <div className="space-y-3">
             {dealsByStage.bidding.map((deal) => (
-              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
+              <Link key={deal.id} href={`/reseller/deals/${deal.id}/quotes`}>
                 <Card className="bg-orange-50 border-orange-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
@@ -269,7 +269,7 @@ export default function DealsPage() {
           </div>
           <div className="space-y-3">
             {dealsByStage.quoted.map((deal) => (
-              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
+              <Link key={deal.id} href={`/reseller/deals/${deal.id}/quotes`}>
                 <Card className="bg-purple-50 border-purple-200 hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
