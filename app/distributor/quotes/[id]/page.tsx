@@ -196,11 +196,11 @@ export default function QuoteDetailPage() {
                     <tbody>
                       {quote.lineItems?.map((item: any, idx: number) => (
                         <tr key={idx} className="border-b">
-                          <td className="p-3 text-sm">{item.productName}</td>
+                          <td className="p-3 text-sm">{item.product_name}</td>
                           <td className="p-3 text-sm text-right">{item.quantity}</td>
-                          <td className="p-3 text-sm text-right">{formatCurrency(item.unitPrice)}</td>
+                          <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
                           <td className="p-3 text-sm text-right font-medium">
-                            {formatCurrency(item.subtotal)}
+                            {formatCurrency(item.total)}
                           </td>
                         </tr>
                       ))}

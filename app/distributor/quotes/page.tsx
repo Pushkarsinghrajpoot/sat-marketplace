@@ -235,7 +235,7 @@ export default function QuotesPage() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-bold text-gray-900">{quote.id}</h3>
+                    <h3 className="text-lg font-bold text-gray-900">Quote #{quote.id.slice(-8)}</h3>
                     <Badge variant={getStatusColor(quote.status)}>
                       {quote.status.replace('_', ' ')}
                     </Badge>
@@ -246,17 +246,17 @@ export default function QuotesPage() {
                     )}
                   </div>
                   <div className="space-y-1">
-                    <p className="font-semibold text-gray-700">{quote.dealName}</p>
+                    <p className="font-semibold text-gray-700">{quote.deal?.opportunityName || 'Unknown Deal'}</p>
                     <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>Customer: {quote.customer}</span>
+                      <span>Customer: {quote.deal?.customer_name || 'Unknown'}</span>
                       <span>•</span>
-                      <span>Reseller: {quote.reseller}</span>
+                      <span>Reseller: {quote.resellerUser?.name || 'Unknown'}</span>
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(quote.value)}</p>
-                  <p className="text-sm text-gray-500">{quote.lineItems} line items</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(quote.total || 0)}</p>
+                  <p className="text-sm text-gray-500">{quote.lineItems?.length || 0} line items</p>
                 </div>
               </div>
 
@@ -328,10 +328,12 @@ export default function QuotesPage() {
                 )}
 
                 {quote.status === 'WON' && (
-                  <Button variant="secondary" size="sm">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generate Invoice
-                  </Button>
+                  <Link href={`/distributor/quotes/${quote.id}/invoice`} className="flex-1">
+                    <Button variant="secondary" size="sm" className="w-full">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate Invoice
+                    </Button>
+                  </Link>
                 )}
               </div>
             </CardContent>

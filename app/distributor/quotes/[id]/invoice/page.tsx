@@ -91,7 +91,7 @@ Deal: ${quote.deal?.opportunityName || 'N/A'}
 
 ITEMS:
 ${quote.lineItems?.map((item: any) => 
-  `${item.productName} - Qty: ${item.quantity} x ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.total)}`
+  `${item.product_name} - Qty: ${item.quantity} x ${formatCurrency(item.unit_price)} = ${formatCurrency(item.total)}`
 ).join('\n') || 'No items'}
 
 SUBTOTAL: ${formatCurrency(quote.subtotal || 0)}

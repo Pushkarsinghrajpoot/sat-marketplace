@@ -126,7 +126,13 @@ export async function getDirectQueries(filters?: { userId?: string; organization
 export async function getQuotes(filters?: { dealId?: string; distributorId?: string }) {
   let query = supabase
     .from('quotes')
-    .select('*')
+    .select(`
+      *,
+      deals!inner(*),
+      organizations!quotes_distributor_id_fkey(*),
+      users!quotes_reseller_id_fkey(*),
+      quote_line_items(*)
+    `)
     .order('created_at', { ascending: false });
 
   if (filters?.dealId) {

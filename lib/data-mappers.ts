@@ -127,11 +127,11 @@ export function mapQuote(dbQuote: any): any {
     resellerId: dbQuote.reseller_id,
     recipientUserId: dbQuote.recipient_user_id,
     recipientRole: dbQuote.recipient_role,
-    subtotal: dbQuote.subtotal,
-    discount: dbQuote.discount,
-    tax: dbQuote.tax,
-    shipping: dbQuote.shipping,
-    total: dbQuote.total,
+    subtotal: dbQuote.subtotal || 0,
+    discount: dbQuote.discount || 0,
+    tax: dbQuote.tax || 0,
+    shipping: dbQuote.shipping || 0,
+    total: dbQuote.total || 0,
     status: dbQuote.status,
     paymentTermsNetDays: dbQuote.payment_terms_net_days,
     paymentTermsMethod: dbQuote.payment_terms_method,
@@ -144,6 +144,18 @@ export function mapQuote(dbQuote: any): any {
     submittedAt: dbQuote.submitted_at,
     createdAt: dbQuote.created_at,
     updatedAt: dbQuote.updated_at,
+    // Include related data
+    deal: dbQuote.deals,
+    distributor: dbQuote.organizations,
+    resellerUser: dbQuote.users,
+    lineItems: dbQuote.quote_line_items || [],
+    // Additional fields for UI
+    quote_type: dbQuote.quote_type,
+    distributor_id: dbQuote.distributor_id,
+    reseller_id: dbQuote.reseller_id,
+    payment_terms: dbQuote.payment_terms_method || 'Standard',
+    delivery_timeline: dbQuote.delivery_terms_estimated_delivery || 'Standard',
+    notes: dbQuote.notes || '',
   };
 }
 

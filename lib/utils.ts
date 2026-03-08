@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency: string = 'USD'): string {
+  // Check for NaN, null, undefined, or non-numeric values
+  if (amount === null || amount === undefined || isNaN(amount) || typeof amount !== 'number') {
+    return '$0';
+  }
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
