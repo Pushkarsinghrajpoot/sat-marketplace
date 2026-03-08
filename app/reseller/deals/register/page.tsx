@@ -263,8 +263,8 @@ export default function RegisterDealPage() {
         is_locked: dealType === 'DEAL_REGISTRATION',
         locked_by: dealType === 'DEAL_REGISTRATION' ? user.id : null,
         locked_at: dealType === 'DEAL_REGISTRATION' ? new Date().toISOString() : null,
-        // Score only for DEAL_REGISTRATION and converted BIDDING
-        score: dealType === 'DEAL_REGISTRATION' ? 0 : null,
+        // Set initial score based on deal type and points earned
+        score: dealType === 'DEAL_REGISTRATION' ? 0 : 50,
       };
       
       // Add verification and declaration fields only if applicable
@@ -329,6 +329,11 @@ export default function RegisterDealPage() {
       } else if (dealType === 'BIDDING') {
         totalPoints = 50;
         if (engagementType) totalPoints += 10; // Bonus for engagement request
+      }
+
+      // Update deal score with total points earned
+      if (dealType === 'BIDDING') {
+        await supabase.from('deals').update({ score: totalPoints }).eq('id', createdDeal.id);
       }
 
       await supabase.from('deal_activities').insert({

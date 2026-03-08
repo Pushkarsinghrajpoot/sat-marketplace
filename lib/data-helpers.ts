@@ -210,8 +210,8 @@ export async function updateEngagementRequest(requestId: string, updates: any, u
     throw error;
   }
 
-  // If approved, update deal activity
-  if (updates.status === 'APPROVED') {
+  // If approved, update deal activity and notify reseller
+  if (updates.status === 'ACCEPTED') {
     await supabase.from('deal_activities').insert({
       deal_id: data.deal_id,
       reseller_id: data.reseller_id,
@@ -230,6 +230,17 @@ export async function updateEngagementRequest(requestId: string, updates: any, u
       notification_type: 'ENGAGEMENT_APPROVED',
       title: 'Engagement Request Approved',
       message: `Your engagement request for "${data.deals?.opportunity_name}" has been approved.`,
+      link: `/reseller/deals/${data.deal_id}`,
+    });
+  }
+
+  // If declined, notify reseller
+  if (updates.status === 'DECLINED') {
+    await supabase.from('notifications').insert({
+      user_id: data.reseller_id,
+      notification_type: 'ENGAGEMENT_DECLINED',
+      title: 'Engagement Request Declined',
+      message: `Your engagement request for "${data.deals?.opportunity_name}" has been declined. Reason: ${updates.decline_reason || 'No reason provided'}`,
       link: `/reseller/deals/${data.deal_id}`,
     });
   }
@@ -327,6 +338,8 @@ export async function updateDeal(dealId: string, updates: any) {
 }
 
 export async function convertDealToBidding(dealId: string, userId: string) {
+  console.log('Converting deal to bidding:', { dealId, userId });
+  
   const { data: deal, error: dealError } = await supabase
     .from('deals')
     .update({
@@ -341,6 +354,7 @@ export async function convertDealToBidding(dealId: string, userId: string) {
 
   if (dealError) {
     console.error('Error converting deal to bidding:', dealError);
+    console.error('Error details:', JSON.stringify(dealError, null, 2));
     throw dealError;
   }
 

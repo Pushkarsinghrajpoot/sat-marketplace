@@ -21,7 +21,7 @@ export default function EngagementsPage() {
 
   useEffect(() => {
     fetchEngagements();
-  }, [user, activeTab]);
+  }, [user]);
 
   const fetchEngagements = async () => {
     if (!user?.organizationId) return;
@@ -51,17 +51,20 @@ export default function EngagementsPage() {
         .or(`distributor_id.eq.${user.organizationId},distributor_id.is.null`)
         .order('created_at', { ascending: false });
 
-      if (activeTab === 'pending') {
-        query = query.eq('status', 'PENDING');
-      } else if (activeTab === 'approved') {
-        query = query.eq('status', 'ACCEPTED');
-      } else if (activeTab === 'declined') {
-        query = query.eq('status', 'DECLINED');
-      }
+      // Fetch all engagements without status filtering
+      // Filtering will be done client-side for accurate counts
 
       const { data, error } = await query;
       
       if (error) throw error;
+      
+      console.log('Fetched engagements:', data?.map(e => ({
+        id: e.id,
+        status: e.status,
+        dealId: e.deal_id,
+        dealScore: e.deals?.score,
+        dealType: e.deals?.deal_type
+      })));
       
       setEngagements(data || []);
     } catch (error) {
@@ -193,9 +196,9 @@ export default function EngagementsPage() {
                     <p className="text-xs text-gray-600">{engagement.reseller_organizations?.name || 'N/A'}</p>
                     {engagement.deals?.score !== undefined && (
                     <div className="mt-1">
-                      <Badge className={`text-xs text-white ${getBadge(engagement.deals.score).color}`}>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${getBadge(engagement.deals.score).color}`}>
                         {getBadge(engagement.deals.score).label}
-                      </Badge>
+                      </span>
                     </div>
                   )}
                     {engagement.deals?.is_verified && (
