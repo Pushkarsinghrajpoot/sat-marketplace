@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
-import { CheckCircle, Search, Send, AlertCircle, Lock } from 'lucide-react';
+import { CheckCircle, Search, Send, AlertCircle, Lock, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { createDeal, getDistributors, createEngagementRequest } from '@/lib/data-helpers';
 import { useAuth } from '@/lib/auth-context';
@@ -215,7 +215,37 @@ export default function RegisterDealPage() {
           points: 15,
         });
 
-        toast.success('Direct Query submitted successfully! You earned 15 points.');
+        // Create engagement request if selected for DIRECT_QUERY
+        if (engagementType && data && data[0]) {
+          try {
+            await createEngagementRequest({
+              reseller_id: user.id,
+              distributor_id: selectedDistributor, // Send to selected distributor
+              deal_id: null, // No deal_id for direct queries
+              query_id: data[0].id, // Link to direct query instead
+              engagement_type: engagementType,
+              message: engagementMessage || `Request for ${engagementType.replace('_', ' ')}`,
+              status: 'PENDING',
+            });
+
+            // Send notification to distributors
+            await supabase.from('notifications').insert({
+              notification_type: 'ENGAGEMENT_REQUEST',
+              title: `New ${engagementType.replace('_', ' ')} Request`,
+              message: `${user.name} requested ${engagementType.replace('_', ' ')} for direct query "${formData.opportunityName}"`,
+            });
+
+            console.log('Engagement request created for direct query');
+          } catch (err) {
+            console.error('Error creating engagement request for direct query:', err);
+            // Don't fail the whole submission if engagement fails
+          }
+        }
+
+        let totalPoints = 15;
+        if (engagementType) totalPoints += 10; // Bonus for engagement request
+
+        toast.success(`Direct Query submitted successfully! You earned ${totalPoints} points.`);
         router.push('/reseller/deals');
         setTimeout(() => window.location.reload(), 100);
         return;
@@ -264,13 +294,12 @@ export default function RegisterDealPage() {
       // Create engagement request if selected
       if (engagementType && createdDeal.id) {
         try {
-          // For BIDDING deals, engagement goes to all distributors
+          // For BIDDING deals, engagement goes to selected distributor
           // For DEAL_REGISTRATION, engagement goes to selected distributor if any
           let distributorId = null;
-          if (dealType === 'BIDDING') {
-            // For bidding, we'll create engagement requests for all distributors
-            // Or create a generic one that distributors can claim
-            distributorId = null; // Will be visible to all distributors
+          if (dealType === 'BIDDING' && selectedDistributor) {
+            // For bidding, send to selected distributor
+            distributorId = selectedDistributor;
           } else if (dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
             distributorId = selectedDistributor;
           }
@@ -584,28 +613,6 @@ export default function RegisterDealPage() {
                     placeholder="Any special requirements, timelines, or constraints..."
                   />
                 </div>
-
-                {/* Distributor Selection for Direct Query */}
-                {dealType === 'DIRECT_QUERY' && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Select Distributor *</label>
-                    <Select
-                      value={selectedDistributor}
-                      onChange={(e) => setSelectedDistributor(e.target.value)}
-                      required
-                    >
-                      <option value="">Select a distributor</option>
-                      {distributors.map((dist) => (
-                        <option key={dist.id} value={dist.id}>
-                          {dist.name} - {dist.city || 'N/A'}
-                        </option>
-                      ))}
-                    </Select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      This query will only be visible to the selected distributor
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 
@@ -706,20 +713,21 @@ export default function RegisterDealPage() {
               </div>
             )}
 
-            {/* Step 4: Engagement Request (Optional) - for DEAL_REGISTRATION after verification and DIRECT_QUERY */}
+            {/* Step 4: Engagement Request (Optional) - for DEAL_REGISTRATION after verification, BIDDING, and DIRECT_QUERY */}
             {((currentStep === 4 && dealType === 'DEAL_REGISTRATION' && isVerified) || 
+              (currentStep === 4 && dealType === 'BIDDING') ||
               (currentStep === 4 && dealType === 'DIRECT_QUERY')) && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle>Request Engagement (Optional)</CardTitle>
-                  <p className="text-sm text-gray-600">Request distributor support before submitting your query</p>
+                  <p className="text-sm text-gray-600">Request distributor support before finalizing</p>
                 </CardHeader>
 
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
                     <p className="text-sm text-blue-900">
                       <strong>Optional:</strong> Request technical support or demonstration from distributors.
-                      You can skip this and proceed directly to submit your query.
+                      You can skip this and proceed directly to the next step.
                     </p>
                   </CardContent>
                 </Card>
@@ -738,6 +746,33 @@ export default function RegisterDealPage() {
                   </Select>
                 </div>
 
+                {/* Distributor Selection for BIDDING */}
+                {(dealType === 'BIDDING' || dealType === 'DIRECT_QUERY') && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {dealType === 'BIDDING' ? 'Select Distributor for Engagement' : 'Select Distributor *'}
+                    </label>
+                    <Select
+                      value={selectedDistributor}
+                      onChange={(e) => setSelectedDistributor(e.target.value)}
+                      required={dealType === 'DIRECT_QUERY'}
+                    >
+                      <option value="">Select a distributor</option>
+                      {distributors.map((dist) => (
+                        <option key={dist.id} value={dist.id}>
+                          {dist.name} - {dist.city || 'N/A'}
+                        </option>
+                      ))}
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {dealType === 'BIDDING' 
+                        ? 'This engagement request will be sent to the selected distributor'
+                        : 'This query will only be visible to the selected distributor'
+                      }
+                    </p>
+                  </div>
+                )}
+
                 {engagementType && (
                   <div>
                     <label className="block text-sm font-medium mb-2">Message to Distributor</label>
@@ -755,10 +790,11 @@ export default function RegisterDealPage() {
                     <strong>What happens next:</strong>
                   </p>
                   <ul className="text-sm text-green-800 mt-2 space-y-1 ml-4">
-                    <li>• {dealType === 'DEAL_REGISTRATION' ? 'Your deal will be registered and locked to you' : 'Your query will be sent to distributors'}</li>
+                    <li>• {dealType === 'DEAL_REGISTRATION' ? 'Your deal will be registered and locked to you' : 
+                        dealType === 'BIDDING' ? 'Your bidding deal will be open to distributors' : 'Your query will be sent to distributors'}</li>
                     <li>• {engagementType ? 'Distributor will be notified of your engagement request' : 'You can request engagement later from deal details'}</li>
                     <li>• You'll earn activity points for each step</li>
-                    <li>• {dealType === 'DEAL_REGISTRATION' ? 'Proceed to finalize your registration' : 'Proceed to declaration and submit your query'}</li>
+                    <li>• Proceed to declaration and finalize your {dealType === 'DEAL_REGISTRATION' ? 'registration' : dealType === 'BIDDING' ? 'bidding deal' : 'query'}</li>
                   </ul>
                 </div>
               </div>
@@ -776,8 +812,9 @@ export default function RegisterDealPage() {
                   <CardContent className="p-4">
                     <p className="text-sm text-yellow-900 font-semibold mb-2">Important Notice</p>
                     <p className="text-sm text-yellow-800">
-                      By registering this deal, you confirm that you have an active relationship with the customer
-                      and are authorized to seek quotes on their behalf. False registrations may result in account suspension.
+                      By submitting this {dealType === 'DEAL_REGISTRATION' ? 'deal registration' : dealType === 'BIDDING' ? 'bidding deal' : 'direct query'}, 
+                      you confirm that you have an active relationship with the customer
+                      and are authorized to seek quotes on their behalf. False submissions may result in account suspension.
                     </p>
                   </CardContent>
                 </Card>
@@ -839,6 +876,22 @@ export default function RegisterDealPage() {
                           <p className="font-semibold text-sm text-green-900 mb-1">Deal Will Be Locked</p>
                           <p className="text-xs text-green-800">
                             Once submitted, this deal will be automatically locked to you. Other resellers (including those from your company) cannot register the same customer opportunity. You'll be able to track activities and add points to increase your deal score.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {dealType === 'BIDDING' && (
+                  <Card className="bg-orange-50 border-orange-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <TrendingUp className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm text-orange-900 mb-1">Deal Will Be Open for Bidding</p>
+                          <p className="text-xs text-orange-800">
+                            Once submitted, your deal will be open to all distributors who can submit competitive quotes. You'll be able to compare quotes and select the best offer.
                           </p>
                         </div>
                       </div>
