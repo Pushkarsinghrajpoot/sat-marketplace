@@ -328,6 +328,7 @@ export default function RegisterDealPage() {
         if (engagementType) totalPoints += 10; // Bonus for engagement request
       } else if (dealType === 'BIDDING') {
         totalPoints = 50;
+        if (engagementType) totalPoints += 10; // Bonus for engagement request
       }
 
       await supabase.from('deal_activities').insert({

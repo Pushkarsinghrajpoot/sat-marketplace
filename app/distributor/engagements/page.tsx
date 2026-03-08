@@ -41,13 +41,10 @@ export default function EngagementsPage() {
             is_verified,
             score
           ),
-          users:reseller_id(
+          users!engagement_requests_reseller_id_fkey(
             id,
             name,
             email
-          ),
-          reseller_organizations:reseller_id->organization_id(
-            name
           )
         `)
         // Show engagement requests assigned to this distributor OR generic ones (distributor_id is null)
