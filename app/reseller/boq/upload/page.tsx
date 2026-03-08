@@ -11,6 +11,19 @@ import { toast } from 'sonner';
 import { getDeals, createDealActivity } from '@/lib/data-helpers';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Create service role client for storage operations
+const supabaseService = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);
 
 export default function BOQUploadPage() {
   const router = useRouter();
@@ -105,17 +118,37 @@ export default function BOQUploadPage() {
     try {
       // 1. Upload file to Supabase Storage
       const fileName = `${dealId}_${Date.now()}_${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      console.log('Uploading file to bucket: boqs, filename:', fileName);
+      
+      const { data: uploadData, error: uploadError } = await supabaseService.storage
         .from('boqs')
         .upload(fileName, file);
 
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw new Error('Failed to upload file to storage');
+        console.error('Storage upload error details:', {
+          error: uploadError,
+          fileName,
+          fileSize: file.size,
+          fileType: file.type,
+          bucket: 'boqs'
+        });
+        
+        // Try to check if bucket exists
+        try {
+          const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+          console.log('Available buckets:', buckets);
+          if (bucketError) {
+            console.error('Error listing buckets:', bucketError);
+          }
+        } catch (e) {
+          console.error('Failed to list buckets:', e);
+        }
+        
+        throw new Error(`Failed to upload file to storage: ${uploadError.message}`);
       }
 
       // Get public URL for the uploaded file
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = supabaseService.storage
         .from('boqs')
         .getPublicUrl(fileName);
 
