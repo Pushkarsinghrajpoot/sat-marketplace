@@ -9,9 +9,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 
 export default function AddServicePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -29,15 +32,39 @@ export default function AddServicePage() {
       return;
     }
 
+    if (!user?.organizationId) {
+      toast.error('Please login to add services');
+      return;
+    }
+
     setLoading(true);
     
     try {
-      // In production, this would save to database
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Filter out empty features
+      const validFeatures = formData.features.filter(f => f.trim() !== '');
+      
+      // Insert service into database
+      const { data, error } = await supabase
+        .from('services')
+        .insert({
+          organization_id: user.organizationId,
+          name: formData.name,
+          category: formData.category,
+          description: formData.description,
+          long_description: formData.longDescription || null,
+          pricing: formData.pricing || null,
+          status: formData.status,
+          features: validFeatures.length > 0 ? validFeatures : null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
       
       toast.success('Service added successfully!');
       router.push('/reseller/services');
     } catch (error) {
+      console.error('Error adding service:', error);
       toast.error('Failed to add service');
     } finally {
       setLoading(false);

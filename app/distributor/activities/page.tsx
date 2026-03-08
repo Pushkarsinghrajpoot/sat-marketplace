@@ -16,7 +16,7 @@ export default function DistributorActivitiesPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'acknowledged' | 'all'>('pending');
   const [actioningId, setActioningId] = useState<string | null>(null);
-  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const { user } = useAuth();
 
   useEffect(() => {
@@ -114,7 +114,8 @@ export default function DistributorActivitiesPage() {
   };
 
   const handleReject = async (activityId: string, dealId: string, resellerId: string) => {
-    if (!rejectionReason.trim()) {
+    const reason = rejectionReasons[activityId];
+    if (!reason?.trim()) {
       toast.error('Please provide a reason for rejection');
       return;
     }
@@ -127,7 +128,7 @@ export default function DistributorActivitiesPage() {
           status: 'REJECTED',
           acknowledged_by: user?.id,
           acknowledged_at: new Date().toISOString(),
-          rejection_reason: rejectionReason,
+          rejection_reason: reason,
         })
         .eq('id', activityId);
 
@@ -138,12 +139,17 @@ export default function DistributorActivitiesPage() {
         user_id: resellerId,
         notification_type: 'ACTIVITY_REJECTED',
         title: 'Activity Rejected',
-        message: `Your activity was rejected: ${rejectionReason}`,
+        message: `Your activity was rejected: ${reason}`,
         link: `/reseller/deals/${dealId}/activities`,
       });
 
       toast.info('Activity rejected');
-      setRejectionReason('');
+      // Clear this activity's rejection reason
+      setRejectionReasons(prev => {
+        const updated = { ...prev };
+        delete updated[activityId];
+        return updated;
+      });
       fetchActivities();
     } catch (error) {
       console.error('Error rejecting activity:', error);
@@ -301,8 +307,11 @@ export default function DistributorActivitiesPage() {
                           <div className="flex-1 flex gap-2">
                             <Textarea
                               placeholder="Rejection reason..."
-                              value={rejectionReason}
-                              onChange={(e) => setRejectionReason(e.target.value)}
+                              value={rejectionReasons[activity.id] || ''}
+                              onChange={(e) => setRejectionReasons(prev => ({
+                                ...prev,
+                                [activity.id]: e.target.value
+                              }))}
                               className="flex-1"
                               rows={1}
                             />

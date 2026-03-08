@@ -26,6 +26,42 @@ ADD COLUMN IF NOT EXISTS total_activity_score INTEGER DEFAULT 0;
 COMMENT ON COLUMN users.total_activity_score IS 'Total accumulated activity points for reseller users';
 
 -- ============================================================================
+-- 4. Add missing columns to quotes table
+-- ============================================================================
+ALTER TABLE quotes
+ADD COLUMN IF NOT EXISTS delivery_timeline VARCHAR;
+
+ALTER TABLE quotes
+ADD COLUMN IF NOT EXISTS payment_terms TEXT;
+
+ALTER TABLE quotes
+ADD COLUMN IF NOT EXISTS notes TEXT;
+
+COMMENT ON COLUMN quotes.delivery_timeline IS 'Estimated delivery timeline for the quote';
+COMMENT ON COLUMN quotes.payment_terms IS 'Payment terms for the quote';
+COMMENT ON COLUMN quotes.notes IS 'Additional notes for the quote';
+
+-- ============================================================================
+-- 5. Add missing columns to direct_queries table
+-- ============================================================================
+ALTER TABLE direct_queries
+ADD COLUMN IF NOT EXISTS response_message TEXT;
+
+ALTER TABLE direct_queries
+ADD COLUMN IF NOT EXISTS response_date TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE direct_queries
+ADD COLUMN IF NOT EXISTS estimated_cost NUMERIC;
+
+ALTER TABLE direct_queries
+ADD COLUMN IF NOT EXISTS delivery_timeline VARCHAR;
+
+COMMENT ON COLUMN direct_queries.response_message IS 'Distributor response to the query';
+COMMENT ON COLUMN direct_queries.response_date IS 'Date when distributor responded';
+COMMENT ON COLUMN direct_queries.estimated_cost IS 'Estimated cost provided by distributor';
+COMMENT ON COLUMN direct_queries.delivery_timeline IS 'Estimated delivery timeline';
+
+-- ============================================================================
 -- 4. Create index on deal_activities for performance
 -- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_deal_activities_deal_id ON deal_activities(deal_id);
