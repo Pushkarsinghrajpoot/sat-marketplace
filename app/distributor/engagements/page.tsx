@@ -54,7 +54,7 @@ export default function EngagementsPage() {
       if (activeTab === 'pending') {
         query = query.eq('status', 'PENDING');
       } else if (activeTab === 'approved') {
-        query = query.eq('status', 'APPROVED');
+        query = query.eq('status', 'ACCEPTED');
       } else if (activeTab === 'declined') {
         query = query.eq('status', 'DECLINED');
       }
@@ -75,7 +75,7 @@ export default function EngagementsPage() {
   const handleApprove = async (engagementId: string) => {
     if (!user?.id) return;
     try {
-      await updateEngagementRequest(engagementId, { status: 'APPROVED' }, user.id);
+      await updateEngagementRequest(engagementId, { status: 'ACCEPTED' }, user.id);
       toast.success('Engagement approved!');
       fetchEngagements();
     } catch (error) {
@@ -117,7 +117,7 @@ export default function EngagementsPage() {
     // Tab filter
     const matchesTab = activeTab === 'all' || 
       (activeTab === 'pending' && eng.status === 'PENDING') ||
-      (activeTab === 'approved' && eng.status === 'APPROVED') ||
+      (activeTab === 'approved' && eng.status === 'ACCEPTED') ||
       (activeTab === 'declined' && eng.status === 'DECLINED');
     
     return matchesSearch && matchesTab;
@@ -126,7 +126,7 @@ export default function EngagementsPage() {
   const getCounts = () => {
     return {
       pending: engagements.filter((e: any) => e.status === 'PENDING').length,
-      approved: engagements.filter((e: any) => e.status === 'APPROVED').length,
+      approved: engagements.filter((e: any) => e.status === 'ACCEPTED').length,
       declined: engagements.filter((e: any) => e.status === 'DECLINED').length,
       all: engagements.length,
     };
@@ -189,6 +189,13 @@ export default function EngagementsPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">{engagement.users?.name || 'Unknown Reseller'}</h3>
                     <p className="text-xs text-gray-600">{engagement.reseller_organizations?.name || 'N/A'}</p>
+                    {engagement.deals?.score && (
+                      <div className="mt-1">
+                        <Badge className={`text-xs text-white ${getBadge(engagement.deals.score).color}`}>
+                          {getBadge(engagement.deals.score).label}
+                        </Badge>
+                      </div>
+                    )}
                     {engagement.deals?.is_verified && (
                       <div className="flex items-center gap-1 mt-1">
                         <CheckCircle className="h-3 w-3 text-green-600" />
@@ -198,7 +205,7 @@ export default function EngagementsPage() {
                   </div>
                   <Badge variant={
                     engagement.status === 'PENDING' ? 'warning' :
-                    engagement.status === 'APPROVED' ? 'success' : 'default'
+                    engagement.status === 'ACCEPTED' ? 'success' : 'default'
                   }>
                     {engagement.status}
                   </Badge>
