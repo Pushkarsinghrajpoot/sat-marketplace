@@ -161,7 +161,7 @@ function CreateQuoteContent() {
       const { data: quote, error: quoteError } = await supabase
         .from('quotes')
         .insert({
-          quote_type: boqId ? 'BOQ_QUOTE' : 'STANDARD',
+          quote_type: boqId ? 'BIDDING' : 'NORMAL',
           deal_id: dealId,
           boq_id: boqId || null,
           distributor_id: user.organizationId,
