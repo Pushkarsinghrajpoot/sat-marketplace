@@ -24,7 +24,7 @@ export default function ProductsPage() {
     async function fetchProducts() {
       if (!user?.id) return;
       try {
-        const data = await getProducts({ distributorId: user.id });
+        const data = await getProducts({ distributorId: user.organizationId });
         setProducts(data);
       } catch (error) {
         console.error('Error fetching products:', error);

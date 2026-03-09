@@ -25,11 +25,42 @@ export default function DistributorDealDetailPage() {
     fetchDealDetails();
   }, [dealId]);
 
+  const checkDealAccess = async (deal: any, distributorOrgId: string) => {
+    // Allow access if:
+    // 1. Deal is BIDDING type (open for all distributors)
+    // 2. Deal is DEAL_REGISTRATION (visible to all distributors for viewing)
+    // 3. Deal is DIRECT_QUERY (check if this distributor is the target)
+    
+    if (deal.deal_type === 'BIDDING') {
+      return true; // Open bidding deals are visible to all distributors
+    }
+    
+    // Allow access to all DEAL_REGISTRATION deals for viewing
+    if (deal.deal_type === 'DEAL_REGISTRATION') {
+      return true; // All registered deals are visible to distributors
+    }
+    
+    if (deal.deal_type === 'DIRECT_QUERY') {
+      // For direct queries, check if this distributor is the target
+      const { data: queryData } = await supabase
+        .from('direct_queries')
+        .select('distributor_id')
+        .eq('id', deal.id)
+        .single();
+      
+      if (queryData && queryData.distributor_id === distributorOrgId) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   const fetchDealDetails = async () => {
-    if (!dealId) return;
+    if (!dealId || !user?.organizationId) return;
 
     try {
-      // Fetch deal details
+      // Fetch deal details with authorization check
       const { data: dealData, error: dealError } = await supabase
         .from('deals')
         .select(`
@@ -47,6 +78,16 @@ export default function DistributorDealDetailPage() {
         .single();
 
       if (dealError) throw dealError;
+      
+      // Check if this distributor should have access to this deal
+      const hasAccess = await checkDealAccess(dealData, user.organizationId);
+      
+      if (!hasAccess) {
+        console.error('Unauthorized access to deal:', dealId);
+        setDeal(null);
+        return;
+      }
+      
       setDeal(dealData);
 
       // Fetch BOQs for this deal
@@ -57,10 +98,17 @@ export default function DistributorDealDetailPage() {
       
       setBOQs(boqData || []);
 
-      // Fetch activities for this deal
+      // Fetch activities for this deal with user information
       const { data: activityData } = await supabase
         .from('deal_activities')
-        .select('*')
+        .select(`
+          *,
+          users:reseller_id (
+            id,
+            name,
+            email
+          )
+        `)
         .eq('deal_id', dealId)
         .order('created_at', { ascending: false });
       
@@ -275,9 +323,15 @@ export default function DistributorDealDetailPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600">{activity.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatRelativeTime(activity.created_at)}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-gray-500">
+                          by {activity.users?.name || 'Unknown reseller'}
+                        </p>
+                        <span className="text-xs text-gray-400">•</span>
+                        <p className="text-xs text-gray-500">
+                          {formatRelativeTime(activity.created_at)}
+                        </p>
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-blue-600">+{activity.points} points</p>
