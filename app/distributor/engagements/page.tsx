@@ -9,7 +9,7 @@ import { Search, Star, CheckCircle, Target, Clock, Package } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getEngagementRequests, updateEngagementRequest } from '@/lib/data-helpers';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 
 export default function EngagementsPage() {
@@ -17,7 +17,7 @@ export default function EngagementsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [engagements, setEngagements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     fetchEngagements();

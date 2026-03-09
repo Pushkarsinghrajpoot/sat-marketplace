@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Building2, User, Calendar, DollarSign, Lock, FileText, TrendingUp, CheckCircle, XCircle, Clock, Video, Users } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
@@ -44,7 +44,7 @@ const ACTIVITY_TYPES = [
 export default function DistributorDealDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   const dealId = params.id as string;
   const [deal, setDeal] = useState<any>(null);
   const [boqs, setBOQs] = useState<any[]>([]);

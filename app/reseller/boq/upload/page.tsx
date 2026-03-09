@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { getDeals, createDealActivity } from '@/lib/data-helpers';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
@@ -34,7 +34,7 @@ export default function BOQUploadPage() {
   const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     async function fetchDeals() {

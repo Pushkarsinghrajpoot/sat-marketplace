@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { DollarSign, Briefcase, TrendingUp, Target, Plus, ArrowRight, Lock, Search, Send } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function ResellerDashboard() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function ResellerDashboard() {
   const [biddingDeals, setBiddingDeals] = useState<any[]>([]);
   const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     async function fetchData() {

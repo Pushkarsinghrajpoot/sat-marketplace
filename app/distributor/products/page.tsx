@@ -9,13 +9,13 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Upload, Download, Edit, Copy, Trash2, MoreVertical } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import type { Product } from '@/lib/types';
 import { toast } from 'sonner';
 import { getProducts } from '@/lib/data-helpers';
 
 export default function ProductsPage() {
-  const { user, organization } = useAuth();
+  const { user, organization } = useSimpleAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');

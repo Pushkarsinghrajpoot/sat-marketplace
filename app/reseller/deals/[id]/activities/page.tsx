@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Video, FileEdit, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 
 const ACTIVITY_TYPES = [
@@ -41,7 +41,7 @@ const ACTIVITY_TYPES = [
 export default function DealActivitiesPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   const dealId = params.id as string;
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   const [scheduledDate, setScheduledDate] = useState('');

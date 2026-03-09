@@ -10,11 +10,11 @@ import { Select } from '@/components/ui/select';
 import { Send, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function CreateQueryPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   const [formData, setFormData] = useState({
     title: '',
     requirement: '',

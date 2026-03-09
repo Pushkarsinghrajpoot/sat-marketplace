@@ -9,13 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Plus, Trash2, Send, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { formatCurrency } from '@/lib/utils';
 
 function CreateQuoteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   
   const dealId = searchParams.get('dealId');
   const boqId = searchParams.get('boqId');

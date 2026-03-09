@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 
 export default function OEMSettingsPage() {
-  const { organization } = useAuth();
+  const { organization } = useSimpleAuth();
 
   const handleSave = () => {
     toast.success('Settings saved successfully!');

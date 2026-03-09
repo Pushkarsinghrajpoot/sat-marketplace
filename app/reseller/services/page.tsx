@@ -10,11 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Star, DollarSign, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function ServicesPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -10,14 +10,14 @@ import { Select } from '@/components/ui/select';
 import { Search, FileText, Eye, Edit, Clock, TrendingUp } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { getQuotes, getBOQs } from '@/lib/data-helpers';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function QuotesPage() {
   const [activeTab, setActiveTab] = useState('boqs');
   const [quotes, setQuotes] = useState<any[]>([]);
   const [boqs, setBOQs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     fetchData();

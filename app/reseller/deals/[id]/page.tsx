@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { updateDeal, convertDealToBidding, getQuotes } from '@/lib/data-helpers';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import MeetingActivityList from '@/components/meetings/MeetingActivityList';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { mapDeal } from '@/lib/data-mappers';
 import Link from 'next/link';
 
@@ -34,7 +34,7 @@ export default function DealDetailPage() {
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [converting, setConverting] = useState(false);
   const [quotesCount, setQuotesCount] = useState(0);
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     async function fetchDeal() {

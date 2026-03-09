@@ -10,13 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Send, User, Building2, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 
 export default function RespondToQueryPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   const queryId = params.id as string;
 
   const [query, setQuery] = useState<any>(null);

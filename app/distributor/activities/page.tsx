@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, XCircle, Calendar, Video, FileEdit, Lock, TrendingUp } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -17,7 +17,7 @@ export default function DistributorActivitiesPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'acknowledged' | 'all'>('pending');
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     fetchActivities();

@@ -10,13 +10,13 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getQuotes } from '@/lib/data-helpers';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function QuoteDetailPage() {
   const router = useRouter();
   const params = useParams();
   const quoteId = params.id as string;
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   
   const [quote, setQuote] = useState<any>(null);
   const [loading, setLoading] = useState(true);

@@ -9,13 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Upload, DollarSign, FileText, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { getDistributors } from '@/lib/data-helpers';
 
 export default function CreateCreditRequestPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   const [loading, setLoading] = useState(false);
   const [distributors, setDistributors] = useState<any[]>([]);
   const [formData, setFormData] = useState({

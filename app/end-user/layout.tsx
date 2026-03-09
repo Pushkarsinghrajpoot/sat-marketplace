@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { Button } from '@/components/ui/button';
 import { Eye, LogOut } from 'lucide-react';
 
@@ -13,7 +13,7 @@ export default function EndUserLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, organization, logout } = useAuth();
+  const { user, organization, logout } = useSimpleAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

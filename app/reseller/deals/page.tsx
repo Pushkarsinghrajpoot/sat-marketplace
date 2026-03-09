@@ -10,14 +10,14 @@ import { Search, Plus, Calendar, DollarSign, Users, FileText } from 'lucide-reac
 import { formatCurrency } from '@/lib/utils';
 import { Lock, TrendingUp } from 'lucide-react';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function DealsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deals, setDeals] = useState<any[]>([]);
   const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     async function fetchDeals() {

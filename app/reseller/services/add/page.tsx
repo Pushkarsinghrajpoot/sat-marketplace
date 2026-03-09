@@ -10,11 +10,11 @@ import { Select } from '@/components/ui/select';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function AddServicePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
