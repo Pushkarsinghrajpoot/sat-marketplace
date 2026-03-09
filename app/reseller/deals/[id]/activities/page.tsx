@@ -94,22 +94,28 @@ export default function DealActivitiesPage() {
     if (!activityType) return;
 
     try {
+      const activityData = {
+        deal_id: dealId,
+        reseller_id: user.id,
+        activity_type: selectedActivity,
+        title: title || activityType.label,
+        description: description || activityType.description,
+        scheduled_date: scheduledDate || new Date().toISOString(),
+        notes,
+        status: 'PENDING',
+      };
+      
+      console.log('Reseller - Creating activity:', activityData);
+      
       const { data, error } = await supabase
         .from('deal_activities')
-        .insert({
-          deal_id: dealId,
-          reseller_id: user.id,
-          activity_type: selectedActivity,
-          title: title || activityType.label,
-          description: description || activityType.description,
-          scheduled_date: scheduledDate || new Date().toISOString(),
-          notes,
-          status: 'PENDING',
-        })
+        .insert(activityData)
         .select()
         .single();
 
       if (error) throw error;
+      
+      console.log('Reseller - Activity created successfully:', data);
 
       toast.success(`${activityType.label} added successfully! +${activityType.points} points pending acknowledgment`);
       
@@ -118,7 +124,11 @@ export default function DealActivitiesPage() {
       setNotes('');
       setTitle('');
       setDescription('');
-      fetchActivities();
+      
+      // Wait a moment then refresh
+      setTimeout(() => {
+        fetchActivities();
+      }, 500);
     } catch (error) {
       console.error('Error adding activity:', error);
       toast.error('Failed to add activity');

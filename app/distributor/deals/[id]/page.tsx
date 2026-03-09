@@ -107,22 +107,28 @@ export default function DistributorDealDetailPage() {
     if (!activityType) return;
 
     try {
+      const activityData = {
+        deal_id: dealId,
+        reseller_id: user.id, // Note: Distributors are also using reseller_id field
+        activity_type: selectedActivity,
+        title: title || activityType.label,
+        description: description || activityType.description,
+        scheduled_date: scheduledDate || new Date().toISOString(),
+        notes,
+        status: 'PENDING',
+      };
+      
+      console.log('Distributor - Creating activity:', activityData);
+      
       const { data, error } = await supabase
         .from('deal_activities')
-        .insert({
-          deal_id: dealId,
-          reseller_id: user.id, // Note: Distributors are also using reseller_id field
-          activity_type: selectedActivity,
-          title: title || activityType.label,
-          description: description || activityType.description,
-          scheduled_date: scheduledDate || new Date().toISOString(),
-          notes,
-          status: 'PENDING',
-        })
+        .insert(activityData)
         .select()
         .single();
 
       if (error) throw error;
+      
+      console.log('Distributor - Activity created successfully:', data);
 
       toast.success(`${activityType.label} added successfully! +${activityType.points} points pending acknowledgment`);
       
@@ -131,7 +137,11 @@ export default function DistributorDealDetailPage() {
       setNotes('');
       setTitle('');
       setDescription('');
-      fetchActivities(); // Refresh activities
+      
+      // Wait a moment then refresh
+      setTimeout(() => {
+        fetchActivities(); // Refresh activities
+      }, 500);
     } catch (error) {
       console.error('Error adding activity:', error);
       toast.error('Failed to add activity');
@@ -144,14 +154,7 @@ export default function DistributorDealDetailPage() {
     try {
       const { data, error } = await supabase
         .from('deal_activities')
-        .select(`
-          *,
-          users!deal_activities_reseller_id_fkey (
-            id,
-            name,
-            email
-          )
-        `)
+        .select('*')
         .eq('deal_id', dealId)
         .order('created_at', { ascending: false });
 
