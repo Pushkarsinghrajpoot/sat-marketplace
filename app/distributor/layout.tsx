@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Package, Target, Handshake, FileText, DollarSign, BarChart3, Settings, LogOut, Bell, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
 
 const navigation = [
@@ -21,7 +21,7 @@ const navigation = [
 export default function DistributorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, organization, logout } = useAuth();
+  const { user, organization, logout } = useSimpleAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {

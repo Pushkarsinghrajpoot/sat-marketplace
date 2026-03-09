@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Building, Settings as SettingsIcon, LogOut, Bell, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/lib/auth-context';
-import { useState } from 'react';
+import { useSimpleAuth } from '@/lib/simple-auth';
+import { useState, useEffect } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -16,8 +16,14 @@ const navigation = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout } = useSimpleAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user || user.role !== 'PLATFORM_ADMIN') {
+      router.push('/auth/login');
+    }
+  }, [user, router]);
 
   const handleLogout = () => {
     logout();

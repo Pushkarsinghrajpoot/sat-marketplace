@@ -4,12 +4,12 @@ import Link from 'next/link';
 import { Search, Bell, User, ShoppingCart, Menu, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuthStore } from '@/lib/store';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function Header() {
-  const { user, organization, isAuthenticated, logout } = useAuthStore();
+  const { user, organization, isAuthenticated, logout, loading } = useSimpleAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
 
@@ -58,7 +58,13 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
+            {loading ? (
+              // Show loading skeleton to prevent flash
+              <div className="flex items-center gap-3">
+                <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            ) : isAuthenticated ? (
               <>
                 <Link href="/notifications">
                   <Button variant="ghost" size="sm" className="relative">

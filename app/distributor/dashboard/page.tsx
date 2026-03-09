@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock, Search, Send, TrendingUp, Clock, CheckCircle, FileSpreadsheet } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries, getQuotes, getBOQs } from '@/lib/data-helpers';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function DistributorDashboard() {
   const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries' | 'quotes' | 'boqs'>('registrations');
@@ -29,7 +29,7 @@ export default function DistributorDashboard() {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [boqs, setBoqs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     async function fetchData() {

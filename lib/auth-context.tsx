@@ -1,14 +1,16 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from './supabase';
 import type { User, Organization } from './types';
+import { getUserWithOrganization } from './auth-helpers';
 
 interface AuthContextType {
   user: User | null;
   organization: Organization | null;
   isAuthenticated: boolean;
-  login: (user: User, organization?: Organization | null) => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -20,44 +22,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load from localStorage on mount
-    const storedAuth = localStorage.getItem('auth-storage');
-    if (storedAuth) {
+    // Initialize auth state from Supabase session
+    const initializeAuth = async () => {
       try {
-        const { state } = JSON.parse(storedAuth);
-        if (state?.user) {
-          setUser(state.user);
-          setOrganization(state.organization || null);
-          console.log('AuthContext: Loaded user from storage:', state.user);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          console.log('AuthContext: Found Supabase session, loading user data');
+          const { user: userData, organization: orgData } = await getUserWithOrganization(session.user.id);
+          if (userData) {
+            setUser(userData);
+            setOrganization(orgData);
+            console.log('AuthContext: User loaded successfully');
+          }
         }
       } catch (error) {
-        console.error('AuthContext: Error parsing stored auth:', error);
+        console.error('AuthContext: Error initializing auth:', error);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    initializeAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('AuthContext: Auth state changed:', event);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        const { user: userData, organization: orgData } = await getUserWithOrganization(session.user.id);
+        if (userData) {
+          setUser(userData);
+          setOrganization(orgData);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setOrganization(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = (newUser: User, newOrganization?: Organization | null) => {
-    console.log('AuthContext: Logging in user:', newUser);
-    setUser(newUser);
-    setOrganization(newOrganization || null);
-    
-    // Save to localStorage
-    const authData = {
-      state: {
-        user: newUser,
-        organization: newOrganization || null,
-      },
-      version: 0,
-    };
-    localStorage.setItem('auth-storage', JSON.stringify(authData));
+  const login = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        const { user: userData, organization: orgData } = await getUserWithOrganization(data.user.id);
+        if (userData) {
+          setUser(userData);
+          setOrganization(orgData);
+        }
+      }
+    } catch (error) {
+      console.error('AuthContext: Login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const logout = () => {
-    console.log('AuthContext: Logging out');
-    setUser(null);
-    setOrganization(null);
-    localStorage.removeItem('auth-storage');
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setOrganization(null);
+    } catch (error) {
+      console.error('AuthContext: Logout error:', error);
+    }
   };
 
   const value = {

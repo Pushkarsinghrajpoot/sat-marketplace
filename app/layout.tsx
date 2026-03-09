@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
-import ClientProvider from './client-provider';
+import SimpleClientProvider from './simple-client-provider';
 import { ChatbotWidget } from '@/components/chatbot-widget';
 
 const geistSans = Geist({
@@ -31,11 +31,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <ClientProvider>
+        <SimpleClientProvider>
           {children}
           <Toaster position="top-right" richColors />
           <ChatbotWidget />
-        </ClientProvider>
+        </SimpleClientProvider>
       </body>
     </html>
   );

@@ -7,16 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Tag, Lock, Star, Mail, Lock as LockIcon } from 'lucide-react';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
-import { signInWithEmail, updateLastLogin, getUserWithOrganization } from '@/lib/auth-helpers';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login } = useSimpleAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,55 +25,16 @@ export default function LoginPage() {
       return;
     }
 
-    setLoading(true);
-
     try {
-      // Sign in with Supabase Auth
-      const { session, user: authUser } = await signInWithEmail(email, password);
-
-      if (!session || !authUser) {
-        toast.error('Invalid credentials');
-        setLoading(false);
-        return;
-      }
-
-      // Update last login
-      await updateLastLogin(authUser.id);
-
-      // Fetch user data from users table
-      const { user, organization } = await getUserWithOrganization(authUser.id);
-
-      if (!user) {
-        toast.error('User profile not found');
-        setLoading(false);
-        return;
-      }
-
-      // Store in Zustand
-      login(user, organization);
+      // Use simplified auth context login
+      await login(email, password);
+      
       toast.success('Login successful!');
-
-      // Redirect based on role
-      switch (user.role) {
-        case 'PLATFORM_ADMIN':
-          router.push('/admin/dashboard');
-          break;
-        case 'RESELLER':
-          router.push('/reseller/dashboard');
-          break;
-        case 'DISTRIBUTOR':
-          router.push('/distributor/dashboard');
-          break;
-        case 'END_USER':
-          router.push('/end-user/dashboard');
-          break;
-        default:
-          router.push('/');
-      }
+      
+      // AuthChecker will handle the redirect automatically
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Login failed');
-      setLoading(false);
     }
   };
 

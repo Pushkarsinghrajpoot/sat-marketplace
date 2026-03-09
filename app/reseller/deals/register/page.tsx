@@ -10,7 +10,7 @@ import { Select } from '@/components/ui/select';
 import { CheckCircle, Search, Send, AlertCircle, Lock, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { createDeal, getDistributors, createEngagementRequest } from '@/lib/data-helpers';
-import { useAuth } from '@/lib/auth-context';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 
 const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Engagement', 'Declaration'];
@@ -42,7 +42,7 @@ export default function RegisterDealPage() {
     agreedToTerms: false,
   });
 
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
 
   useEffect(() => {
     async function fetchDistributors() {

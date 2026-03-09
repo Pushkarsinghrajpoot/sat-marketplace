@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { ProductCard } from '@/components/product-card';
 import { useEffect, useState } from 'react';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import type { Product, Category, Organization } from '@/lib/types';
 
 const categoryIcons: { [key: string]: any } = {
@@ -14,6 +15,7 @@ const categoryIcons: { [key: string]: any } = {
 };
 
 export default function HomePage() {
+  const { user, isAuthenticated } = useSimpleAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [distributors, setDistributors] = useState<Organization[]>([]);
@@ -260,30 +262,69 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-4">Are you a Distributor?</h3>
-                <p className="mb-6 text-blue-100">Reach thousands of qualified resellers</p>
-                <Link href="/auth/register">
-                  <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
-                    List Products <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-4">Are you a Reseller?</h3>
-                <p className="mb-6 text-orange-100">Find the best deals for your customers</p>
+          {isAuthenticated ? (
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Welcome back, {user?.name}!
+              </h2>
+              <p className="text-lg text-gray-600 mb-8">
+                Continue your B2B marketplace journey
+              </p>
+              <div className="flex justify-center gap-4">
+                {user?.role === 'DISTRIBUTOR' && (
+                  <Link href="/distributor/dashboard">
+                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+                      Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                )}
+                {user?.role === 'RESELLER' && (
+                  <Link href="/reseller/dashboard">
+                    <Button size="lg" className="bg-orange-500 hover:bg-orange-600">
+                      Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                )}
+                {user?.role === 'PLATFORM_ADMIN' && (
+                  <Link href="/admin/dashboard">
+                    <Button size="lg" className="bg-red-600 hover:bg-red-700">
+                      Admin Dashboard <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/categories">
-                  <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100">
-                    Browse Solutions <ArrowRight className="ml-2 h-5 w-5" />
+                  <Button size="lg" variant="outline">
+                    Browse Products
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0">
+                <CardContent className="p-8">
+                  <h3 className="text-2xl font-bold mb-4">Are you a Distributor?</h3>
+                  <p className="mb-6 text-blue-100">Reach thousands of qualified resellers</p>
+                  <Link href="/auth/register">
+                    <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
+                      List Products <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
+                <CardContent className="p-8">
+                  <h3 className="text-2xl font-bold mb-4">Are you a Reseller?</h3>
+                  <p className="mb-6 text-orange-100">Find the best deals for your customers</p>
+                  <Link href="/categories">
+                    <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100">
+                      Browse Solutions <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </section>
     </div>

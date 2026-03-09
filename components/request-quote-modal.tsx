@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { X, Send } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 import { generateId } from '@/lib/utils';
 
@@ -23,7 +23,7 @@ interface RequestQuoteModalProps {
 
 export function RequestQuoteModal({ product, onClose }: RequestQuoteModalProps) {
   const router = useRouter();
-  const { user, organization } = useAuthStore();
+  const { user, organization } = useSimpleAuth();
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
