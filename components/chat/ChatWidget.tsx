@@ -224,7 +224,7 @@ export function ChatWidget() {
                         </div>
                         {conv.messages && conv.messages.length > 0 && (
                           <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                            {conv.messages[0].messageText}
+                            {conv.messages[0].message_text}
                           </p>
                         )}
                       </div>
@@ -238,18 +238,18 @@ export function ChatWidget() {
                   {messages.map(msg => (
                     <div
                       key={msg.id}
-                      className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
                         className={`max-w-[70%] rounded-lg p-3 ${
-                          msg.senderId === user.id
+                          msg.sender_id === user.id
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
-                        <p className="text-sm">{msg.messageText}</p>
+                        <p className="text-sm">{msg.message_text}</p>
                         <p className="text-xs mt-1 opacity-70">
-                          {new Date(msg.createdAt).toLocaleTimeString()}
+                          {new Date(msg.created_at).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>
