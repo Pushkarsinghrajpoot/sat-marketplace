@@ -6,38 +6,77 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Star, Heart, Share2, Minus, Plus, Download, CheckCircle } from 'lucide-react';
+import { Star, Heart, Share2, Minus, Plus, Download, CheckCircle, Package, MessageCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import type { Product, Organization } from '@/lib/types';
+import { getProductById, getEnhancedProducts } from '@/lib/product-helpers';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { ProductCard } from '@/components/product-card';
 import { RequestQuoteModal } from '@/components/request-quote-modal';
+import { ProductChatModal } from '@/components/product-chat-modal';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [organization, setOrganization] = useState<Organization | null>(null);
+  const { user } = useSimpleAuth();
+  const [product, setProduct] = useState<any>(null);
+  const [organization, setOrganization] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('overview');
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const products = JSON.parse(localStorage.getItem('products') || '[]');
-    const prod = products.find((p: Product) => p.id === params.id);
-    setProduct(prod || null);
-
-    if (prod) {
-      const orgs = JSON.parse(localStorage.getItem('organizations') || '[]');
-      const org = orgs.find((o: Organization) => o.id === prod.organizationId);
-      setOrganization(org || null);
-
-      const related = products.filter((p: Product) => 
-        p.category === prod.category && p.id !== prod.id
-      ).slice(0, 4);
-      setRelatedProducts(related);
-    }
+    fetchProductData();
   }, [params.id]);
+
+  const fetchProductData = async () => {
+    setLoading(true);
+    try {
+      // Fetch product details
+      const productData = await getProductById(params.id as string);
+      setProduct(productData);
+
+      if (productData) {
+        // Fetch organization details
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', productData.organization_id)
+          .single();
+        
+        if (orgData) {
+          setOrganization(orgData);
+        }
+
+        // Fetch related products from same category
+        const relatedData = await getEnhancedProducts({
+          categoryId: productData.category_id
+        });
+        
+        // Filter out current product and limit to 4
+        const filtered = relatedData.filter((p: any) => p.id !== productData.id).slice(0, 4);
+        setRelatedProducts(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-gray-500">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -51,9 +90,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const currentPrice = product.volumePricing.length > 0
-    ? product.volumePricing.find(vp => quantity >= vp.minQuantity && (!vp.maxQuantity || quantity <= vp.maxQuantity))?.price || product.price
-    : product.price;
+  const currentPrice = product.price;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -63,9 +100,19 @@ export default function ProductDetailPage() {
 
       <div className="grid lg:grid-cols-2 gap-8 mb-12">
         <div>
-          <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mb-4">
-            <div className="text-6xl font-bold text-gray-300">{product.brand.charAt(0)}</div>
-          </div>
+          {product.product_images && product.product_images.length > 0 ? (
+            <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4">
+              <img 
+                src={product.product_images[0].url} 
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mb-4">
+              <Package className="h-32 w-32 text-gray-300" />
+            </div>
+          )}
         </div>
 
         <div>
@@ -116,18 +163,10 @@ export default function ProductDetailPage() {
               <span className="text-lg font-normal text-gray-500">/unit</span>
             </div>
             
-            {product.volumePricing.length > 0 && (
+            {product.min_order_quantity && product.min_order_quantity > 1 && (
               <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="p-4">
-                  <p className="font-semibold text-sm mb-2">Volume Pricing:</p>
-                  <div className="space-y-1 text-sm">
-                    {product.volumePricing.map((vp, idx) => (
-                      <div key={idx} className="flex justify-between">
-                        <span>{vp.minQuantity}-{vp.maxQuantity || '∞'} units:</span>
-                        <span className="font-semibold">{formatCurrency(vp.price)} ({vp.discount}% off)</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="font-semibold text-sm">Minimum Order Quantity: {product.min_order_quantity} units</p>
                 </CardContent>
               </Card>
             )}
@@ -160,8 +199,8 @@ export default function ProductDetailPage() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <Badge variant={product.availability === 'IN_STOCK' ? 'success' : 'warning'}>
-                {product.inventory} units available
+              <Badge variant={product.stock_status === 'IN_STOCK' ? 'success' : 'warning'}>
+                {product.stock_status || 'IN_STOCK'}
               </Badge>
             </div>
           </div>
@@ -173,6 +212,15 @@ export default function ProductDetailPage() {
             <Link href={`/reseller/deals/register?product=${product.id}`} className="block">
               <Button size="lg" variant="secondary" className="w-full">Start Deal Registration</Button>
             </Link>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setShowChat(true)}
+            >
+              <MessageCircle className="h-5 w-5 mr-2" />
+              Chat with Sales
+            </Button>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1">
                 <Heart className="h-5 w-5 mr-2" />
@@ -186,18 +234,18 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span>{product.specifications.find(s => s.label === 'Port Count')?.value} ports</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span>Stackable up to 8 units</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span>3-year warranty included</span>
-            </div>
+            {product.key_features && product.key_features.map((feature: string, idx: number) => (
+              <div key={idx} className="flex items-center gap-2 text-sm">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span>{feature}</span>
+              </div>
+            ))}
+            {product.warranty_period && (
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span>{product.warranty_period} month warranty - {product.warranty_type}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -231,14 +279,18 @@ export default function ProductDetailPage() {
         {activeTab === 'specifications' && (
           <div>
             <h2 className="text-2xl font-bold mb-4">Technical Specifications</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              {product.specifications.map((spec, idx) => (
-                <div key={idx} className="flex justify-between py-3 border-b border-gray-200">
-                  <span className="font-medium text-gray-700">{spec.label}</span>
-                  <span className="text-gray-900">{spec.value} {spec.unit}</span>
-                </div>
-              ))}
-            </div>
+            {product.product_tech_specs && product.product_tech_specs.length > 0 ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                {product.product_tech_specs.map((spec: any, idx: number) => (
+                  <div key={idx} className="flex justify-between py-3 border-b border-gray-200">
+                    <span className="font-medium text-gray-700">{spec.spec_name}</span>
+                    <span className="text-gray-900">{spec.spec_value} {spec.spec_unit || ''}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No technical specifications available</p>
+            )}
             <Button variant="outline" className="mt-6">
               <Download className="h-4 w-4 mr-2" />
               Download Datasheet (PDF)
@@ -253,7 +305,7 @@ export default function ProductDetailPage() {
               <Card>
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">Warranty</h3>
-                  <p className="text-sm text-gray-600">3-year manufacturer warranty</p>
+                  <p className="text-sm text-gray-600">{product.warranty_info || 'Manufacturer warranty included'}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -306,7 +358,30 @@ export default function ProductDetailPage() {
           <h2 className="text-2xl font-bold mb-6">Related Products</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedProducts.map((prod) => (
-              <ProductCard key={prod.id} product={prod} />
+              <Link key={prod.id} href={`/products/${prod.id}`}>
+                <Card className="h-full hover:shadow-xl transition-shadow cursor-pointer overflow-hidden">
+                  <div className="relative h-48 bg-gray-100">
+                    {prod.product_images && prod.product_images[0] ? (
+                      <img
+                        src={prod.product_images[0].url}
+                        alt={prod.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <Package className="h-16 w-16 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-lg mb-1 line-clamp-2">{prod.name}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{prod.brand}</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {formatCurrency(prod.price)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
@@ -317,9 +392,18 @@ export default function ProductDetailPage() {
             id: product.id,
             name: product.name,
             price: currentPrice,
-            organizationId: product.organizationId,
+            organizationId: product.organization_id,
           }}
           onClose={() => setShowQuoteModal(false)}
+        />
+      )}
+      
+      {showChat && user && (
+        <ProductChatModal
+          productId={product.id}
+          productName={product.name}
+          distributorId={product.organization_id}
+          onClose={() => setShowChat(false)}
         />
       )}
     </div>

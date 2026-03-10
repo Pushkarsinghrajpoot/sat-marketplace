@@ -453,3 +453,173 @@ export interface Activity {
   metadata?: any;
   createdAt: string;
 }
+
+// Enhanced Product Types
+export type ServiceType = 'INSTALLATION' | 'CONFIGURATION' | 'DEPLOYMENT' | 'EXTENDED_WARRANTY' | 'AMC';
+export type StockStatus = 'IN_STOCK' | 'LIMITED_STOCK' | 'OUT_OF_STOCK' | 'PRE_ORDER';
+export type InquiryType = 'TECHNICAL' | 'PRICING' | 'AVAILABILITY' | 'DEMO' | 'GENERAL';
+export type InquiryStatus = 'OPEN' | 'ANSWERED' | 'CLOSED';
+export type DemoStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type LocationType = 'ONLINE' | 'ONSITE' | 'OFFICE';
+
+export interface EnhancedProduct extends Product {
+  modelNumber?: string;
+  manufacturer?: string;
+  keyFeatures?: string[];
+  compatibilityDetails?: string;
+  performanceSpecs?: Record<string, any>;
+  powerRequirements?: string;
+  hardwareRequirements?: string;
+  minOrderQuantity: number;
+  stockStatus: StockStatus;
+  deliveryTimeline?: string;
+  warrantyInfo?: string;
+  warrantyPeriod?: number;
+  warrantyType?: string;
+  isTrending: boolean;
+  isFeatured: boolean;
+  viewCount: number;
+  sellerType?: string;
+  technicalSupportAvailable: boolean;
+  demoAvailable: boolean;
+  installationAvailable: boolean;
+  services?: ProductService[];
+  techSpecs?: ProductTechSpec[];
+  reviews?: ProductReview[];
+}
+
+export interface ProductService {
+  id: string;
+  productId: string;
+  serviceType: ServiceType;
+  serviceName: string;
+  description?: string;
+  price?: number;
+  duration?: string;
+  isIncluded: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductTechSpec {
+  id: string;
+  productId: string;
+  specCategory: string;
+  specName: string;
+  specValue: string;
+  specUnit?: string;
+  displayOrder: number;
+  createdAt: string;
+}
+
+export interface ProductReview {
+  id: string;
+  productId: string;
+  userId: string;
+  organizationId: string;
+  rating: number;
+  title?: string;
+  reviewText?: string;
+  verifiedPurchase: boolean;
+  helpfulCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductInquiry {
+  id: string;
+  productId: string;
+  userId: string;
+  inquiryType: InquiryType;
+  subject: string;
+  question: string;
+  status: InquiryStatus;
+  response?: string;
+  respondedBy?: string;
+  respondedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DemoRequest {
+  id: string;
+  productId: string;
+  userId: string;
+  organizationId: string;
+  preferredDate?: string;
+  preferredTime?: string;
+  locationType: LocationType;
+  locationDetails?: string;
+  attendeeCount: number;
+  specialRequirements?: string;
+  status: DemoStatus;
+  confirmedDate?: string;
+  meetingLink?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Chat System Types
+export type ConversationType = 'PRODUCT_INQUIRY' | 'QUOTE_REQUEST' | 'TECHNICAL_SUPPORT' | 'SERVICE_REQUEST';
+export type ConversationStatus = 'ACTIVE' | 'CLOSED' | 'ARCHIVED';
+export type MessageType = 'TEXT' | 'FILE' | 'QUOTE' | 'BOQ' | 'SYSTEM';
+export type ChatRole = 'CUSTOMER' | 'AGENT' | 'RESELLER' | 'DISTRIBUTOR';
+export type ChatPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+
+export interface ChatConversation {
+  id: string;
+  conversationType: ConversationType;
+  status: ConversationStatus;
+  subject?: string;
+  productId?: string;
+  dealId?: string;
+  quoteId?: string;
+  boqId?: string;
+  customerId: string;
+  agentId?: string;
+  resellerId?: string;
+  distributorId?: string;
+  priority: ChatPriority;
+  lastMessageAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  participants?: ChatParticipant[];
+  messages?: ChatMessage[];
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_role: ChatRole;
+  message_type: MessageType;
+  message_text?: string;
+  metadata?: Record<string, any>;
+  is_read: boolean;
+  read_at?: string;
+  created_at: string;
+  attachments?: ChatAttachment[];
+  sender?: User;
+}
+
+export interface ChatAttachment {
+  id: string;
+  messageId: string;
+  fileName: string;
+  fileUrl: string;
+  fileType?: string;
+  fileSize?: number;
+  createdAt: string;
+}
+
+export interface ChatParticipant {
+  id: string;
+  conversationId: string;
+  userId: string;
+  role: ChatRole;
+  joinedAt: string;
+  lastReadAt?: string;
+  isActive: boolean;
+  user?: User;
+}

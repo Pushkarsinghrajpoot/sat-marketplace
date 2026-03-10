@@ -1,14 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Network, Cloud, Shield, Database, Key, Server, Briefcase, GraduationCap, ArrowRight, CheckCircle, Tag, Lock, Star, TrendingUp } from 'lucide-react';
+import { Search, Network, Cloud, Shield, Database, Key, Server, Briefcase, GraduationCap, ArrowRight, CheckCircle, Tag, Lock, Star, TrendingUp, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { ProductCard } from '@/components/product-card';
+import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
 import { useSimpleAuth } from '@/lib/simple-auth';
-import type { Product, Category, Organization } from '@/lib/types';
+import { getTrendingProducts, getFeaturedProducts } from '@/lib/product-helpers';
+import { supabase } from '@/lib/supabase';
+import { formatCurrency } from '@/lib/utils';
+import type { Category } from '@/lib/types';
 
 const categoryIcons: { [key: string]: any } = {
   Network, Cloud, Shield, Database, Key, Server, Briefcase, GraduationCap
@@ -17,19 +20,50 @@ const categoryIcons: { [key: string]: any } = {
 export default function HomePage() {
   const { user, isAuthenticated } = useSimpleAuth();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [distributors, setDistributors] = useState<Organization[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [trendingProducts, setTrendingProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const cats = JSON.parse(localStorage.getItem('categories') || '[]');
-    const prods = JSON.parse(localStorage.getItem('products') || '[]');
-    const orgs = JSON.parse(localStorage.getItem('organizations') || '[]');
-    
-    setCategories(cats.slice(0, 8));
-    setFeaturedProducts(prods.filter((p: Product) => p.featured).slice(0, 6));
-    setDistributors(orgs.filter((o: Organization) => o.type === 'DISTRIBUTOR').slice(0, 4));
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch categories
+      const { data: categoriesData } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('status', 'ACTIVE')
+        .order('product_count', { ascending: false })
+        .limit(8);
+
+      if (categoriesData) {
+        setCategories(categoriesData.map((cat: any) => ({
+          id: cat.id,
+          name: cat.name,
+          slug: cat.slug,
+          icon: 'Network',
+          productCount: cat.product_count || 0
+        })));
+      }
+
+      // Fetch featured products
+      const featured = await getFeaturedProducts(6);
+      setFeaturedProducts(featured);
+
+      // Fetch trending products
+      const trending = await getTrendingProducts(6);
+      setTrendingProducts(trending);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -190,25 +224,152 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products */}
+      {/* Trending Products */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Trending Products</h2>
-              <p className="text-gray-600">Discover what's popular in the marketplace</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                <TrendingUp className="inline h-8 w-8 text-red-500 mr-2" />
+                Trending Products
+              </h2>
+              <p className="text-gray-600">Hot products in the marketplace right now</p>
             </div>
-            <Link href="/categories">
+            <Link href="/reseller/products">
               <Button variant="outline">
                 View All <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="animate-pulse">
+                  <div className="h-48 bg-gray-200"></div>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : trendingProducts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trendingProducts.map((product) => (
+                <Link key={product.id} href={`/products/${product.id}`}>
+                  <Card className="h-full hover:shadow-xl transition-shadow cursor-pointer overflow-hidden">
+                    <div className="relative h-48 bg-gray-100">
+                      {product.product_images && product.product_images[0] ? (
+                        <img
+                          src={product.product_images[0].url}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <Package className="h-16 w-16 text-gray-300" />
+                        </div>
+                      )}
+                      <Badge className="absolute top-2 left-2 bg-red-500">
+                        Trending
+                      </Badge>
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold text-lg mb-1 line-clamp-2">{product.name}</h3>
+                      <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-2xl font-bold text-blue-600">
+                          {formatCurrency(product.price)}
+                        </p>
+                        <Badge variant="success">{product.stock_status || 'IN_STOCK'}</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No trending products yet</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Featured Products */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                <Star className="inline h-8 w-8 text-yellow-500 mr-2" />
+                Featured Products
+              </h2>
+              <p className="text-gray-600">Hand-picked products from top distributors</p>
+            </div>
+            <Link href="/reseller/products">
+              <Button variant="outline">
+                View All <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="animate-pulse">
+                  <div className="h-48 bg-gray-200"></div>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredProducts.map((product) => (
+                <Link key={product.id} href={`/products/${product.id}`}>
+                  <Card className="h-full hover:shadow-xl transition-shadow cursor-pointer overflow-hidden">
+                    <div className="relative h-48 bg-gray-100">
+                      {product.product_images && product.product_images[0] ? (
+                        <img
+                          src={product.product_images[0].url}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <Package className="h-16 w-16 text-gray-300" />
+                        </div>
+                      )}
+                      <Badge className="absolute top-2 right-2 bg-yellow-500">
+                        Featured
+                      </Badge>
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold text-lg mb-1 line-clamp-2">{product.name}</h3>
+                      <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
+                      <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                        {product.short_description || product.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-2xl font-bold text-blue-600">
+                          {formatCurrency(product.price)}
+                        </p>
+                        <Badge variant="success">{product.stock_status || 'IN_STOCK'}</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Star className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No featured products yet</p>
+            </div>
+          )}
         </div>
       </section>
 

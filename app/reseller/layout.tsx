@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
@@ -11,6 +11,8 @@ const navigation = [
   { name: 'Dashboard', href: '/reseller/dashboard', icon: LayoutDashboard },
   { name: 'My Deals', href: '/reseller/deals', icon: Briefcase },
   { name: 'Register Deal', href: '/reseller/deals/register', icon: PlusCircle },
+  { name: 'Messages', href: '/reseller/messages', icon: MessageCircle },
+  { name: 'Quotes', href: '/reseller/quotes', icon: FileText },
   { name: 'Upload BOQ', href: '/reseller/boq/upload', icon: Upload },
   { name: 'Services', href: '/reseller/services', icon: Briefcase },
   { name: 'Analytics', href: '/reseller/analytics', icon: BarChart3 },

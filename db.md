@@ -135,6 +135,7 @@ CREATE TABLE public.credit_request_documents (
   credit_request_id uuid,
   document_url text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
+  document_type character varying,
   CONSTRAINT credit_request_documents_pkey PRIMARY KEY (id),
   CONSTRAINT credit_request_documents_credit_request_id_fkey FOREIGN KEY (credit_request_id) REFERENCES public.credit_requests(id)
 );
@@ -242,6 +243,10 @@ CREATE TABLE public.direct_queries (
   status USER-DEFINED DEFAULT 'OPEN'::query_status,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  response_message text,
+  response_date timestamp with time zone,
+  estimated_cost numeric,
+  delivery_timeline character varying,
   CONSTRAINT direct_queries_pkey PRIMARY KEY (id),
   CONSTRAINT direct_queries_reseller_id_fkey FOREIGN KEY (reseller_id) REFERENCES public.users(id),
   CONSTRAINT direct_queries_reseller_organization_id_fkey FOREIGN KEY (reseller_organization_id) REFERENCES public.organizations(id),
@@ -293,6 +298,7 @@ CREATE TABLE public.engagement_requests (
   quote_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  engagement_type character varying,
   CONSTRAINT engagement_requests_pkey PRIMARY KEY (id),
   CONSTRAINT engagement_requests_reseller_id_fkey FOREIGN KEY (reseller_id) REFERENCES public.users(id),
   CONSTRAINT engagement_requests_distributor_id_fkey FOREIGN KEY (distributor_id) REFERENCES public.organizations(id),
@@ -504,6 +510,9 @@ CREATE TABLE public.quotes (
   submitted_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  delivery_timeline character varying,
+  payment_terms text,
+  notes text,
   CONSTRAINT quotes_pkey PRIMARY KEY (id),
   CONSTRAINT quotes_boq_id_fkey FOREIGN KEY (boq_id) REFERENCES public.boqs(id),
   CONSTRAINT quotes_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id),
@@ -550,6 +559,7 @@ CREATE TABLE public.users (
   last_login_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  total_activity_score integer DEFAULT 0,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );

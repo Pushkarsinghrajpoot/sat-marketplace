@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, Target, Handshake, FileText, DollarSign, BarChart3, Settings, LogOut, Bell, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, Target, Handshake, FileText, DollarSign, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
@@ -10,9 +10,11 @@ import { useState, useEffect } from 'react';
 const navigation = [
   { name: 'Dashboard', href: '/distributor/dashboard', icon: LayoutDashboard },
   { name: 'Products', href: '/distributor/products', icon: Package },
+  { name: 'Inquiries', href: '/distributor/inquiries', icon: HelpCircle },
+  { name: 'Messages', href: '/distributor/messages', icon: MessageCircle },
+  { name: 'Quotes', href: '/distributor/quotes', icon: FileText },
   { name: 'Campaigns', href: '/distributor/campaigns', icon: Target },
   { name: 'Engagements', href: '/distributor/engagements', icon: Handshake },
-  { name: 'Quotes', href: '/distributor/quotes', icon: FileText },
   { name: 'Credit Requests', href: '/distributor/credit', icon: DollarSign },
   { name: 'Analytics', href: '/distributor/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/distributor/settings', icon: Settings },

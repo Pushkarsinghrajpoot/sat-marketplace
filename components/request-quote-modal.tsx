@@ -10,6 +10,9 @@ import { X, Send } from 'lucide-react';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 import { generateId } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { createProductInquiry } from '@/lib/product-helpers';
+import { createChatConversation } from '@/lib/chat-helpers';
 
 interface RequestQuoteModalProps {
   product: {
@@ -89,31 +92,55 @@ export function RequestQuoteModal({ product, onClose }: RequestQuoteModalProps) 
     );
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setLoading(true);
 
-    const quoteRequest = {
-      id: generateId(),
-      productId: product.id,
-      productName: product.name,
-      distributorId: product.organizationId,
-      resellerId: organization.id,
-      quantity,
-      message,
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      // 1. Create product inquiry record
+      const inquiry = await createProductInquiry({
+        productId: product.id,
+        userId: user.id,
+        inquiryType: 'PRICING',
+        subject: `Quote Request for ${product.name}`,
+        question: `Requesting quote for ${quantity} units. ${message || 'No additional message.'}`
+      });
 
-    // Save to localStorage
-    const existingRequests = JSON.parse(localStorage.getItem('quoteRequests') || '[]');
-    existingRequests.push(quoteRequest);
-    localStorage.setItem('quoteRequests', JSON.stringify(existingRequests));
+      if (!inquiry) {
+        throw new Error('Failed to create inquiry');
+      }
 
-    setTimeout(() => {
-      setLoading(false);
-      toast.success('Quote request sent successfully!');
+      // 2. Create chat conversation for quote discussion
+      const conversation = await createChatConversation({
+        conversationType: 'QUOTE_REQUEST',
+        productId: product.id,
+        customerId: user.id,
+        distributorId: product.organizationId,
+        resellerId: user.id,
+        subject: `Quote Request: ${product.name}`,
+        priority: 'NORMAL'
+      });
+
+      // 3. Create notification for distributor (optional - implement later)
+      // await createNotification({
+      //   userId: distributorUserId,
+      //   type: 'QUOTE_REQUEST',
+      //   message: `New quote request from ${organization.name} for ${product.name}`
+      // });
+
+      toast.success('Quote request sent successfully! The distributor will respond shortly.');
+      
+      // Optionally redirect to chat or inquiry page
+      if (conversation) {
+        router.push(`/reseller/inquiries/${inquiry.id}`);
+      }
+      
       onClose();
-    }, 500);
+    } catch (error) {
+      console.error('Error submitting quote request:', error);
+      toast.error('Failed to send quote request. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
