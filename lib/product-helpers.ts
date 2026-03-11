@@ -98,9 +98,16 @@ export async function createProductInquiry(inquiry: {
   question: string;
 }) {
   try {
+    // Convert camelCase to snake_case for database
     const { data, error } = await supabase
       .from('product_inquiries')
-      .insert([inquiry])
+      .insert([{
+        product_id: inquiry.productId,
+        user_id: inquiry.userId,
+        inquiry_type: inquiry.inquiryType,
+        subject: inquiry.subject,
+        question: inquiry.question
+      }])
       .select()
       .single();
 

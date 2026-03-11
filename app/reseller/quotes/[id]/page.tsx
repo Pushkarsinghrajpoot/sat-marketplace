@@ -30,8 +30,10 @@ export default function QuoteDetailPage() {
         const foundQuote = quotes.find(q => q.id === quoteId);
         if (foundQuote) {
           setQuote(foundQuote);
-          // Fetch activities related to this quote
-          await fetchQuoteActivities(foundQuote.deal_id);
+          // Fetch activities related to this quote only if deal_id exists
+          if (foundQuote.deal_id) {
+            await fetchQuoteActivities(foundQuote.deal_id);
+          }
         }
       } catch (error) {
         console.error('Error fetching quote:', error);
@@ -46,6 +48,11 @@ export default function QuoteDetailPage() {
   }, [quoteId]);
 
   const fetchQuoteActivities = async (dealId: string) => {
+    if (!dealId) {
+      console.log('No deal_id provided, skipping activities fetch');
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('deal_activities')
@@ -76,23 +83,28 @@ export default function QuoteDetailPage() {
 
       if (quoteError) throw quoteError;
 
-      // Update deal with won_quote_id
-      const { error: dealError } = await supabase
-        .from('deals')
-        .update({ 
-          won_quote_id: quote.id,
-          status: 'WON'
-        })
-        .eq('id', quote.deal_id);
+      // Update deal with won_quote_id if deal exists
+      if (quote.deal_id) {
+        const { error: dealError } = await supabase
+          .from('deals')
+          .update({ 
+            won_quote_id: quote.id,
+            status: 'WON'
+          })
+          .eq('id', quote.deal_id);
 
-      if (dealError) throw dealError;
+        if (dealError) throw dealError;
 
-      // Reject other quotes for this deal
-      await supabase
-        .from('quotes')
-        .update({ status: 'LOST' })
-        .eq('deal_id', quote.deal_id)
-        .neq('id', quote.id);
+        // Reject other quotes for this deal
+        await supabase
+          .from('quotes')
+          .update({ status: 'LOST' })
+          .eq('deal_id', quote.deal_id)
+          .neq('id', quote.id);
+      } else {
+        // This is a direct quote without a deal, just update status
+        console.log('Direct quote accepted (no associated deal)');
+      }
 
       // Send notification to distributor
       if (quote.distributor_id) {
