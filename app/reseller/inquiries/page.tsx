@@ -39,7 +39,7 @@ export default function InquiriesPage() {
         .select(`
           *,
           products (*),
-          users!product_inquiries_user_id_fkey (
+          user:users!product_inquiries_user_id_fkey (
             id,
             name,
             email,
@@ -77,7 +77,7 @@ export default function InquiriesPage() {
       inquiry.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inquiry.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inquiry.products?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inquiry.users?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      inquiry.user?.name.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'ALL' || inquiry.status === statusFilter;
 
@@ -170,16 +170,16 @@ export default function InquiriesPage() {
                 <div className="flex items-center gap-6 text-sm text-gray-500">
                   {/* Customer Info */}
                   <div className="flex items-center gap-2">
-                    {inquiry.users?.avatar ? (
+                    {inquiry.user?.avatar ? (
                       <img 
-                        src={inquiry.users.avatar} 
-                        alt={inquiry.users.name}
+                        src={inquiry.user.avatar} 
+                        alt={inquiry.user.name}
                         className="h-6 w-6 rounded-full object-cover"
                       />
                     ) : (
                       <User className="h-5 w-5 text-gray-400" />
                     )}
-                    <span>{inquiry.users?.name}</span>
+                    <span>{inquiry.user?.name}</span>
                   </div>
 
                   {/* Product Info */}

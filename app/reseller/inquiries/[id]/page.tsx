@@ -46,13 +46,13 @@ export default function InquiryDetailPage() {
         .select(`
           *,
           products (*),
-          users!product_inquiries_user_id_fkey (
+          user:users!product_inquiries_user_id_fkey (
             id,
             name,
             email,
             avatar
           ),
-          users!product_inquiries_responded_by_fkey (
+          responder:users!product_inquiries_responded_by_fkey (
             id,
             name,
             email
@@ -169,10 +169,10 @@ export default function InquiryDetailPage() {
             {/* Customer Information */}
             <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex-shrink-0">
-                {inquiry.users?.avatar ? (
+                {inquiry.user?.avatar ? (
                   <img 
-                    src={inquiry.users.avatar} 
-                    alt={inquiry.users.name}
+                    src={inquiry.user.avatar} 
+                    alt={inquiry.user.name}
                     className="h-12 w-12 rounded-full object-cover"
                   />
                 ) : (
@@ -180,8 +180,8 @@ export default function InquiryDetailPage() {
                 )}
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold">{inquiry.users?.name}</h3>
-                <p className="text-sm text-gray-600">{inquiry.users?.email}</p>
+                <h3 className="font-semibold">{inquiry.user?.name}</h3>
+                <p className="text-sm text-gray-600">{inquiry.user?.email}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Calendar className="h-4 w-4 text-gray-400" />
                   <span className="text-sm text-gray-500">
@@ -221,7 +221,7 @@ export default function InquiryDetailPage() {
                   <p className="whitespace-pre-wrap">{inquiry.response}</p>
                   {inquiry.responded_at && (
                     <p className="text-sm text-gray-500 mt-2">
-                      Responded on {new Date(inquiry.responded_at).toLocaleDateString()} by {inquiry.users?.name}
+                      Responded on {new Date(inquiry.responded_at).toLocaleDateString()} by {inquiry.responder?.name}
                     </p>
                   )}
                 </div>
