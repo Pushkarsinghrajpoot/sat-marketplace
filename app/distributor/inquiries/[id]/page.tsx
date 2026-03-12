@@ -40,7 +40,7 @@ export default function InquiryDetailPage() {
             price,
             brand
           ),
-          users (
+          user:users!product_inquiries_user_id_fkey (
             id,
             name,
             email,
@@ -128,7 +128,7 @@ export default function InquiryDetailPage() {
         <QuoteBuilder
           inquiryId={inquiry.id}
           productId={inquiry.product_id}
-          resellerId={inquiry.users?.organization_id}
+          resellerId={inquiry.user?.organization_id}
           distributorId={organization?.id || ''}
           onComplete={() => {
             setShowQuoteBuilder(false);
@@ -250,22 +250,22 @@ export default function InquiryDetailPage() {
               <CardTitle>Customer Information</CardTitle>
             </CardHeader>
             <CardContent>
-              {inquiry.users ? (
+              {inquiry.user ? (
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-600">Name</p>
-                    <p className="font-semibold">{inquiry.users.name}</p>
+                    <p className="font-semibold">{inquiry.user.name}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-semibold">{inquiry.users.email}</p>
+                    <p className="font-semibold">{inquiry.user.email}</p>
                   </div>
-                  {inquiry.users.organizations && (
+                  {inquiry.user.organizations && (
                     <div>
                       <p className="text-sm text-gray-600">Organization</p>
-                      <p className="font-semibold">{inquiry.users.organizations.name}</p>
+                      <p className="font-semibold">{inquiry.user.organizations.name}</p>
                       <Badge variant="info" className="mt-1">
-                        {inquiry.users.organizations.type}
+                        {inquiry.user.organizations.type}
                       </Badge>
                     </div>
                   )}

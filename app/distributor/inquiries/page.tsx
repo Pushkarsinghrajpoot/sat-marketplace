@@ -35,7 +35,7 @@ export default function DistributorInquiriesPage() {
             sku,
             organization_id
           ),
-          users (
+          user:users!product_inquiries_user_id_fkey (
             id,
             name,
             email,
@@ -139,14 +139,14 @@ export default function DistributorInquiriesPage() {
                           <p className="text-sm text-gray-500">SKU: {inquiry.products.sku}</p>
                         </div>
                       )}
-                      {inquiry.users && (
+                      {inquiry.user && (
                         <div>
                           <p className="text-sm text-gray-600">From</p>
-                          <p className="font-medium">{inquiry.users.name}</p>
-                          <p className="text-sm text-gray-500">{inquiry.users.email}</p>
-                          {inquiry.users.organizations && (
+                          <p className="font-medium">{inquiry.user.name}</p>
+                          <p className="text-sm text-gray-500">{inquiry.user.email}</p>
+                          {inquiry.user.organizations && (
                             <Badge variant="info" className="mt-1">
-                              {inquiry.users.organizations.type}
+                              {inquiry.user.organizations.type}
                             </Badge>
                           )}
                         </div>
