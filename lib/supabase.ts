@@ -38,7 +38,7 @@ export type Database = {
           id: string;
           name: string;
           legal_name: string;
-          type: 'DISTRIBUTOR' | 'RESELLER' | 'OEM' | 'INDIVIDUAL';
+          type: 'DISTRIBUTOR' | 'RESELLER' | 'INDIVIDUAL';
           logo: string | null;
           description: string | null;
           verified: boolean;

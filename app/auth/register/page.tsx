@@ -6,9 +6,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Building, Users, Factory, User as UserIcon } from 'lucide-react';
+import { Building, Users, User as UserIcon } from 'lucide-react';
 import { generateId } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 import type { OrganizationType } from '@/lib/types';
 
 const orgTypes: Array<{ type: OrganizationType; icon: any; label: string; description: string }> = [
@@ -25,12 +26,6 @@ const orgTypes: Array<{ type: OrganizationType; icon: any; label: string; descri
     description: 'I sell to end customers',
   },
   {
-    type: 'OEM',
-    icon: Factory,
-    label: 'OEM',
-    description: 'I manufacture products',
-  },
-  {
     type: 'INDIVIDUAL',
     icon: UserIcon,
     label: 'Individual',
@@ -40,73 +35,98 @@ const orgTypes: Array<{ type: OrganizationType; icon: any; label: string; descri
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [orgType, setOrgType] = useState<OrganizationType | ''>('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleRegister = () => {
-    if (!email || !name || !orgType) {
+  const handleRegister = async () => {
+    if (!email || !password || !name || !orgType) {
       toast.error('Please fill all fields');
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const existingUser = users.find((u: any) => u.email === email);
-    
-    if (existingUser) {
-      toast.error('Email already registered');
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
-    const userId = generateId();
-    const orgId = generateId();
+    setLoading(true);
+    try {
+      // Step 1: Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role: orgType === 'INDIVIDUAL' ? 'END_USER' : orgType,
+          },
+        },
+      });
 
-    const newOrg = {
-      id: orgId,
-      name: `${name}'s Company`,
-      legalName: `${name}'s Company Inc.`,
-      type: orgType,
-      description: 'New organization',
-      industry: 'Technology',
-      companySize: '1-10',
-      yearEstablished: new Date().getFullYear(),
-      verified: false,
-      rating: 0,
-      reviewCount: 0,
-      address: {
-        country: 'United States',
-        street: '',
-        city: '',
-        state: '',
-        postalCode: '',
-      },
-      contact: {
-        phone: '',
-        supportEmail: email,
-        salesEmail: email,
-      },
-      members: [userId],
-      createdAt: new Date().toISOString(),
-    };
+      if (authError) throw authError;
 
-    const newUser = {
-      id: userId,
-      email,
-      name,
-      organizationId: orgId,
-      role: 'ADMIN',
-      createdAt: new Date().toISOString(),
-    };
+      if (authData.user) {
+        // Step 2: Create organization in database
+        const orgId = generateId();
+        const orgData = {
+          id: orgId,
+          name: orgType === 'INDIVIDUAL' ? `${name} - Individual` : `${name}'s Company`,
+          legal_name: orgType === 'INDIVIDUAL' ? `${name} - Individual` : `${name}'s Company Inc.`,
+          type: orgType,
+          description: 'New organization',
+          industry: 'Technology',
+          company_size: '1-10',
+          year_established: new Date().getFullYear(),
+          verified: false,
+          rating: 0,
+          review_count: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
 
-    const orgs = JSON.parse(localStorage.getItem('organizations') || '[]');
-    orgs.push(newOrg);
-    localStorage.setItem('organizations', JSON.stringify(orgs));
+        const { error: orgError } = await supabase
+          .from('organizations')
+          .insert([orgData]);
 
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+        if (orgError) throw orgError;
 
-    toast.success('Account created successfully!');
-    router.push('/auth/org-setup?new=true');
+        // Step 3: Create user record in database
+        const userData = {
+          id: authData.user.id,
+          email,
+          name,
+          organization_id: orgId,
+          role: orgType === 'INDIVIDUAL' ? 'END_USER' : orgType,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        const { error: userError } = await supabase
+          .from('users')
+          .insert([userData]);
+
+        if (userError) throw userError;
+
+        toast.success('Account created successfully!');
+        
+        // For INDIVIDUAL users, redirect to dashboard
+        if (orgType === 'INDIVIDUAL') {
+          router.push('/');
+        } else {
+          // For DISTRIBUTOR/RESELLER, continue with organization setup
+          router.push('/auth/org-setup?new=true');
+        }
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Failed to create account');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -177,6 +197,16 @@ export default function RegisterPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium mb-2">Password</label>
+              <Input
+                type="password"
+                placeholder="Create a password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
             <div className="flex items-start gap-2">
               <input type="checkbox" className="mt-1" required />
               <p className="text-sm text-gray-600">
@@ -191,8 +221,8 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            <Button onClick={handleRegister} className="w-full" size="lg">
-              Create Account
+            <Button onClick={handleRegister} className="w-full" size="lg" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Create Account'}
             </Button>
 
             <div className="relative my-6">

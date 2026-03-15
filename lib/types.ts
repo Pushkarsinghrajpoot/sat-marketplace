@@ -1,4 +1,4 @@
-export type OrganizationType = 'DISTRIBUTOR' | 'RESELLER' | 'OEM' | 'INDIVIDUAL';
+export type OrganizationType = 'DISTRIBUTOR' | 'RESELLER' | 'INDIVIDUAL';
 
 export type UserRole = 'RESELLER' | 'DISTRIBUTOR' | 'END_USER' | 'PLATFORM_ADMIN';
 

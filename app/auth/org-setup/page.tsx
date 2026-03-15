@@ -36,10 +36,41 @@ export default function OrgSetupPage() {
     linkedin: '',
     twitter: '',
     teamMembers: [] as Array<{ email: string; role: string }>,
+    logoFile: null as File | null,
+    verificationDocs: [] as Array<{ name: string; file: File }>,
   });
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Logo file must be less than 2MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error('Logo must be an image file');
+        return;
+      }
+      updateField('logoFile', file);
+    }
+  };
+
+  const handleVerificationDocUpload = (docName: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const existingDocs = formData.verificationDocs.filter(doc => doc.name !== docName);
+      updateField('verificationDocs', [...existingDocs, { name: docName, file }]);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    // Save to localStorage for now
+    localStorage.setItem('orgSetupDraft', JSON.stringify(formData));
+    toast.success('Draft saved successfully!');
   };
 
   const handleNext = () => {
@@ -200,9 +231,28 @@ export default function OrgSetupPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Logo Upload</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
-                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-sm text-gray-600">Drag & drop logo or click to browse</p>
-                    <p className="text-xs text-gray-500 mt-1">PNG, JPG (max 2MB)</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <label htmlFor="logo-upload" className="cursor-pointer">
+                      {formData.logoFile ? (
+                        <div className="space-y-2">
+                          <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+                          <p className="text-sm text-green-600 font-medium">{formData.logoFile.name}</p>
+                          <p className="text-xs text-gray-500">Click to change</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Upload className="h-12 w-12 text-gray-400 mx-auto" />
+                          <p className="text-sm text-gray-600">Drag & drop logo or click to browse</p>
+                          <p className="text-xs text-gray-500">PNG, JPG (max 2MB)</p>
+                        </div>
+                      )}
+                    </label>
                   </div>
                 </div>
               </div>
@@ -227,6 +277,17 @@ export default function OrgSetupPage() {
                         <option value="United Kingdom">United Kingdom</option>
                         <option value="Canada">Canada</option>
                         <option value="India">India</option>
+                        <option value="Saudi Arabia">Saudi Arabia</option>
+                        <option value="United Arab Emirates">United Arab Emirates</option>
+                        <option value="Qatar">Qatar</option>
+                        <option value="Kuwait">Kuwait</option>
+                        <option value="Bahrain">Bahrain</option>
+                        <option value="Oman">Oman</option>
+                        <option value="Egypt">Egypt</option>
+                        <option value="Jordan">Jordan</option>
+                        <option value="Lebanon">Lebanon</option>
+                        <option value="Iraq">Iraq</option>
+                        <option value="Yemen">Yemen</option>
                       </Select>
                     </div>
 
@@ -350,15 +411,38 @@ export default function OrgSetupPage() {
                     </CardContent>
                   </Card>
 
-                  {['Business License', 'Tax ID / VAT', 'Bank Reference (Optional)'].map((doc) => (
-                    <div key={doc}>
-                      <label className="block text-sm font-medium mb-2">{doc}</label>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer">
-                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">Click to upload {doc.toLowerCase()}</p>
+                  {['Business License', 'Tax ID / VAT', 'Bank Reference (Optional)'].map((doc) => {
+                    const uploadedDoc = formData.verificationDocs.find(d => d.name === doc);
+                    return (
+                      <div key={doc}>
+                        <label className="block text-sm font-medium mb-2">{doc}</label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer">
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleVerificationDocUpload(doc, e)}
+                            className="hidden"
+                            id={`doc-${doc.replace(/\s+/g, '-')}`}
+                          />
+                          <label htmlFor={`doc-${doc.replace(/\s+/g, '-')}`} className="cursor-pointer">
+                            {uploadedDoc ? (
+                              <div className="space-y-2">
+                                <CheckCircle className="h-8 w-8 text-green-500 mx-auto" />
+                                <p className="text-sm text-green-600 font-medium">{uploadedDoc.file.name}</p>
+                                <p className="text-xs text-gray-500">Click to change</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <Upload className="h-8 w-8 text-gray-400 mx-auto" />
+                                <p className="text-sm text-gray-600">Click to upload {doc.toLowerCase()}</p>
+                                <p className="text-xs text-gray-500">PDF, JPG, PNG (max 5MB)</p>
+                              </div>
+                            )}
+                          </label>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -370,46 +454,59 @@ export default function OrgSetupPage() {
                 <p className="text-gray-600 mb-6">Add team members who will manage your organization</p>
 
                 <div className="space-y-4">
-                  {formData.teamMembers.map((member, index) => (
-                    <div key={index} className="flex gap-4">
-                      <Input
-                        placeholder="Email"
-                        value={member.email}
-                        onChange={(e) => {
-                          const newMembers = [...formData.teamMembers];
-                          newMembers[index].email = e.target.value;
-                          updateField('teamMembers', newMembers);
-                        }}
-                        className="flex-1"
-                      />
-                      <Select
-                        value={member.role}
-                        onChange={(e) => {
-                          const newMembers = [...formData.teamMembers];
-                          newMembers[index].role = e.target.value;
-                          updateField('teamMembers', newMembers);
-                        }}
-                        className="w-48"
-                      >
-                        <option value="ADMIN">Admin</option>
-                        <option value="SALES_MANAGER">Sales Manager</option>
-                        <option value="PRODUCT_MANAGER">Product Manager</option>
-                        <option value="SUPPORT">Support</option>
-                      </Select>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeTeamMember(index)}
-                      >
-                        <X className="h-4 w-4" />
+                  {formData.teamMembers.length === 0 ? (
+                    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                      <p className="text-gray-500 mb-4">No team members added yet</p>
+                      <Button variant="outline" onClick={addTeamMember}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Team Member
                       </Button>
                     </div>
-                  ))}
+                  ) : (
+                    <>
+                      {formData.teamMembers.map((member, index) => (
+                        <div key={index} className="flex gap-4 p-4 border border-gray-200 rounded-lg">
+                          <div className="flex-1 space-y-3">
+                            <Input
+                              placeholder="Email address"
+                              value={member.email}
+                              onChange={(e) => {
+                                const newMembers = [...formData.teamMembers];
+                                newMembers[index].email = e.target.value;
+                                updateField('teamMembers', newMembers);
+                              }}
+                            />
+                            <Select
+                              value={member.role}
+                              onChange={(e) => {
+                                const newMembers = [...formData.teamMembers];
+                                newMembers[index].role = e.target.value;
+                                updateField('teamMembers', newMembers);
+                              }}
+                            >
+                              <option value="ADMIN">Admin</option>
+                              <option value="SALES_MANAGER">Sales Manager</option>
+                              <option value="PRODUCT_MANAGER">Product Manager</option>
+                              <option value="SUPPORT">Support</option>
+                            </Select>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeTeamMember(index)}
+                            className="self-start"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
 
-                  <Button variant="outline" onClick={addTeamMember} className="w-full">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Team Member
-                  </Button>
+                      <Button variant="outline" onClick={addTeamMember} className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Another Team Member
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -425,7 +522,7 @@ export default function OrgSetupPage() {
               </Button>
               <div className="flex gap-3">
                 {currentStep < steps.length - 1 && (
-                  <Button variant="outline">Save Draft</Button>
+                  <Button variant="outline" onClick={handleSaveDraft}>Save Draft</Button>
                 )}
                 <Button onClick={handleNext}>
                   {currentStep === steps.length - 1 ? 'Complete Setup' : 'Next'}
