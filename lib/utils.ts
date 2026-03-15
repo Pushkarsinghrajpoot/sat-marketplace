@@ -58,7 +58,12 @@ export function truncate(text: string, maxLength: number): string {
 }
 
 export function generateId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  // Generate a proper UUID v4
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 export function calculateDiscount(price: number, discountPercent: number): number {

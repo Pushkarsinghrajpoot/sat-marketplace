@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Building, Users, User as UserIcon } from 'lucide-react';
-import { generateId } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import type { OrganizationType } from '@/lib/types';
@@ -69,10 +68,8 @@ export default function RegisterPage() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Step 2: Create organization in database
-        const orgId = generateId();
+        // Step 2: Create organization in database (let DB generate UUID)
         const orgData = {
-          id: orgId,
           name: orgType === 'INDIVIDUAL' ? `${name} - Individual` : `${name}'s Company`,
           legal_name: orgType === 'INDIVIDUAL' ? `${name} - Individual` : `${name}'s Company Inc.`,
           type: orgType,
@@ -83,13 +80,13 @@ export default function RegisterPage() {
           verified: false,
           rating: 0,
           review_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         };
 
-        const { error: orgError } = await supabase
+        const { data: createdOrg, error: orgError } = await supabase
           .from('organizations')
-          .insert([orgData]);
+          .insert([orgData])
+          .select()
+          .single();
 
         if (orgError) throw orgError;
 
@@ -98,11 +95,9 @@ export default function RegisterPage() {
           id: authData.user.id,
           email,
           name,
-          organization_id: orgId,
+          organization_id: createdOrg.id,
           role: orgType === 'INDIVIDUAL' ? 'END_USER' : orgType,
           is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         };
 
         const { error: userError } = await supabase
@@ -123,7 +118,17 @@ export default function RegisterPage() {
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Failed to create account');
+      
+      // Handle specific error cases
+      if (error.message?.includes('rate limit')) {
+        toast.error('Too many signup attempts. Please wait a few minutes and try again.');
+      } else if (error.message?.includes('already registered')) {
+        toast.error('This email is already registered. Please login instead.');
+      } else if (error.message?.includes('invalid email')) {
+        toast.error('Please enter a valid email address.');
+      } else {
+        toast.error(error.message || 'Failed to create account. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
