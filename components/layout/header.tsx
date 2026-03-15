@@ -110,13 +110,6 @@ export function Header() {
                             </Button>
                           </Link>
                         )}
-                        {organization?.type === 'OEM' && (
-                          <Link href="/oem/dashboard">
-                            <Button variant="ghost" className="w-full justify-start" size="sm">
-                              Dashboard
-                            </Button>
-                          </Link>
-                        )}
                         <Link href="/profile">
                           <Button variant="ghost" className="w-full justify-start" size="sm">
                             Profile

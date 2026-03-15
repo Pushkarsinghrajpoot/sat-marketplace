@@ -20,10 +20,9 @@ export default function OEMLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!user || organization?.type !== 'OEM') {
-      router.push('/auth/login');
-    }
-  }, [user, organization, router]);
+    // OEM is no longer supported, redirect to home
+    router.push('/');
+  }, [router]);
 
   const handleLogout = () => {
     logout();

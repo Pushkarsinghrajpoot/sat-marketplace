@@ -166,7 +166,7 @@ export const organizations: Organization[] = [
     id: 'org6',
     name: 'Cisco Systems',
     legalName: 'Cisco Systems Inc.',
-    type: 'OEM',
+    type: 'DISTRIBUTOR',
     description: 'Global leader in networking and security solutions.',
     industry: 'Technology',
     companySize: '10000+',
