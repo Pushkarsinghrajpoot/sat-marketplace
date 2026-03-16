@@ -26,13 +26,43 @@ export default function QuoteDetailPage() {
   useEffect(() => {
     async function fetchQuote() {
       try {
-        const quotes = await getQuotes({});
-        const foundQuote = quotes.find(q => q.id === quoteId);
-        if (foundQuote) {
-          setQuote(foundQuote);
+        // Fetch quote with line items directly
+        const { data: quoteData, error: quoteError } = await supabase
+          .from('quotes')
+          .select(`
+            *,
+            deals!inner(*),
+            organizations!quotes_distributor_id_fkey(*),
+            users!quotes_reseller_id_fkey(*),
+            quote_line_items(*)
+          `)
+          .eq('id', quoteId)
+          .single();
+
+        if (quoteError) throw quoteError;
+        
+        if (quoteData) {
+          // Map the data to match expected format
+          const mappedQuote = {
+            ...quoteData,
+            deal: quoteData.deals,
+            distributor: quoteData.organizations,
+            resellerUser: quoteData.users,
+            lineItems: quoteData.quote_line_items || [],
+            // Additional fields for UI
+            quote_type: quoteData.quote_type,
+            distributor_id: quoteData.distributor_id,
+            reseller_id: quoteData.reseller_id,
+            payment_terms: quoteData.payment_terms_method || 'Standard',
+            delivery_timeline: quoteData.delivery_terms_estimated_delivery || 'Standard',
+            notes: quoteData.notes || '',
+          };
+          
+          setQuote(mappedQuote);
+          
           // Fetch activities related to this quote only if deal_id exists
-          if (foundQuote.deal_id) {
-            await fetchQuoteActivities(foundQuote.deal_id);
+          if (mappedQuote.deal_id) {
+            await fetchQuoteActivities(mappedQuote.deal_id);
           }
         }
       } catch (error) {
@@ -312,16 +342,24 @@ ${quote.notes || 'No additional notes'}
                       </tr>
                     </thead>
                     <tbody>
-                      {quote.lineItems?.map((item: any, idx: number) => (
-                        <tr key={idx} className="border-b">
-                          <td className="p-3 text-sm">{item.product_name}</td>
-                          <td className="p-3 text-sm text-right">{item.quantity}</td>
-                          <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
-                          <td className="p-3 text-sm text-right font-medium">
-                            {formatCurrency(item.total)}
+                      {quote.lineItems && quote.lineItems.length > 0 ? (
+                        quote.lineItems.map((item: any, idx: number) => (
+                          <tr key={idx} className="border-b">
+                            <td className="p-3 text-sm">{item.product_name}</td>
+                            <td className="p-3 text-sm text-right">{item.quantity}</td>
+                            <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
+                            <td className="p-3 text-sm text-right font-medium">
+                              {formatCurrency(item.total)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-gray-500">
+                            No line items found for this quote
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                     <tfoot className="border-t-2 bg-gray-50">
                       <tr>
