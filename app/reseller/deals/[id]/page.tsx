@@ -300,7 +300,7 @@ export default function DealDetailPage() {
 
                   {closeStatus === 'WON' && (
                     <div>
-                      <label className="block text-sm font-medium mb-2">Won Amount (USD) *</label>
+                      <label className="block text-sm font-medium mb-2">Won Amount (SAR) *</label>
                       <input
                         type="number"
                         value={wonAmount}

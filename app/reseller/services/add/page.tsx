@@ -167,7 +167,7 @@ export default function AddServicePage() {
                 <Input
                   value={formData.pricing}
                   onChange={(e) => setFormData({...formData, pricing: e.target.value})}
-                  placeholder="e.g., Starting at $5,000/project"
+                  placeholder="e.g., Starting at SAR 5,000/project"
                 />
               </div>
 

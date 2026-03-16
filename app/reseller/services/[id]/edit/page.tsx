@@ -31,7 +31,7 @@ export default function EditServicePage() {
       category: 'Professional Services',
       description: 'End-to-end IT consulting for enterprise clients',
       longDescription: 'Our IT consulting services cover everything from strategic planning to implementation and support.',
-      pricing: 'Starting at $5,000/project',
+      pricing: 'Starting at SAR 5,000/project',
       status: 'ACTIVE',
       features: [
         'Strategic IT Planning',
@@ -160,7 +160,7 @@ export default function EditServicePage() {
                 <Input
                   value={formData.pricing}
                   onChange={(e) => setFormData({...formData, pricing: e.target.value})}
-                  placeholder="e.g., Starting at $5,000/project"
+                  placeholder="e.g., Starting at SAR 5,000/project"
                 />
               </div>
 

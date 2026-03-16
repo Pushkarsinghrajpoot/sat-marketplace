@@ -45,7 +45,7 @@ export default function ConfigPage() {
         platformName: configMap.platform_name || '',
         supportEmail: configMap.support_email || '',
         supportPhone: configMap.support_phone || '',
-        currency: configMap.currency || 'USD',
+        currency: configMap.currency || 'SAR',
         timezone: configMap.timezone || 'PST'
       });
     } catch (error) {
@@ -287,6 +287,7 @@ export default function ConfigPage() {
                     value={generalSettings.currency}
                     onChange={(e) => handleGeneralSettingChange('currency', e.target.value)}
                   >
+                    <option value="SAR">SAR - Saudi Riyal</option>
                     <option value="USD">USD - US Dollar</option>
                     <option value="EUR">EUR - Euro</option>
                     <option value="GBP">GBP - British Pound</option>

@@ -195,7 +195,7 @@ export default function CreateCreditRequestPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Requested Credit Limit (USD) *</label>
+                <label className="block text-sm font-medium mb-2">Requested Credit Limit (SAR) *</label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -210,7 +210,7 @@ export default function CreateCreditRequestPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Expected Monthly Purchase (USD) *</label>
+                <label className="block text-sm font-medium mb-2">Expected Monthly Purchase (SAR) *</label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input

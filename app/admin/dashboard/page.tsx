@@ -162,7 +162,7 @@ export default function AdminDashboard() {
               {[
                 { action: 'Organization verified', org: 'CloudFirst Solutions', icon: CheckCircle, color: 'text-green-600' },
                 { action: 'New user registered', org: 'john@example.com', icon: Users, color: 'text-blue-600' },
-                { action: 'Deal completed', org: 'Premier Resellers - $125K', icon: FileText, color: 'text-purple-600' },
+                { action: 'Deal completed', org: 'Premier Resellers - SAR 125K', icon: FileText, color: 'text-purple-600' },
               ].map((activity, i) => {
                 const Icon = activity.icon;
                 return (

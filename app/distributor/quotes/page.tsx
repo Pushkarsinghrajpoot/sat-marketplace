@@ -248,7 +248,7 @@ export default function QuotesPage() {
                   <div className="space-y-1">
                     <p className="font-semibold text-gray-700">{quote.deal?.opportunityName || 'Unknown Deal'}</p>
                     <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>Customer: {quote.deal?.customer_name || 'Unknown'}</span>
+                      <span>Customer: {quote.deal?.customer_name || quote.deal?.customerName || 'Unknown'}</span>
                       <span>•</span>
                       <span>Reseller: {quote.resellerUser?.name || 'Unknown'}</span>
                     </div>

@@ -10,9 +10,10 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Clock, MessageSquare, Send, Bell } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
-import { toast } from 'sonner';
 import { getQuotes } from '@/lib/data-helpers';
+import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { toast } from 'sonner';
 
 export default function FollowUpPage() {
   const router = useRouter();
@@ -35,10 +36,39 @@ export default function FollowUpPage() {
   useEffect(() => {
     async function fetchQuote() {
       try {
-        const quotes = await getQuotes({});
-        const foundQuote = quotes.find(q => q.id === quoteId);
-        if (foundQuote) {
-          setQuote(foundQuote);
+        // Fetch quote with relationships
+        const { data: quoteData, error: quoteError } = await supabase
+          .from('quotes')
+          .select(`
+            *,
+            deals!inner(*),
+            organizations!quotes_distributor_id_fkey(*),
+            users!quotes_reseller_id_fkey(*),
+            quote_line_items(*)
+          `)
+          .eq('id', quoteId)
+          .single();
+
+        if (quoteError) throw quoteError;
+        
+        if (quoteData) {
+          // Map the data to match expected format
+          const mappedQuote = {
+            ...quoteData,
+            deal: quoteData.deals,
+            distributor: quoteData.organizations,
+            resellerUser: quoteData.users,
+            lineItems: quoteData.quote_line_items || [],
+            // Additional fields for UI
+            quote_type: quoteData.quote_type,
+            distributor_id: quoteData.distributor_id,
+            reseller_id: quoteData.reseller_id,
+            payment_terms: quoteData.payment_terms_method || 'Standard',
+            delivery_timeline: quoteData.delivery_terms_estimated_delivery || 'Standard',
+            notes: quoteData.notes || '',
+          };
+          
+          setQuote(mappedQuote);
         }
       } catch (error) {
         console.error('Error fetching quote:', error);

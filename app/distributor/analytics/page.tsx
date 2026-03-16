@@ -65,7 +65,7 @@ export default function AnalyticsPage() {
                 <span className="text-sm font-semibold">+12.5%</span>
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">$328K</p>
+            <p className="text-3xl font-bold text-gray-900">SAR 328K</p>
             <p className="text-sm text-gray-600 mt-1">Total Revenue</p>
           </CardContent>
         </Card>
@@ -113,7 +113,7 @@ export default function AnalyticsPage() {
                 <span className="text-sm font-semibold">-3.1%</span>
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">$1,402</p>
+            <p className="text-3xl font-bold text-gray-900">SAR 1,402</p>
             <p className="text-sm text-gray-600 mt-1">Avg Order Value</p>
           </CardContent>
         </Card>

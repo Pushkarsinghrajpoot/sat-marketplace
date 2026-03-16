@@ -36,7 +36,7 @@ export default function PartnerProgramPage() {
     },
     {
       name: "Professional",
-      price: "$299/month",
+      price: "SAR 299/month",
       features: [
         "Enhanced product listings",
         "Priority visibility",

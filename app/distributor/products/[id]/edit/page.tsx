@@ -116,7 +116,7 @@ export default function EditProductPage() {
 
             <div className="grid md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Price (USD) *</label>
+                <label className="block text-sm font-medium mb-2">Price (SAR) *</label>
                 <Input
                   type="number"
                   value={formData.price}

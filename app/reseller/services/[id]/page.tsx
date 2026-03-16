@@ -17,7 +17,7 @@ export default function ServiceDetailPage() {
     category: 'Professional Services',
     description: 'End-to-end IT consulting for enterprise clients. We provide comprehensive IT solutions tailored to your business needs.',
     longDescription: 'Our IT consulting services cover everything from strategic planning to implementation and support. Our team of certified professionals has extensive experience in helping businesses optimize their IT infrastructure.',
-    pricing: 'Starting at $5,000/project',
+    pricing: 'Starting at SAR 5,000/project',
     status: 'Active',
     rating: 4.8,
     reviews: 24,

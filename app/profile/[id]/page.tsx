@@ -134,7 +134,7 @@ export default function ProfilePage() {
                   <div className="space-y-3">
                     {[
                       'Registered deal: Enterprise Network Upgrade',
-                      'Won deal: Data Center Modernization ($450K)',
+                      'Won deal: Data Center Modernization (SAR 450K)',
                       'Submitted quote for Security Infrastructure',
                     ].map((activity, idx) => (
                       <div key={idx} className="flex items-start gap-3">

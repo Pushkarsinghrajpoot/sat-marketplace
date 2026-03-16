@@ -88,7 +88,7 @@ export default function AnalyticsPage() {
                 <TrendingUp className="h-6 w-6 text-purple-600" />
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">$1.36M</p>
+            <p className="text-3xl font-bold text-gray-900">SAR 1.36M</p>
             <p className="text-sm text-gray-600 mt-1">Total Value</p>
             <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="value" stroke="#0066CC" strokeWidth={2} name="Revenue ($)" />
+                <Line type="monotone" dataKey="value" stroke="#0066CC" strokeWidth={2} name="Revenue (SAR)" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

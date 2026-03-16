@@ -107,7 +107,7 @@ export default function AddProductPage() {
         description: formData.description,
         short_description: formData.shortDescription,
         price: Number(formData.price),
-        currency: 'USD',
+        currency: 'SAR',
         inventory: Number(formData.inventory),
         low_stock_threshold: Number(formData.lowStockThreshold),
         availability: formData.availability,
@@ -225,7 +225,7 @@ export default function AddProductPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Base Price (USD) *</label>
+                  <label className="block text-sm font-medium mb-2">Base Price (SAR) *</label>
                   <Input
                     type="number"
                     value={formData.price}

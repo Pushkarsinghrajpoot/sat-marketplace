@@ -36,7 +36,7 @@ export default function NotificationsPage() {
       type: 'deal',
       icon: CheckCircle,
       title: 'Deal won',
-      message: 'Congratulations! You won the deal with Premier Solutions Group ($125,000)',
+      message: 'Congratulations! You won the deal with Premier Solutions Group (SAR 125,000)',
       read: false,
       createdAt: '2024-01-24T16:45:00Z',
     },

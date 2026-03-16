@@ -178,8 +178,8 @@ export default function QuoteDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Deal ID</label>
-                  <Input value={quote.dealId || 'N/A'} disabled />
+                  <label className="block text-sm font-medium mb-2">Deal</label>
+                  <Input value={quote.deal?.opportunity_name || quote.deal?.opportunityName || 'N/A'} disabled />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">

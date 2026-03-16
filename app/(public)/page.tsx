@@ -116,7 +116,7 @@ export default function HomePage() {
                   <div className="text-sm text-blue-200">Resellers</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold">$50M+</div>
+                  <div className="text-3xl font-bold">SAR 50M+</div>
                   <div className="text-sm text-blue-200">GMV</div>
                 </div>
               </div>

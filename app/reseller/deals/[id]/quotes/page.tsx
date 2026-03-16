@@ -90,8 +90,9 @@ export default function DealQuotesPage() {
 
       // Send notification to distributor
       const quote = quotes.find(q => q.id === quoteId);
-      if (quote?.distributorId) {
+      if (quote?.distributor_id) {
         await supabase.from('notifications').insert({
+          user_id: quote.distributor_id,
           notification_type: 'QUOTE_ACCEPTED',
           title: 'Quote Accepted!',
           message: `Your quote for ${formatCurrency(quote.total || 0)} has been accepted!`,
@@ -224,7 +225,7 @@ export default function DealQuotesPage() {
                         </div>
                         <div className="space-y-1">
                           <p className="text-sm text-gray-600">
-                            Distributor: {quote.distributorId || 'Unknown'}
+                            Distributor: {quote.distributor?.name || 'Unknown'}
                           </p>
                           <p className="text-sm text-gray-600">
                             Submitted: {quote.submittedAt ? formatRelativeTime(quote.submittedAt) : 'Draft'}

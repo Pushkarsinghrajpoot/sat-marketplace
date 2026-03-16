@@ -575,7 +575,7 @@ export default function RegisterDealPage() {
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Estimated Value (USD) *</label>
+                    <label className="block text-sm font-medium mb-2">Estimated Value (SAR) *</label>
                     <Input
                       type="number"
                       value={formData.estimatedValue}

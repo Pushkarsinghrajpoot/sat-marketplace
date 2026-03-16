@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 export default function PressPage() {
   const pressReleases = [
     {
-      title: "B2B Marketplace Raises $10M Series A",
+      title: "B2B Marketplace Raises SAR 10M Series A",
       excerpt: "Leading B2B technology marketplace secures funding to expand platform capabilities.",
       date: "2024-01-20",
       category: "Funding"
