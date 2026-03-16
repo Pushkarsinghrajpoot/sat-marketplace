@@ -180,7 +180,7 @@ ${quote.deal?.opportunityName || 'N/A'}
 
 ITEMS:
 ${quote.lineItems?.map((item: any) => 
-  `${item.product_name} - Qty: ${item.quantity} x ${formatCurrency(item.unit_price)} = ${formatCurrency(item.total)}`
+  `${item.product_name} - Qty: ${item.quantity} x ${formatCurrency(item.unit_price)} = ${formatCurrency(item.subtotal)}`
 ).join('\n') || 'No items'}
 
 SUBTOTAL: ${formatCurrency(quote.subtotal || 0)}
@@ -349,7 +349,7 @@ ${quote.notes || 'No additional notes'}
                             <td className="p-3 text-sm text-right">{item.quantity}</td>
                             <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
                             <td className="p-3 text-sm text-right font-medium">
-                              {formatCurrency(item.total)}
+                              {formatCurrency(item.subtotal)}
                             </td>
                           </tr>
                         ))

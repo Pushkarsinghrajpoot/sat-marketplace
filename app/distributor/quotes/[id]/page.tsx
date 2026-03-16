@@ -231,7 +231,7 @@ export default function QuoteDetailPage() {
                             <td className="p-3 text-sm text-right">{item.quantity}</td>
                             <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
                             <td className="p-3 text-sm text-right font-medium">
-                              {formatCurrency(item.total)}
+                              {formatCurrency(item.subtotal)}
                             </td>
                           </tr>
                         ))

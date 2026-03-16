@@ -302,6 +302,7 @@ export function mapQuoteLineItem(dbLineItem: any): any {
     unitPrice: dbLineItem.unit_price,
     discount: dbLineItem.discount,
     subtotal: dbLineItem.subtotal,
+    total: dbLineItem.subtotal, // For backward compatibility
     createdAt: dbLineItem.created_at,
   };
 }

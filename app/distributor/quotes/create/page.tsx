@@ -189,8 +189,7 @@ function CreateQuoteContent() {
         product_name: item.product_name,
         quantity: item.quantity,
         unit_price: item.unit_price,
-        total: item.total,
-        notes: item.notes,
+        subtotal: item.total || (item.quantity * item.unit_price),
         sku: item.sku,
       }));
 
