@@ -82,98 +82,76 @@ export default function DistributorDashboard() {
   }, [user]);
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Good morning 👋</h1>
-        <p className="text-gray-600">Here's what's happening with your business today</p>
+        <h1 className="text-[24px] font-semibold text-[#09090B] mb-1">Good morning 👋</h1>
+        <p className="text-[14px] text-[#71717A]">Here's what's happening with your business today</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Link href="/distributor/products">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Package className="h-6 w-6 text-blue-600" />
+                <div className="w-10 h-10 bg-[#EEF2FF] rounded-md flex items-center justify-center">
+                  <Package className="h-5 w-5 text-[#6366F1]" />
                 </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
+                <ArrowRight className="h-4 w-4 text-[#A1A1AA]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalProducts}</p>
-                <p className="text-sm text-gray-600 mt-1">Total Products</p>
-                <p className="text-xs text-blue-600 mt-2">Click to manage</p>
+                <p className="text-[32px] font-bold text-[#09090B] leading-none">{stats.totalProducts}</p>
+                <p className="text-[12px] text-[#71717A] mt-2">Total Products</p>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/distributor/quotes">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <ShoppingCart className="h-6 w-6 text-green-600" />
+                <div className="w-10 h-10 bg-[#F0FDF4] rounded-md flex items-center justify-center">
+                  <ShoppingCart className="h-5 w-5 text-[#22C55E]" />
                 </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
+                <ArrowRight className="h-4 w-4 text-[#A1A1AA]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">{stats.activeQuotes}</p>
-                <p className="text-sm text-gray-600 mt-1">Active Quotes</p>
-                <p className="text-xs text-green-600 mt-2">Click to view</p>
+                <p className="text-[32px] font-bold text-[#09090B] leading-none">{stats.activeQuotes}</p>
+                <p className="text-[12px] text-[#71717A] mt-2">Active Quotes</p>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/distributor/quotes">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <FileSpreadsheet className="h-6 w-6 text-orange-600" />
+                <div className="w-10 h-10 bg-[#FFFBEB] rounded-md flex items-center justify-center">
+                  <FileSpreadsheet className="h-5 w-5 text-[#F59E0B]" />
                 </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
+                <ArrowRight className="h-4 w-4 text-[#A1A1AA]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">{stats.boqs}</p>
-                <p className="text-sm text-gray-600 mt-1">BOQ Requests</p>
-                <p className="text-xs text-orange-600 mt-2">Click to view</p>
+                <p className="text-[32px] font-bold text-[#09090B] leading-none">{stats.boqs}</p>
+                <p className="text-[12px] text-[#71717A] mt-2">BOQ Requests</p>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/distributor/analytics">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-purple-600" />
+                <div className="w-10 h-10 bg-[#EFF6FF] rounded-md flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-[#2563EB]" />
                 </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
+                <ArrowRight className="h-4 w-4 text-[#A1A1AA]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">{formatCurrency(stats.monthlyRevenue)}</p>
-                <p className="text-sm text-gray-600 mt-1">Monthly Revenue</p>
-                <p className="text-xs text-purple-600 mt-2">+12% from last month</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/distributor/engagements">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-orange-600" />
-                </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{stats.activeCustomers}</p>
-                <p className="text-sm text-gray-600 mt-1">Active Customers</p>
-                <p className="text-xs text-orange-600 mt-2">Click to manage</p>
+                <p className="text-[32px] font-bold text-[#09090B] leading-none">{formatCurrency(stats.monthlyRevenue)}</p>
+                <p className="text-[12px] text-[#71717A] mt-2">Monthly Revenue</p>
               </div>
             </CardContent>
           </Card>
@@ -181,63 +159,63 @@ export default function DistributorDashboard() {
       </div>
 
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Deal Pipeline</h2>
+        <h2 className="text-[18px] font-semibold text-[#09090B] mb-6">Deal Pipeline</h2>
 
-        <div className="flex gap-2 border-b border-gray-200 mb-6">
+        <div className="flex gap-1 border-b border-[#E4E4E7] mb-6">
           <button
             onClick={() => setActiveTab('registrations')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'registrations'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4" />
               Deal Registrations
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">{stats.dealRegistrations}</span>
+              <Badge variant="info">{stats.dealRegistrations}</Badge>
             </div>
           </button>
           <button
             onClick={() => setActiveTab('bidding')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'bidding'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               Bidding Deals
-              <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">{stats.biddingDeals}</span>
+              <Badge variant="warning">{stats.biddingDeals}</Badge>
             </div>
           </button>
           <button
             onClick={() => setActiveTab('queries')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'queries'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
               <Send className="h-4 w-4" />
               Direct Queries
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">{stats.directQueries}</span>
+              <Badge variant="success">{stats.directQueries}</Badge>
             </div>
           </button>
           <button
             onClick={() => setActiveTab('quotes')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'quotes'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
               Quotes
-              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">{stats.activeQuotes + stats.boqs}</span>
+              <Badge variant="default">{stats.activeQuotes + stats.boqs}</Badge>
             </div>
           </button>
         </div>

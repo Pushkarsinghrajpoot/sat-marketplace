@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import { ButtonHTMLAttributes, forwardRef } from 'react';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -11,18 +11,17 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#6366F1]/12 disabled:cursor-not-allowed disabled:opacity-45',
           {
-            'bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-600': variant === 'primary',
-            'bg-orange-500 text-white hover:bg-orange-600 focus-visible:ring-orange-500': variant === 'secondary',
-            'border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400': variant === 'outline',
-            'text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-400': variant === 'ghost',
-            'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600': variant === 'danger',
+            'bg-[#6366F1] text-white hover:bg-[#4F46E5]': variant === 'primary',
+            'bg-white border border-[#D1D5DB] text-[#374151] hover:bg-[#F9F9F9]': variant === 'secondary' || variant === 'outline',
+            'text-[#6366F1] hover:bg-[#EEF2FF]': variant === 'ghost',
+            'bg-[#EF4444] text-white hover:bg-[#DC2626]': variant === 'danger' || variant === 'destructive',
           },
           {
-            'px-3 py-1.5 text-sm': size === 'sm',
-            'px-4 py-2 text-base': size === 'md',
-            'px-6 py-3 text-lg': size === 'lg',
+            'h-[30px] px-3 text-[13px]': size === 'sm',
+            'h-[36px] px-4 text-[14px]': size === 'md',
+            'h-[42px] px-6 text-[15px]': size === 'lg',
           },
           className
         )}

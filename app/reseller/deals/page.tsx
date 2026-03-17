@@ -70,20 +70,20 @@ export default function DealsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8">
+      <div className="p-8">
         <div className="text-center py-12">
-          <p className="text-gray-500">Loading deals...</p>
+          <p className="text-[14px] text-[#71717A]">Loading deals...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Deals</h1>
-          <p className="text-gray-600">Manage your sales opportunities</p>
+          <h1 className="text-[24px] font-semibold text-[#09090B] mb-1">My Deals</h1>
+          <p className="text-[14px] text-[#71717A]">Manage your sales opportunities</p>
         </div>
         <Link href="/reseller/deals/register">
           <Button>
@@ -94,8 +94,8 @@ export default function DealsPage() {
       </div>
 
       <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A1A1AA]" />
           <Input
             type="search"
             placeholder="Search deals..."
@@ -107,30 +107,29 @@ export default function DealsPage() {
       </div>
 
       <div className="grid lg:grid-cols-4 gap-6">
-        {/* Prospecting */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-700">Prospecting</h2>
+            <h2 className="font-medium text-[14px] text-[#09090B]">Prospecting</h2>
             <Badge variant="default">{dealsByStage.prospecting.length}</Badge>
           </div>
           <div className="space-y-3">
             {dealsByStage.prospecting.map((deal) => (
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
-                <Card className="bg-gray-50 hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
+                    <h3 className="font-medium text-[14px] text-[#09090B] mb-2 line-clamp-2">{deal.opportunityName}</h3>
+                    <p className="text-[12px] text-[#71717A] mb-3">{deal.customerName}</p>
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <DollarSign className="h-3 w-3 text-[#A1A1AA]" />
+                        <span className="font-semibold text-[#09090B]">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <div className="flex items-center gap-2 text-[12px] text-[#71717A]">
                         <Calendar className="h-3 w-3" />
                         <span>{deal.closeDate}</span>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full mt-3">
+                    <Button variant="secondary" size="sm" className="w-full mt-3">
                       View Details
                     </Button>
                   </CardContent>
@@ -138,46 +137,45 @@ export default function DealsPage() {
               </Link>
             ))}
             {dealsByStage.prospecting.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">No deals in prospecting</p>
+              <p className="text-[13px] text-[#A1A1AA] text-center py-4">No deals in prospecting</p>
             )}
           </div>
         </div>
 
-        {/* Registered */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-700">Registered</h2>
+            <h2 className="font-medium text-[14px] text-[#09090B]">Registered</h2>
             <Badge variant="info">{dealsByStage.registered.length}</Badge>
           </div>
           <div className="space-y-3">
             {dealsByStage.registered.map((deal) => (
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
-                <Card className="bg-blue-50 border-blue-200 hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer bg-[#EFF6FF] border-[#DBEAFE]">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-sm line-clamp-2 flex-1">{deal.opportunityName}</h3>
+                      <h3 className="font-medium text-[14px] text-[#09090B] line-clamp-2 flex-1">{deal.opportunityName}</h3>
                       {deal.isLocked && (
-                        <Lock className="h-4 w-4 text-yellow-600 ml-2 flex-shrink-0" />
+                        <Lock className="h-4 w-4 text-[#F59E0B] ml-2 flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
+                    <p className="text-[12px] text-[#71717A] mb-3">{deal.customerName}</p>
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <DollarSign className="h-3 w-3 text-[#A1A1AA]" />
+                        <span className="font-semibold text-[#09090B]">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-blue-600">
+                      <div className="flex items-center gap-2 text-[12px] text-[#2563EB]">
                         <Calendar className="h-3 w-3" />
                         <span>{deal.closeDate}</span>
                       </div>
                       {deal.score > 0 && (
-                        <div className="flex items-center gap-2 text-xs text-orange-600">
+                        <div className="flex items-center gap-2 text-[12px] text-[#F59E0B]">
                           <TrendingUp className="h-3 w-3" />
-                          <span className="font-semibold">{deal.score} points</span>
+                          <span className="font-medium">{deal.score} points</span>
                         </div>
                       )}
                     </div>
-                    <Button variant="outline" size="sm" className="w-full mt-3">
+                    <Button variant="secondary" size="sm" className="w-full mt-3">
                       Manage
                     </Button>
                   </CardContent>
@@ -185,30 +183,29 @@ export default function DealsPage() {
               </Link>
             ))}
             {dealsByStage.registered.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">No registered deals</p>
+              <p className="text-[13px] text-[#A1A1AA] text-center py-4">No registered deals</p>
             )}
           </div>
         </div>
 
-        {/* Bidding */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-700">Bidding</h2>
-            <Badge variant="info">{dealsByStage.bidding.length}</Badge>
+            <h2 className="font-medium text-[14px] text-[#09090B]">Bidding</h2>
+            <Badge variant="warning">{dealsByStage.bidding.length}</Badge>
           </div>
           <div className="space-y-3">
             {dealsByStage.bidding.map((deal) => (
               <Link key={deal.id} href={`/reseller/deals/${deal.id}/quotes`}>
-                <Card className="bg-orange-50 border-orange-200 hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer bg-[#FFFBEB] border-[#FEF3C7]">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
+                    <h3 className="font-medium text-[14px] text-[#09090B] mb-2 line-clamp-2">{deal.opportunityName}</h3>
+                    <p className="text-[12px] text-[#71717A] mb-3">{deal.customerName}</p>
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <DollarSign className="h-3 w-3 text-[#A1A1AA]" />
+                        <span className="font-semibold text-[#09090B]">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-orange-600">
+                      <div className="flex items-center gap-2 text-[12px] text-[#F59E0B]">
                         <Calendar className="h-3 w-3" />
                         <span>{deal.closeDate}</span>
                       </div>
@@ -221,30 +218,29 @@ export default function DealsPage() {
               </Link>
             ))}
             {dealsByStage.bidding.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">No bidding deals</p>
+              <p className="text-[13px] text-[#A1A1AA] text-center py-4">No bidding deals</p>
             )}
           </div>
         </div>
 
-        {/* Direct Queries */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-700">Direct Queries</h2>
+            <h2 className="font-medium text-[14px] text-[#09090B]">Direct Queries</h2>
             <Badge variant="default">{dealsByStage.directQueries.length}</Badge>
           </div>
           <div className="space-y-3">
             {dealsByStage.directQueries.map((query) => (
               <Link key={query.id} href={`/reseller/queries/${query.id}`}>
-                <Card className="bg-teal-50 border-teal-200 hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{query.title}</h3>
-                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">{query.requirement}</p>
+                    <h3 className="font-medium text-[14px] text-[#09090B] mb-2 line-clamp-2">{query.title}</h3>
+                    <p className="text-[12px] text-[#71717A] mb-3 line-clamp-2">{query.requirement}</p>
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{query.estimatedBudget ? formatCurrency(Number(query.estimatedBudget)) : 'Not specified'}</span>
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <DollarSign className="h-3 w-3 text-[#A1A1AA]" />
+                        <span className="font-semibold text-[#09090B]">{query.estimatedBudget ? formatCurrency(Number(query.estimatedBudget)) : 'Not specified'}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-teal-600">
+                      <div className="flex items-center gap-2 text-[12px]">
                         <Badge variant="default">{query.urgency || 'MEDIUM'}</Badge>
                       </div>
                     </div>
@@ -256,81 +252,12 @@ export default function DealsPage() {
               </Link>
             ))}
             {dealsByStage.directQueries.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">No direct queries</p>
+              <p className="text-[13px] text-[#A1A1AA] text-center py-4">No direct queries</p>
             )}
           </div>
         </div>
 
-        {/* Quoted */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-700">Quoted</h2>
-            <Badge variant="warning">{dealsByStage.quoted.length}</Badge>
-          </div>
-          <div className="space-y-3">
-            {dealsByStage.quoted.map((deal) => (
-              <Link key={deal.id} href={`/reseller/deals/${deal.id}/quotes`}>
-                <Card className="bg-purple-50 border-purple-200 hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-purple-600">
-                        <Calendar className="h-3 w-3" />
-                        <span>{deal.closeDate}</span>
-                      </div>
-                    </div>
-                    <Button size="sm" className="w-full mt-3">
-                      View Quotes
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-            {dealsByStage.quoted.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">No quoted deals</p>
-            )}
-          </div>
-        </div>
 
-        {/* Won */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-700">Won</h2>
-            <Badge variant="success">{dealsByStage.won.length}</Badge>
-          </div>
-          <div className="space-y-3">
-            {dealsByStage.won.map((deal) => (
-              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
-                <Card className="bg-green-50 border-green-200 hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-bold text-green-700">{formatCurrency(deal.estimatedValue || 0)}</span>
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        Closed: {deal.closeDate}
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="w-full mt-3">
-                      View
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-            {dealsByStage.won.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">No won deals</p>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

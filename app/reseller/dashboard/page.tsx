@@ -72,73 +72,71 @@ export default function ResellerDashboard() {
   }, [user]);
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Reseller Dashboard</h1>
-        <p className="text-gray-600">Manage your deals and opportunities</p>
+        <h1 className="text-[24px] font-semibold text-[#09090B] mb-1">Reseller Dashboard</h1>
+        <p className="text-[14px] text-[#71717A]">Manage your deals and opportunities</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Link href="/reseller/deals">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Briefcase className="h-6 w-6 text-blue-600" />
+                <div className="w-10 h-10 bg-[#EEF2FF] rounded-md flex items-center justify-center">
+                  <Briefcase className="h-5 w-5 text-[#6366F1]" />
                 </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
+                <ArrowRight className="h-4 w-4 text-[#A1A1AA]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalDeals}</p>
-                <p className="text-sm text-gray-600 mt-1">Total Deals</p>
-                <p className="text-xs text-blue-600 mt-2">Click to view all</p>
+                <p className="text-[32px] font-bold text-[#09090B] leading-none">{stats.totalDeals}</p>
+                <p className="text-[12px] text-[#71717A] mt-2">Total Deals</p>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/reseller/analytics">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-green-600" />
+                <div className="w-10 h-10 bg-[#F0FDF4] rounded-md flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-[#22C55E]" />
                 </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
+                <ArrowRight className="h-4 w-4 text-[#A1A1AA]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">{formatCurrency(stats.totalValue)}</p>
-                <p className="text-sm text-gray-600 mt-1">Total Pipeline Value</p>
-                <p className="text-xs text-green-600 mt-2">+18% growth</p>
+                <p className="text-[32px] font-bold text-[#09090B] leading-none">{formatCurrency(stats.totalValue)}</p>
+                <p className="text-[12px] text-[#71717A] mt-2">Total Pipeline Value</p>
               </div>
             </CardContent>
           </Card>
         </Link>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Target className="h-6 w-6 text-purple-600" />
+              <div className="w-10 h-10 bg-[#EFF6FF] rounded-md flex items-center justify-center">
+                <Target className="h-5 w-5 text-[#2563EB]" />
               </div>
             </div>
             <div>
-              <p className="text-3xl font-bold text-gray-900">{formatCurrency(stats.avgDealSize)}</p>
-              <p className="text-sm text-gray-600 mt-1">Avg Deal Size</p>
+              <p className="text-[32px] font-bold text-[#09090B] leading-none">{formatCurrency(stats.avgDealSize)}</p>
+              <p className="text-[12px] text-[#71717A] mt-2">Avg Deal Size</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-orange-600" />
+              <div className="w-10 h-10 bg-[#FFFBEB] rounded-md flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-[#F59E0B]" />
               </div>
             </div>
             <div>
-              <p className="text-3xl font-bold text-gray-900">{stats.winRate}%</p>
-              <p className="text-sm text-gray-600 mt-1">Win Rate</p>
+              <p className="text-[32px] font-bold text-[#09090B] leading-none">{stats.winRate}%</p>
+              <p className="text-[12px] text-[#71717A] mt-2">Win Rate</p>
             </div>
           </CardContent>
         </Card>
@@ -146,20 +144,20 @@ export default function ResellerDashboard() {
 
       <div className="mb-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">My Deals & Queries</h2>
+          <h2 className="text-[18px] font-semibold text-[#09090B]">My Deals & Queries</h2>
           <Button onClick={() => router.push('/reseller/deals/register')}>
             <Plus className="h-4 w-4 mr-2" />
             Create New
           </Button>
         </div>
 
-        <div className="flex gap-2 border-b border-gray-200 mb-6">
+        <div className="flex gap-1 border-b border-[#E4E4E7] mb-6">
           <button
             onClick={() => setActiveTab('registrations')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'registrations'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -170,10 +168,10 @@ export default function ResellerDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('bidding')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'bidding'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -184,10 +182,10 @@ export default function ResellerDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('queries')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'queries'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -200,17 +198,17 @@ export default function ResellerDashboard() {
       </div>
 
       {activeTab === 'registrations' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {dealRegistrations.length > 0 ? (
             dealRegistrations.map((deal: any) => (
                 <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
-                  <Card className="bg-gray-50 hover:shadow-md transition-shadow cursor-pointer">
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold text-sm mb-2 line-clamp-2">{deal.opportunityName}</h4>
-                      <p className="text-xs text-gray-600 mb-3">{deal.customerName}</p>
+                  <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
+                    <CardContent className="p-5">
+                      <h4 className="font-medium text-[15px] text-[#09090B] mb-2 line-clamp-2">{deal.opportunityName}</h4>
+                      <p className="text-[13px] text-[#71717A] mb-3">{deal.customerName}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
-                        <span className="text-xs text-gray-500">{deal.closeDate}</span>
+                        <span className="text-[14px] font-semibold text-[#09090B]">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
+                        <span className="text-[12px] text-[#A1A1AA]">{deal.closeDate}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -219,9 +217,9 @@ export default function ResellerDashboard() {
             ) : (
               <Card>
                 <CardContent className="p-12 text-center">
-                  <Lock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 mb-2">No deal registrations yet</p>
-                  <p className="text-sm text-gray-500 mb-4">Create a protected deal with customer verification</p>
+                  <Lock className="h-12 w-12 text-[#A1A1AA] mx-auto mb-4" />
+                  <p className="text-[15px] font-medium text-[#09090B] mb-2">No deal registrations yet</p>
+                  <p className="text-[14px] text-[#71717A] mb-6">Create a protected deal with customer verification</p>
                   <Button onClick={() => router.push('/reseller/deals/register')}>
                     <Plus className="h-4 w-4 mr-2" />
                     Register First Deal
@@ -233,16 +231,16 @@ export default function ResellerDashboard() {
       )}
 
       {activeTab === 'bidding' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {biddingDeals.length > 0 ? (
             biddingDeals.map((deal: any) => (
               <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-6">
-                    <h4 className="font-semibold text-lg mb-2">{deal.opportunityName}</h4>
-                    <p className="text-sm text-gray-600 mb-3">{deal.customerName}</p>
+                <Card className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer">
+                  <CardContent className="p-5">
+                    <h4 className="font-medium text-[15px] text-[#09090B] mb-2">{deal.opportunityName}</h4>
+                    <p className="text-[13px] text-[#71717A] mb-3">{deal.customerName}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-gray-900">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
+                      <span className="text-[14px] font-semibold text-[#09090B]">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
                       <Badge variant="warning">Bidding</Badge>
                     </div>
                   </CardContent>
@@ -252,9 +250,9 @@ export default function ResellerDashboard() {
           ) : (
             <Card>
               <CardContent className="p-12 text-center">
-                <Search className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 mb-2">No bidding deals yet</p>
-                <p className="text-sm text-gray-500 mb-4">Create open bidding opportunities for quick quotes</p>
+                <Search className="h-12 w-12 text-[#A1A1AA] mx-auto mb-4" />
+                <p className="text-[15px] font-medium text-[#09090B] mb-2">No bidding deals yet</p>
+                <p className="text-[14px] text-[#71717A] mb-6">Create open bidding opportunities for quick quotes</p>
                 <Button onClick={() => router.push('/reseller/deals/register')}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Bidding Deal
@@ -266,16 +264,16 @@ export default function ResellerDashboard() {
       )}
 
       {activeTab === 'queries' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {directQueries.length > 0 ? (
             directQueries.map((query: any) => (
-              <Card key={query.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <h4 className="font-semibold text-lg mb-2">{query.title}</h4>
-                  <p className="text-sm text-gray-600 mb-3">{query.requirement}</p>
+              <Card key={query.id} className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow">
+                <CardContent className="p-5">
+                  <h4 className="font-medium text-[15px] text-[#09090B] mb-2">{query.title}</h4>
+                  <p className="text-[13px] text-[#71717A] mb-3">{query.requirement}</p>
                   <div className="flex items-center justify-between">
                     <Badge variant="info">{query.status}</Badge>
-                    <span className="text-sm text-gray-500">{query.responses || 0} responses</span>
+                    <span className="text-[12px] text-[#71717A]">{query.responses || 0} responses</span>
                   </div>
                 </CardContent>
               </Card>
@@ -283,9 +281,9 @@ export default function ResellerDashboard() {
           ) : (
             <Card>
               <CardContent className="p-12 text-center">
-                <Send className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 mb-2">No direct queries yet</p>
-                <p className="text-sm text-gray-500 mb-4">Send queries to distributors for quick responses</p>
+                <Send className="h-12 w-12 text-[#A1A1AA] mx-auto mb-4" />
+                <p className="text-[15px] font-medium text-[#09090B] mb-2">No direct queries yet</p>
+                <p className="text-[14px] text-[#71717A] mb-6">Send queries to distributors for quick responses</p>
                 <Link href="/reseller/queries/create">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
@@ -300,7 +298,7 @@ export default function ResellerDashboard() {
 
       <Card className="mt-8">
         <CardContent className="p-6">
-          <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
+          <h3 className="font-medium text-[15px] text-[#09090B] mb-4">Quick Actions</h3>
           <div className="flex flex-wrap gap-3">
             <Link href="/reseller/deals/register">
               <Button>
@@ -309,13 +307,13 @@ export default function ResellerDashboard() {
               </Button>
             </Link>
             <Link href="/reseller/boq/upload">
-              <Button variant="outline">Upload BOQ</Button>
+              <Button variant="secondary">Upload BOQ</Button>
             </Link>
             <Link href="/categories">
-              <Button variant="outline">Browse Products</Button>
+              <Button variant="secondary">Browse Products</Button>
             </Link>
             <Link href="/reseller/services">
-              <Button variant="outline">Manage Services</Button>
+              <Button variant="secondary">Manage Services</Button>
             </Link>
           </div>
         </CardContent>

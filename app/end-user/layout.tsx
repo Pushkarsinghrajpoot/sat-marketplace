@@ -35,51 +35,54 @@ export default function EndUserLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-64 bg-white border-r border-gray-200 fixed h-full overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <Link href="/end-user/dashboard">
-            <h1 className="text-xl font-bold text-gray-900">B2B Marketplace</h1>
+    <div className="min-h-screen bg-[#FAFAFA] flex">
+      <aside className="w-[240px] bg-[#0F172A] fixed h-full overflow-y-auto">
+        <div className="px-5 py-5 border-b border-[#1E293B]">
+          <Link href="/end-user/dashboard" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+              <span className="text-sm font-bold text-[#0F172A]">B2B</span>
+            </div>
+            <span className="font-semibold text-white">Marketplace</span>
           </Link>
           {organization && (
-            <p className="text-xs text-gray-600 mt-1">{organization.name}</p>
+            <p className="text-[12px] text-[#64748B] mt-2">{organization.name}</p>
           )}
         </div>
 
         <div className="p-4">
-          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mb-6 p-3 bg-[#1E293B] border border-[#334155] rounded-md">
             <div className="flex items-center gap-2 mb-1">
-              <Eye className="h-4 w-4 text-blue-600" />
-              <p className="text-xs font-semibold text-blue-900">View-Only Access</p>
+              <Eye className="h-4 w-4 text-[#6366F1]" />
+              <p className="text-[12px] font-medium text-white">View-Only Access</p>
             </div>
-            <p className="text-xs text-blue-800">Read-only permissions</p>
+            <p className="text-[11px] text-[#94A3B8]">Read-only permissions</p>
           </div>
 
           <nav className="space-y-1">
             <Link
               href="/end-user/dashboard"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="flex items-center gap-3 h-10 px-3 text-[14px] font-medium text-white bg-[#1E293B] relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#6366F1]"
             >
-              <Eye className="h-5 w-5" />
+              <Eye className="h-[18px] w-[18px]" />
               <span className="flex-1">Dashboard</span>
             </Link>
           </nav>
         </div>
 
-        <div className="border-t border-gray-200 p-4 absolute bottom-0 w-64 bg-white">
-          <div className="mb-3">
-            <p className="text-sm font-medium text-gray-900">{user.name}</p>
-            <p className="text-xs text-gray-600">{user.email}</p>
-            <p className="text-xs text-gray-500 mt-1">End User (View Only)</p>
+        <div className="border-t border-[#1E293B] p-4 absolute bottom-0 w-[240px] bg-[#0F172A]">
+          <div className="mb-3 px-3 py-2">
+            <p className="text-[13px] font-medium text-white truncate">{user.name}</p>
+            <p className="text-[11px] text-[#64748B] truncate">{user.email}</p>
+            <p className="text-[11px] text-[#64748B] mt-1">End User (View Only)</p>
           </div>
-          <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
-            <LogOut className="h-5 w-5 mr-3" />
+          <button onClick={handleLogout} className="w-full flex items-center justify-start gap-3 px-3 py-2 text-[14px] font-medium text-[#EF4444] hover:bg-[#1E293B] rounded transition-colors">
+            <LogOut className="h-[18px] w-[18px]" />
             Logout
-          </Button>
+          </button>
         </div>
       </aside>
 
-      <main className="flex-1 ml-64">
+      <main className="flex-1 ml-[240px] bg-[#FAFAFA]">
         {children}
       </main>
     </div>

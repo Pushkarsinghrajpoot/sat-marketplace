@@ -135,45 +135,45 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center p-8 bg-[#FAFAFA]">
       <Card className="w-full max-w-2xl">
         <CardContent className="p-8">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 mb-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#6366F1]">
                 <span className="text-xl font-bold text-white">B2B</span>
               </div>
-              <span className="text-xl font-semibold">Marketplace</span>
+              <span className="text-xl font-semibold text-[#09090B]">Marketplace</span>
             </Link>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
-            <p className="text-gray-600">Join thousands of businesses on our platform</p>
+            <h2 className="text-[24px] font-semibold text-[#09090B] mb-2">Create your account</h2>
+            <p className="text-[14px] text-[#71717A]">Join thousands of businesses on our platform</p>
           </div>
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-3">Organization Type</label>
-              <div className="grid md:grid-cols-2 gap-4">
+              <label className="block text-[13px] font-medium text-[#374151] mb-3">Organization Type</label>
+              <div className="grid md:grid-cols-2 gap-3">
                 {orgTypes.map((type) => {
                   const Icon = type.icon;
                   return (
                     <button
                       key={type.type}
                       onClick={() => setOrgType(type.type)}
-                      className={`p-4 border-2 rounded-lg text-left transition-all ${
+                      className={`p-4 border-2 rounded-md text-left transition-all ${
                         orgType === type.type
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-[#6366F1] bg-[#EEF2FF]'
+                          : 'border-[#E4E4E7] hover:border-[#D4D4D8]'
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          orgType === type.type ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                        <div className={`w-10 h-10 rounded-md flex items-center justify-center ${
+                          orgType === type.type ? 'bg-[#6366F1] text-white' : 'bg-[#F4F4F5] text-[#71717A]'
                         }`}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold mb-1">{type.label}</h3>
-                          <p className="text-sm text-gray-600">{type.description}</p>
+                          <h3 className="font-medium text-[14px] text-[#09090B] mb-1">{type.label}</h3>
+                          <p className="text-[13px] text-[#71717A]">{type.description}</p>
                         </div>
                       </div>
                     </button>
@@ -183,7 +183,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Full Name</label>
+              <label className="block text-[13px] font-medium text-[#374151] mb-1.5">Full Name</label>
               <Input
                 type="text"
                 placeholder="John Doe"
@@ -193,7 +193,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Work Email</label>
+              <label className="block text-[13px] font-medium text-[#374151] mb-1.5">Work Email</label>
               <Input
                 type="email"
                 placeholder="you@company.com"
@@ -203,7 +203,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
+              <label className="block text-[13px] font-medium text-[#374151] mb-1.5">Password</label>
               <Input
                 type="password"
                 placeholder="Create a password"
@@ -214,13 +214,13 @@ export default function RegisterPage() {
 
             <div className="flex items-start gap-2">
               <input type="checkbox" className="mt-1" required />
-              <p className="text-sm text-gray-600">
+              <p className="text-[13px] text-[#71717A]">
                 I agree to the{' '}
-                <Link href="/terms" className="text-blue-600 hover:underline">
+                <Link href="/terms" className="text-[#6366F1] hover:underline">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link href="/privacy" className="text-blue-600 hover:underline">
+                <Link href="/privacy" className="text-[#6366F1] hover:underline">
                   Privacy Policy
                 </Link>
               </p>
@@ -232,14 +232,14 @@ export default function RegisterPage() {
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-[#E4E4E7]"></div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">OR</span>
+              <div className="relative flex justify-center text-[13px]">
+                <span className="px-2 bg-white text-[#71717A]">OR</span>
               </div>
             </div>
 
-            <Button variant="outline" className="w-full" size="lg">
+            <Button variant="secondary" className="w-full" size="lg">
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -249,9 +249,9 @@ export default function RegisterPage() {
               Sign up with Google
             </Button>
 
-            <p className="text-center text-sm text-gray-600">
+            <p className="text-center text-[14px] text-[#71717A]">
               Already have an account?{' '}
-              <Link href="/auth/login" className="text-blue-600 font-semibold hover:underline">
+              <Link href="/auth/login" className="text-[#6366F1] font-medium hover:underline">
                 Login
               </Link>
             </p>

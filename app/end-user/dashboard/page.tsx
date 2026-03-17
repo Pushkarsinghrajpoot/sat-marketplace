@@ -55,14 +55,14 @@ export default function EndUserDashboard() {
   }, [user]);
 
   return (
-    <div className="p-6 lg:p-8">
-      <Card className="mb-8 bg-blue-50 border-blue-200">
+    <div className="p-8">
+      <Card className="mb-8 bg-[#EEF2FF] border-[#C7D2FE]">
         <CardContent className="p-6">
           <div className="flex items-start gap-3">
-            <Eye className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Eye className="h-5 w-5 text-[#6366F1] flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-sm text-blue-900 mb-1">View-Only Access</p>
-              <p className="text-xs text-blue-800">
+              <p className="font-medium text-[14px] text-[#09090B] mb-1">View-Only Access</p>
+              <p className="text-[13px] text-[#71717A]">
                 You have read-only access to view deals, quotes, and activities. You cannot create or modify any deals.
               </p>
             </div>
@@ -71,21 +71,21 @@ export default function EndUserDashboard() {
       </Card>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">View deals and queries from your organization</p>
+        <h1 className="text-[24px] font-semibold text-[#09090B] mb-1">Dashboard</h1>
+        <p className="text-[14px] text-[#71717A]">View deals and queries from your organization</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Lock className="h-6 w-6 text-blue-600" />
+              <div className="w-10 h-10 bg-[#EEF2FF] rounded-md flex items-center justify-center">
+                <Lock className="h-5 w-5 text-[#6366F1]" />
               </div>
             </div>
             <div>
-              <p className="text-3xl font-bold text-gray-900">{stats.dealRegistrations}</p>
-              <p className="text-sm text-gray-600 mt-1">Deal Registrations</p>
+              <p className="text-[32px] font-bold text-[#09090B] leading-none">{stats.dealRegistrations}</p>
+              <p className="text-[12px] text-[#71717A] mt-2">Deal Registrations</p>
             </div>
           </CardContent>
         </Card>
@@ -93,13 +93,13 @@ export default function EndUserDashboard() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Search className="h-6 w-6 text-purple-600" />
+              <div className="w-10 h-10 bg-[#FFFBEB] rounded-md flex items-center justify-center">
+                <Search className="h-5 w-5 text-[#F59E0B]" />
               </div>
             </div>
             <div>
-              <p className="text-3xl font-bold text-gray-900">{stats.biddingDeals}</p>
-              <p className="text-sm text-gray-600 mt-1">Bidding Deals</p>
+              <p className="text-[32px] font-bold text-[#09090B] leading-none">{stats.biddingDeals}</p>
+              <p className="text-[12px] text-[#71717A] mt-2">Bidding Deals</p>
             </div>
           </CardContent>
         </Card>
@@ -107,28 +107,28 @@ export default function EndUserDashboard() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Send className="h-6 w-6 text-green-600" />
+              <div className="w-10 h-10 bg-[#F0FDF4] rounded-md flex items-center justify-center">
+                <Send className="h-5 w-5 text-[#22C55E]" />
               </div>
             </div>
             <div>
-              <p className="text-3xl font-bold text-gray-900">{stats.directQueries}</p>
-              <p className="text-sm text-gray-600 mt-1">Direct Queries</p>
+              <p className="text-[32px] font-bold text-[#09090B] leading-none">{stats.directQueries}</p>
+              <p className="text-[12px] text-[#71717A] mt-2">Direct Queries</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">View Deals & Queries</h2>
+        <h2 className="text-[18px] font-semibold text-[#09090B] mb-6">View Deals & Queries</h2>
 
-        <div className="flex gap-2 border-b border-gray-200 mb-6">
+        <div className="flex gap-1 border-b border-[#E4E4E7] mb-6">
           <button
             onClick={() => setActiveTab('registrations')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'registrations'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -139,10 +139,10 @@ export default function EndUserDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('bidding')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'bidding'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -153,10 +153,10 @@ export default function EndUserDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('queries')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-4 py-3 text-[14px] font-medium transition-colors ${
               activeTab === 'queries'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-[#09090B] border-b-2 border-[#6366F1]'
+                : 'text-[#71717A] hover:text-[#09090B]'
             }`}
           >
             <div className="flex items-center gap-2">

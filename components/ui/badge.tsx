@@ -2,20 +2,20 @@ import { cn } from '@/lib/utils';
 import { HTMLAttributes } from 'react';
 
 export interface BadgeProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'error';
 }
 
 export function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
+        'inline-flex items-center rounded px-2 py-0.5 text-[12px] font-medium',
         {
-          'bg-gray-100 text-gray-800': variant === 'default',
-          'bg-green-100 text-green-800': variant === 'success',
-          'bg-yellow-100 text-yellow-800': variant === 'warning',
-          'bg-red-100 text-red-800': variant === 'danger',
-          'bg-blue-100 text-blue-800': variant === 'info',
+          'bg-[#F4F4F5] text-[#71717A]': variant === 'default',
+          'bg-[#F0FDF4] text-[#16A34A]': variant === 'success',
+          'bg-[#FFFBEB] text-[#D97706]': variant === 'warning',
+          'bg-[#FEF2F2] text-[#DC2626]': variant === 'danger' || variant === 'error',
+          'bg-[#EFF6FF] text-[#2563EB]': variant === 'info',
         },
         className
       )}

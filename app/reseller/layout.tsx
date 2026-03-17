@@ -38,32 +38,32 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FAFAFA]">
       <div className="flex h-screen overflow-hidden">
-        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transition-transform lg:translate-x-0 lg:static lg:inset-0`}>
+        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-[240px] bg-[#0F172A] transition-transform lg:translate-x-0 lg:static lg:inset-0`}>
           <div className="flex h-full flex-col">
-            <div className="flex h-16 items-center justify-between px-6 border-b border-gray-200">
+            <div className="flex h-16 items-center justify-between px-5 border-b border-[#1E293B]">
               <Link href="/reseller/dashboard" className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500">
-                  <span className="text-sm font-bold text-white">B2B</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+                  <span className="text-sm font-bold text-[#0F172A]">B2B</span>
                 </div>
-                <span className="font-semibold text-gray-900">Marketplace</span>
+                <span className="font-semibold text-white">Marketplace</span>
               </Link>
-              <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
-                <X className="h-6 w-6" />
+              <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-[#94A3B8]">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-3 py-4">
+            <div className="flex-1 overflow-y-auto px-3 py-6">
               <div className="mb-6 px-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Organization</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <span className="text-sm font-bold text-orange-600">{organization?.name.charAt(0)}</span>
+                <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">Organization</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-[#1E293B] rounded-md flex items-center justify-center border border-[#334155]">
+                    <span className="text-sm font-semibold text-white">{organization?.name.charAt(0)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{organization?.name}</p>
-                    <p className="text-xs text-gray-500">Reseller</p>
+                    <p className="text-[14px] font-medium text-white truncate">{organization?.name}</p>
+                    <p className="text-[12px] text-[#64748B]">Reseller</p>
                   </div>
                 </div>
               </div>
@@ -76,13 +76,13 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-3 h-10 px-3 text-[14px] font-medium transition-colors relative ${
                         isActive
-                          ? 'bg-orange-50 text-orange-600'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-[#1E293B] text-white before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#6366F1]'
+                          : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-[#CBD5E1]'
                       }`}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-[18px] w-[18px]" />
                       <span className="flex-1">{item.name}</span>
                     </Link>
                   );
@@ -90,41 +90,50 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
               </nav>
             </div>
 
-            <div className="border-t border-gray-200 p-4">
-              <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
-                <LogOut className="h-5 w-5 mr-3" />
+            <div className="border-t border-[#1E293B] p-4">
+              <div className="flex items-center gap-3 px-3 py-2 mb-2">
+                <div className="w-8 h-8 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
+                  {user?.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
+                  <p className="text-[11px] text-[#64748B]">{user?.role}</p>
+                </div>
+              </div>
+              <button onClick={handleLogout} className="w-full flex items-center justify-start gap-3 px-3 py-2 text-[14px] font-medium text-[#EF4444] hover:bg-[#1E293B] rounded transition-colors">
+                <LogOut className="h-[18px] w-[18px]" />
                 Logout
-              </Button>
+              </button>
             </div>
           </div>
         </aside>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 lg:px-8">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden">
-              <Menu className="h-6 w-6" />
+          <header className="h-[60px] bg-white border-b border-[#E4E4E7] flex items-center justify-between px-8">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#71717A]">
+              <Menu className="h-5 w-5" />
             </button>
             <div className="flex-1" />
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white">
+              <button className="relative w-9 h-9 flex items-center justify-center border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors">
+                <Bell className="h-[18px] w-[18px] text-[#71717A]" />
+                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-[#EF4444] text-[10px] font-medium text-white">
                   5
                 </span>
-              </Button>
+              </button>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                <div className="w-8 h-8 bg-[#6366F1] rounded-full flex items-center justify-center text-white text-sm font-semibold">
                   {user?.name.charAt(0)}
                 </div>
                 <div className="hidden md:block">
-                  <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{user?.role}</p>
+                  <p className="text-[14px] font-medium text-[#09090B]">{user?.name}</p>
+                  <p className="text-[12px] text-[#71717A]">{user?.role}</p>
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto bg-[#FAFAFA]">
             {children}
           </main>
         </div>
@@ -132,7 +141,7 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
 
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
