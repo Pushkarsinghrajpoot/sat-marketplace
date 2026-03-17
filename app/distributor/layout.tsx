@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, Target, Handshake, FileText, DollarSign, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, TrendingUp, FileSpreadsheet, Activity, ChevronLeft, ChevronRight, HelpCircle, Target, Handshake, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
@@ -25,6 +25,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   const router = useRouter();
   const { user, organization, logout } = useSimpleAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!user || organization?.type !== 'DISTRIBUTOR') {
@@ -40,10 +41,12 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <div className="flex h-screen overflow-hidden">
-        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-[240px] bg-[#0F172A] transition-transform lg:translate-x-0 lg:static lg:inset-0`}>
+        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 bg-[#0F172A] transition-all duration-300 lg:translate-x-0 lg:static lg:inset-0 ${
+          sidebarCollapsed ? 'lg:w-[72px]' : 'lg:w-[240px]'
+        } w-[240px]`}>
           <div className="flex h-full flex-col">
             <div className="flex h-16 items-center justify-between px-5 border-b border-[#1E293B]">
-              <Link href="/distributor/dashboard" className="flex items-center gap-2">
+              <Link href="/distributor/dashboard" className={`flex items-center gap-2 transition-opacity ${sidebarCollapsed ? 'lg:opacity-0 lg:pointer-events-none' : ''}`}>
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
                   <span className="text-sm font-bold text-[#0F172A]">B2B</span>
                 </div>
@@ -55,7 +58,21 @@ export default function DistributorLayout({ children }: { children: React.ReactN
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 py-6">
-              <div className="mb-6 px-3">
+              {!sidebarCollapsed && (
+                <div className="mb-6 px-3 hidden lg:block">
+                  <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">Organization</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-[#1E293B] rounded-md flex items-center justify-center border border-[#334155]">
+                      <span className="text-sm font-semibold text-white">{organization?.name.charAt(0)}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-medium text-white truncate">{organization?.name}</p>
+                      <p className="text-[12px] text-[#64748B]">Distributor</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="mb-6 px-3 lg:hidden">
                 <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">Organization</p>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-[#1E293B] rounded-md flex items-center justify-center border border-[#334155]">
@@ -76,14 +93,17 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-3 h-10 px-3 text-[14px] font-medium transition-colors relative ${
+                      className={`flex items-center h-10 text-[14px] font-medium transition-colors relative ${
+                        sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'gap-3 px-3'
+                      } ${
                         isActive
                           ? 'bg-[#1E293B] text-white before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#6366F1]'
                           : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-[#CBD5E1]'
                       }`}
+                      title={sidebarCollapsed ? item.name : undefined}
                     >
                       <Icon className="h-[18px] w-[18px]" />
-                      <span className="flex-1">{item.name}</span>
+                      <span className={`flex-1 transition-opacity ${sidebarCollapsed ? 'lg:hidden' : ''}`}>{item.name}</span>
                     </Link>
                   );
                 })}
@@ -91,7 +111,18 @@ export default function DistributorLayout({ children }: { children: React.ReactN
             </div>
 
             <div className="border-t border-[#1E293B] p-4">
-              <div className="flex items-center gap-3 px-3 py-2 mb-2">
+              {!sidebarCollapsed && (
+                <div className="flex items-center gap-3 px-3 py-2 mb-2 hidden lg:flex">
+                  <div className="w-8 h-8 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
+                    {user?.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
+                    <p className="text-[11px] text-[#64748B]">{user?.role}</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-3 px-3 py-2 mb-2 lg:hidden">
                 <div className="w-8 h-8 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
                   {user?.name.charAt(0)}
                 </div>
@@ -100,9 +131,11 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                   <p className="text-[11px] text-[#64748B]">{user?.role}</p>
                 </div>
               </div>
-              <button onClick={handleLogout} className="w-full flex items-center justify-start gap-3 px-3 py-2 text-[14px] font-medium text-[#EF4444] hover:bg-[#1E293B] rounded transition-colors">
+              <button onClick={handleLogout} className={`w-full flex items-center gap-3 py-2 text-[14px] font-medium text-[#EF4444] hover:bg-[#1E293B] rounded transition-colors ${
+                sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'justify-start px-3'
+              }`} title={sidebarCollapsed ? 'Logout' : undefined}>
                 <LogOut className="h-[18px] w-[18px]" />
-                Logout
+                <span className={sidebarCollapsed ? 'lg:hidden' : ''}>Logout</span>
               </button>
             </div>
           </div>
@@ -110,9 +143,18 @@ export default function DistributorLayout({ children }: { children: React.ReactN
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <header className="h-[60px] bg-white border-b border-[#E4E4E7] flex items-center justify-between px-8">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#71717A]">
-              <Menu className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-4">
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#71717A]">
+                <Menu className="h-5 w-5" />
+              </button>
+              <button 
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
+                className="hidden lg:flex items-center justify-center w-9 h-9 border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors text-[#71717A]"
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {sidebarCollapsed ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronLeft className="h-[18px] w-[18px]" />}
+              </button>
+            </div>
             <div className="flex-1" />
             <div className="flex items-center gap-4">
               <button className="relative w-9 h-9 flex items-center justify-center border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors">

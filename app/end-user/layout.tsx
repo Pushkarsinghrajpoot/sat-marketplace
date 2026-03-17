@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { Button } from '@/components/ui/button';
-import { Eye, LogOut } from 'lucide-react';
+import { Eye, LogOut, Bell, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function EndUserLayout({
   children,
@@ -15,6 +15,8 @@ export default function EndUserLayout({
   const router = useRouter();
   const { user, organization, logout } = useSimpleAuth();
   const [mounted, setMounted] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -35,56 +37,139 @@ export default function EndUserLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex">
-      <aside className="w-[240px] bg-[#0F172A] fixed h-full overflow-y-auto">
-        <div className="px-5 py-5 border-b border-[#1E293B]">
-          <Link href="/end-user/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
-              <span className="text-sm font-bold text-[#0F172A]">B2B</span>
+    <div className="min-h-screen bg-[#FAFAFA]">
+      <div className="flex h-screen overflow-hidden">
+        <aside
+          className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 bg-[#0F172A] transition-all duration-300 lg:translate-x-0 lg:static lg:inset-0 ${
+            sidebarCollapsed ? 'lg:w-[72px]' : 'lg:w-[240px]'
+          } w-[240px]`}
+        >
+          <div className="flex h-full flex-col">
+            <div className="flex h-16 items-center justify-between px-5 border-b border-[#1E293B]">
+              <Link href="/end-user/dashboard" className={`flex items-center gap-2 transition-opacity ${sidebarCollapsed ? 'lg:opacity-0 lg:pointer-events-none' : ''}`}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+                  <span className="text-sm font-bold text-[#0F172A]">B2B</span>
+                </div>
+                <span className="font-semibold text-white">Marketplace</span>
+              </Link>
+              <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-[#94A3B8]">
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <span className="font-semibold text-white">Marketplace</span>
-          </Link>
-          {organization && (
-            <p className="text-[12px] text-[#64748B] mt-2">{organization.name}</p>
-          )}
-        </div>
 
-        <div className="p-4">
-          <div className="mb-6 p-3 bg-[#1E293B] border border-[#334155] rounded-md">
-            <div className="flex items-center gap-2 mb-1">
-              <Eye className="h-4 w-4 text-[#6366F1]" />
-              <p className="text-[12px] font-medium text-white">View-Only Access</p>
+            <div className="flex-1 overflow-y-auto px-3 py-6">
+              {!sidebarCollapsed && (
+                <div className="mb-6 px-3 hidden lg:block">
+                  <div className="flex items-center gap-3 p-3 bg-[#1E293B] rounded-md border border-[#334155]">
+                    <Eye className="h-5 w-5 text-[#6366F1] flex-shrink-0" />
+                    <div>
+                      <p className="text-[12px] font-medium text-white">View-Only Access</p>
+                      <p className="text-[11px] text-[#64748B]">Read-only mode</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="mb-6 px-3 lg:hidden">
+                <div className="flex items-center gap-3 p-3 bg-[#1E293B] rounded-md border border-[#334155]">
+                  <Eye className="h-5 w-5 text-[#6366F1] flex-shrink-0" />
+                  <div>
+                    <p className="text-[12px] font-medium text-white">View-Only Access</p>
+                    <p className="text-[11px] text-[#64748B]">Read-only mode</p>
+                  </div>
+                </div>
+              </div>
+              <nav className="space-y-1">
+                <Link
+                  href="/end-user/dashboard"
+                  className={`flex items-center h-10 text-[14px] font-medium transition-colors relative ${
+                    sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'gap-3 px-3'
+                  } text-white bg-[#1E293B] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#6366F1]`}
+                  title={sidebarCollapsed ? 'Dashboard' : undefined}
+                >
+                  <Eye className="h-[18px] w-[18px]" />
+                  <span className={`flex-1 transition-opacity ${sidebarCollapsed ? 'lg:hidden' : ''}`}>Dashboard</span>
+                </Link>
+              </nav>
             </div>
-            <p className="text-[11px] text-[#94A3B8]">Read-only permissions</p>
+
+            <div className="border-t border-[#1E293B] p-4">
+              {!sidebarCollapsed && (
+                <div className="flex items-center gap-3 px-3 py-2 mb-2 hidden lg:flex">
+                  <div className="w-8 h-8 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
+                    {user?.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
+                    <p className="text-[11px] text-[#64748B]">{user?.role}</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-3 px-3 py-2 mb-2 lg:hidden">
+                <div className="w-8 h-8 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
+                  {user?.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
+                  <p className="text-[11px] text-[#64748B]">{user?.role}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className={`w-full flex items-center gap-3 py-2 text-[14px] font-medium text-[#EF4444] hover:bg-[#1E293B] rounded transition-colors ${
+                  sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'justify-start px-3'
+                }`}
+                title={sidebarCollapsed ? 'Logout' : undefined}
+              >
+                <LogOut className="h-[18px] w-[18px]" />
+                <span className={sidebarCollapsed ? 'lg:hidden' : ''}>Logout</span>
+              </button>
+            </div>
           </div>
+        </aside>
 
-          <nav className="space-y-1">
-            <Link
-              href="/end-user/dashboard"
-              className="flex items-center gap-3 h-10 px-3 text-[14px] font-medium text-white bg-[#1E293B] relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#6366F1]"
-            >
-              <Eye className="h-[18px] w-[18px]" />
-              <span className="flex-1">Dashboard</span>
-            </Link>
-          </nav>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="h-[60px] bg-white border-b border-[#E4E4E7] flex items-center justify-between px-8">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#71717A]">
+                <Menu className="h-5 w-5" />
+              </button>
+              <button 
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
+                className="hidden lg:flex items-center justify-center w-9 h-9 border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors text-[#71717A]"
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {sidebarCollapsed ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronLeft className="h-[18px] w-[18px]" />}
+              </button>
+            </div>
+            <div className="flex-1" />
+            <div className="flex items-center gap-4">
+              <button className="relative w-9 h-9 flex items-center justify-center border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors">
+                <Bell className="h-[18px] w-[18px] text-[#71717A]" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-[#6366F1] rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  {user?.name.charAt(0)}
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-[14px] font-medium text-[#09090B]">{user?.name}</p>
+                  <p className="text-[12px] text-[#71717A]">{user?.role}</p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-y-auto bg-[#FAFAFA]">
+            {children}
+          </main>
         </div>
+      </div>
 
-        <div className="border-t border-[#1E293B] p-4 absolute bottom-0 w-[240px] bg-[#0F172A]">
-          <div className="mb-3 px-3 py-2">
-            <p className="text-[13px] font-medium text-white truncate">{user.name}</p>
-            <p className="text-[11px] text-[#64748B] truncate">{user.email}</p>
-            <p className="text-[11px] text-[#64748B] mt-1">End User (View Only)</p>
-          </div>
-          <button onClick={handleLogout} className="w-full flex items-center justify-start gap-3 px-3 py-2 text-[14px] font-medium text-[#EF4444] hover:bg-[#1E293B] rounded transition-colors">
-            <LogOut className="h-[18px] w-[18px]" />
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      <main className="flex-1 ml-[240px] bg-[#FAFAFA]">
-        {children}
-      </main>
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 }
