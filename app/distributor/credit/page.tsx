@@ -9,6 +9,7 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export default function CreditRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -256,10 +257,12 @@ export default function CreditRequestsPage() {
 
               {request.status === 'PENDING' && (
                 <div className="flex gap-3">
-                  <Button size="sm" variant="outline" onClick={() => toast.info('Document review feature coming soon')}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Review Documents
-                  </Button>
+                  <Link href={`/distributor/credit/${request.id}/review`}>
+                    <Button size="sm" variant="outline">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Review Documents
+                    </Button>
+                  </Link>
                   <Button size="sm" onClick={() => handleApprove(request.id, request.amount)}>
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Approve
