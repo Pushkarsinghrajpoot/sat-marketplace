@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, FileText, Download, Eye, CheckCircle, X, AlertCircle, DollarSign, Calendar } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Eye, CheckCircle, X, AlertCircle, DollarSign, Calendar, MessageSquare } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +20,7 @@ export default function CreditReviewPage() {
   const { user } = useSimpleAuth();
   
   const [credit, setCredit] = useState<any>(null);
+  const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState(false);
   const [reviewData, setReviewData] = useState({
@@ -35,6 +36,7 @@ export default function CreditReviewPage() {
   useEffect(() => {
     if (user && creditId) {
       fetchCreditDetails();
+      fetchActivities();
     }
   }, [user, creditId]);
 
@@ -65,6 +67,25 @@ export default function CreditReviewPage() {
       toast.error('Failed to load credit request');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchActivities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('credit_request_activities')
+        .select(`
+          *,
+          users:created_by(id, name, email)
+        `)
+        .eq('credit_request_id', creditId)
+        .eq('is_internal', false)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setActivities(data || []);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
     }
   };
 
@@ -153,13 +174,18 @@ export default function CreditReviewPage() {
   };
 
   const handleRequestMoreInfo = async () => {
+    if (!reviewData.reviewNotes.trim()) {
+      toast.error('Please specify what additional information is needed');
+      return;
+    }
+
     setReviewing(true);
     try {
-      const { error } = await supabase
+      // Update credit request status
+      const { error: updateError } = await supabase
         .from('credit_requests')
         .update({
           status: 'UNDER_REVIEW',
-          review_notes: reviewData.reviewNotes,
           additional_info_requested: true,
           additional_info_notes: reviewData.reviewNotes,
           reviewer_id: user?.id,
@@ -168,14 +194,27 @@ export default function CreditReviewPage() {
         })
         .eq('id', creditId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Create activity record
+      const { error: activityError } = await supabase
+        .from('credit_request_activities')
+        .insert({
+          credit_request_id: creditId,
+          activity_type: 'INFO_REQUESTED',
+          message: reviewData.reviewNotes,
+          created_by: user?.id,
+          is_internal: false
+        });
+
+      if (activityError) throw activityError;
 
       // Notify reseller
       await supabase.from('notifications').insert({
         user_id: credit.reseller_id,
         notification_type: 'CREDIT_MORE_INFO',
         title: 'Additional Information Required',
-        message: 'Please provide additional information for your credit request',
+        message: `Your credit request requires additional information: ${reviewData.reviewNotes.substring(0, 100)}...`,
         link: `/reseller/credit/${creditId}`,
       });
 
@@ -205,9 +244,19 @@ export default function CreditReviewPage() {
       return doc.document_url;
     }
     
-    // For doc/docx files, use Google Docs viewer
+    // For doc/docx files, use Microsoft Office Online viewer
     if (['doc', 'docx'].includes(fileExtension)) {
-      return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(doc.document_url)}`;
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(doc.document_url)}`;
+    }
+    
+    // For xls/xlsx files
+    if (['xls', 'xlsx'].includes(fileExtension)) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(doc.document_url)}`;
+    }
+    
+    // For ppt/pptx files
+    if (['ppt', 'pptx'].includes(fileExtension)) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(doc.document_url)}`;
     }
     
     // Fallback to direct URL
@@ -225,7 +274,7 @@ export default function CreditReviewPage() {
       return 'pdf';
     }
     
-    if (['doc', 'docx'].includes(fileExtension)) {
+    if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension)) {
       return 'document';
     }
     
@@ -345,6 +394,78 @@ export default function CreditReviewPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Communication History */}
+          {activities.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Communication History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {activities.map((activity) => (
+                    <div key={activity.id} className={`border-l-4 pl-4 py-2 ${
+                      activity.activity_type === 'INFO_REQUESTED' ? 'border-orange-500' : 'border-blue-500'
+                    }`}>
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={activity.activity_type === 'INFO_REQUESTED' ? 'warning' : 'info'}>
+                            {activity.activity_type === 'INFO_REQUESTED' ? 'Info Requested' : 'Info Provided'}
+                          </Badge>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {activity.users?.name || 'System'}
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {formatRelativeTime(activity.created_at)}
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-800 mt-2">{activity.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Communication History */}
+          {activities.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Communication History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {activities.map((activity) => (
+                    <div key={activity.id} className={`border-l-4 pl-4 py-2 ${
+                      activity.activity_type === 'INFO_REQUESTED' ? 'border-orange-500' : 'border-blue-500'
+                    }`}>
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={activity.activity_type === 'INFO_REQUESTED' ? 'warning' : 'info'}>
+                            {activity.activity_type === 'INFO_REQUESTED' ? 'Info Requested' : 'Info Provided'}
+                          </Badge>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {activity.users?.name || 'System'}
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {formatRelativeTime(activity.created_at)}
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-800 mt-2">{activity.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Review Form */}
           <Card>

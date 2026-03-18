@@ -5,11 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, Download, CreditCard, TrendingDown, TrendingUp, Calendar } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, FileText, Download, CreditCard, TrendingDown, TrendingUp, Calendar, MessageSquare, Send, AlertCircle } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { getCreditTransactions } from '@/lib/credit-helpers';
+import { toast } from 'sonner';
 
 export default function CreditDetailPage() {
   const params = useParams();
@@ -19,12 +21,16 @@ export default function CreditDetailPage() {
   
   const [credit, setCredit] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (user && creditId) {
       fetchCreditDetails();
       fetchTransactions();
+      fetchActivities();
     }
   }, [user, creditId]);
 
@@ -52,6 +58,78 @@ export default function CreditDetailPage() {
   const fetchTransactions = async () => {
     const txns = await getCreditTransactions(creditId);
     setTransactions(txns);
+  };
+
+  const fetchActivities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('credit_request_activities')
+        .select(`
+          *,
+          users:created_by(id, name, email)
+        `)
+        .eq('credit_request_id', creditId)
+        .eq('is_internal', false)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setActivities(data || []);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    }
+  };
+
+  const handleSubmitResponse = async () => {
+    if (!responseMessage.trim()) {
+      toast.error('Please enter a response');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Create activity record
+      const { error: activityError } = await supabase
+        .from('credit_request_activities')
+        .insert({
+          credit_request_id: creditId,
+          activity_type: 'INFO_PROVIDED',
+          message: responseMessage,
+          created_by: user?.id,
+          is_internal: false
+        });
+
+      if (activityError) throw activityError;
+
+      // Update credit request to clear additional info flag
+      const { error: updateError } = await supabase
+        .from('credit_requests')
+        .update({
+          additional_info_requested: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', creditId);
+
+      if (updateError) throw updateError;
+
+      // Notify distributor
+      await supabase.from('notifications').insert({
+        user_id: credit.organizations?.id,
+        notification_type: 'CREDIT_INFO_PROVIDED',
+        title: 'Additional Information Provided',
+        message: `Reseller has provided additional information for credit request`,
+        link: `/distributor/credit/${creditId}/review`,
+      });
+
+      toast.success('Response submitted successfully');
+      setResponseMessage('');
+      fetchActivities();
+      fetchCreditDetails();
+    } catch (error) {
+      console.error('Error submitting response:', error);
+      toast.error('Failed to submit response');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -199,7 +277,7 @@ export default function CreditDetailPage() {
             </CardContent>
           </Card>
 
-          {credit.status === 'APPROVED' && transactions.length > 0 && (
+{credit.status === 'APPROVED' && transactions.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Transaction History</CardTitle>
@@ -233,6 +311,80 @@ export default function CreditDetailPage() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Communication/Activity Timeline */}
+          {activities.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Communication History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {activities.map((activity) => (
+                    <div key={activity.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={activity.activity_type === 'INFO_REQUESTED' ? 'warning' : 'info'}>
+                            {activity.activity_type === 'INFO_REQUESTED' ? 'Info Requested' : 'Info Provided'}
+                          </Badge>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {activity.users?.name || 'System'}
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {formatRelativeTime(activity.created_at)}
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-800 mt-2">{activity.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Additional Info Request Alert & Response Form */}
+          {credit.additional_info_requested && (
+            <Card className="border-orange-300 bg-orange-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-900">
+                  <AlertCircle className="h-5 w-5" />
+                  Additional Information Required
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {credit.additional_info_notes && (
+                  <div className="p-3 bg-white rounded-lg border border-orange-200">
+                    <p className="text-sm font-semibold text-orange-900 mb-1">Requested Information:</p>
+                    <p className="text-sm text-gray-800">{credit.additional_info_notes}</p>
+                  </div>
+                )}
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-900">Your Response</label>
+                  <Textarea
+                    value={responseMessage}
+                    onChange={(e) => setResponseMessage(e.target.value)}
+                    rows={4}
+                    placeholder="Provide the requested information here..."
+                    className="bg-white"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleSubmitResponse}
+                  disabled={submitting}
+                  className="w-full"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {submitting ? 'Submitting...' : 'Submit Response'}
+                </Button>
               </CardContent>
             </Card>
           )}
