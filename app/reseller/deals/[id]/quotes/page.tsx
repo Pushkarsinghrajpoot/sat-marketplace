@@ -62,10 +62,10 @@ export default function DealQuotesPage() {
 
     setAccepting(quoteId);
     try {
-      // Update quote status to ACCEPTED
+      // Update quote status to WON
       const { error: quoteError } = await supabase
         .from('quotes')
-        .update({ status: 'ACCEPTED' })
+        .update({ status: 'WON' })
         .eq('id', quoteId);
 
       if (quoteError) throw quoteError;

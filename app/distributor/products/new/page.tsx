@@ -11,6 +11,7 @@ import { Plus, Minus, Upload, X } from 'lucide-react';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 import { createProduct, getCategories } from '@/lib/data-helpers';
+import { formatCurrency } from '@/lib/utils';
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -480,7 +481,7 @@ export default function AddProductPage() {
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="aspect-square bg-gray-200 rounded-lg mb-3"></div>
                     <p className="font-semibold text-sm line-clamp-2">{formData.name || 'Product Name'}</p>
-                    <p className="text-lg font-bold text-gray-900 mt-2">${formData.price}</p>
+                    <p className="text-lg font-bold text-gray-900 mt-2">{formatCurrency(formData.price || 0)}</p>
                   </div>
                 </div>
               </CardContent>

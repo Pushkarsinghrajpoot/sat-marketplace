@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { QuoteBuilder } from '@/components/quote-builder';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { formatCurrency } from '@/lib/utils';
 
 export default function InquiryDetailPage() {
   const params = useParams();
@@ -231,7 +232,7 @@ export default function InquiryDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Base Price</p>
-                    <p className="font-semibold">${inquiry.products.price}</p>
+                    <p className="font-semibold">{formatCurrency(inquiry.products.price)}</p>
                   </div>
                   <Link href={`/products/${inquiry.products.id}`}>
                     <Button variant="outline" className="w-full mt-3">

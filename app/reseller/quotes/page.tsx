@@ -49,8 +49,8 @@ export default function ResellerQuotesPage() {
       if (filter !== 'all') {
         const statusMap = {
           pending: 'TO_SUBMIT',
-          accepted: 'ACCEPTED',
-          rejected: 'REJECTED'
+          accepted: 'WON',
+          rejected: 'LOST'
         };
         query = query.eq('status', statusMap[filter]);
       }
@@ -70,8 +70,8 @@ export default function ResellerQuotesPage() {
     const variants: Record<string, any> = {
       TO_SUBMIT: { variant: 'warning', text: 'Pending Review' },
       SUBMITTED: { variant: 'info', text: 'Submitted' },
-      ACCEPTED: { variant: 'success', text: 'Accepted' },
-      REJECTED: { variant: 'danger', text: 'Rejected' },
+      WON: { variant: 'success', text: 'Won' },
+      LOST: { variant: 'danger', text: 'Lost' },
       EXPIRED: { variant: 'default', text: 'Expired' }
     };
     const config = variants[status] || { variant: 'default', text: status };

@@ -4,13 +4,13 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
+export function formatCurrency(amount: number, currency: string = 'SAR'): string {
   // Check for NaN, null, undefined, or non-numeric values
   if (amount === null || amount === undefined || isNaN(amount) || typeof amount !== 'number') {
-    return '$0';
+    return 'SAR 0';
   }
   
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('ar-SA', {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,

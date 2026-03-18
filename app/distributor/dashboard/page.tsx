@@ -52,7 +52,7 @@ export default function DistributorDashboard() {
         
         const activeQuotes = quotes.filter((q: any) => q.status === 'SUBMITTED' || q.status === 'PENDING');
         const monthlyRevenue = quotes
-          .filter((q: any) => q.status === 'ACCEPTED')
+          .filter((q: any) => q.status === 'WON')
           .reduce((sum, q) => sum + (q.total || 0), 0);
         
         setStats({

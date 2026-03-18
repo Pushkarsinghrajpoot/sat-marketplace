@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { getDistributors } from '@/lib/data-helpers';
+import { formatCurrency } from '@/lib/utils';
 
 export default function CreateCreditRequestPage() {
   const router = useRouter();
@@ -150,7 +151,7 @@ export default function CreateCreditRequestPage() {
       await supabase.from('notifications').insert({
         notification_type: 'CREDIT_REQUEST',
         title: 'New Credit Request',
-        message: `${user.name} requested ${formData.amount} credit limit`,
+        message: `${user.name} requested ${formatCurrency(parseFloat(formData.amount))} credit limit`,
         link: `/distributor/credit/${creditRequest.id}`,
       });
 

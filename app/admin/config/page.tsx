@@ -222,11 +222,11 @@ export default function ConfigPage() {
                       <Input value={band.name} />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">Min Revenue ($)</label>
+                      <label className="block text-xs text-gray-600 mb-1">Min Revenue (SAR)</label>
                       <Input type="number" value={band.minRevenue} />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">Max Revenue ($)</label>
+                      <label className="block text-xs text-gray-600 mb-1">Max Revenue (SAR)</label>
                       <Input type="number" value={band.maxRevenue || ''} placeholder="Unlimited" />
                     </div>
                     <div>

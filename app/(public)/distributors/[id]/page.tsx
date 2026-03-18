@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
+import { formatCurrency } from '@/lib/utils';
 import { 
   Building, 
   MapPin, 
@@ -190,7 +191,7 @@ export default function DistributorDetailPage() {
                               <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
                               <p className="text-sm text-gray-600 line-clamp-2">{product.short_description}</p>
                               <p className="text-lg font-bold text-blue-600 mt-2">
-                                ${product.price?.toLocaleString()}
+                                {formatCurrency(product.price || 0)}
                               </p>
                             </div>
                           </div>
