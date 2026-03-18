@@ -30,15 +30,94 @@ export default function CreditReviewPage() {
     reviewNotes: '',
     rejectionReason: ''
   });
+  const [communicationMessage, setCommunicationMessage] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [newMessageIndicator, setNewMessageIndicator] = useState(false);
 
   useEffect(() => {
     if (user && creditId) {
       fetchCreditDetails();
       fetchActivities();
+      testActivitiesTable(); // Test if table exists
     }
   }, [user, creditId]);
+
+  // Real-time subscription for credit request activities
+  useEffect(() => {
+    if (!creditId) return;
+
+    // Subscribe to real-time changes for this credit request's activities
+    const channel = supabase
+      .channel(`credit_activities_${creditId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'credit_request_activities',
+          filter: `credit_request_id=eq.${creditId}`
+        },
+        (payload) => {
+          console.log('Real-time activity update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            // Add new activity to the list
+            setActivities(prev => [...prev, payload.new]);
+            // Show indicator for new message
+            setNewMessageIndicator(true);
+            setTimeout(() => setNewMessageIndicator(false), 3000);
+            
+            // Show toast notification
+            if (payload.new.created_by !== user?.id) {
+              toast.info('New message received from reseller');
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            // Update existing activity
+            setActivities(prev => 
+              prev.map(activity => 
+                activity.id === payload.new.id ? payload.new : activity
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            // Remove activity from list
+            setActivities(prev => 
+              prev.filter(activity => activity.id !== payload.old.id)
+            );
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Real-time subscription established for credit activities');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Real-time subscription error');
+        }
+      });
+
+    // Also subscribe to credit request changes
+    const creditChannel = supabase
+      .channel(`credit_request_${creditId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'credit_requests',
+          filter: `id=eq.${creditId}`
+        },
+        (payload) => {
+          console.log('Real-time credit request update:', payload);
+          setCredit(payload.new);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(creditChannel);
+    };
+  }, [creditId]);
 
   const fetchCreditDetails = async () => {
     try {
@@ -72,6 +151,8 @@ export default function CreditReviewPage() {
 
   const fetchActivities = async () => {
     try {
+      console.log('Distributor - Fetching activities for credit request:', creditId);
+      
       const { data, error } = await supabase
         .from('credit_request_activities')
         .select(`
@@ -82,10 +163,79 @@ export default function CreditReviewPage() {
         .eq('is_internal', false)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Distributor - Database error:', error);
+        throw error;
+      }
+      
+      console.log('Distributor - Activities fetched:', {
+        count: data?.length || 0,
+        activities: data
+      });
+      
       setActivities(data || []);
     } catch (error) {
-      console.error('Error fetching activities:', error);
+      console.error('Distributor - Error fetching activities:', error);
+      setActivities([]);
+    }
+  };
+
+  // Test function to verify table exists
+  const testActivitiesTable = async () => {
+    try {
+      console.log('Testing credit_request_activities table...');
+      
+      // Try to fetch all activities (limit 1) to test if table exists
+      const { data, error } = await supabase
+        .from('credit_request_activities')
+        .select('*')
+        .limit(1);
+      
+      if (error) {
+        console.error('Table test failed - Table might not exist:', error);
+        toast.error('Activities table not found. Please run database migration.');
+        return false;
+      }
+      
+      console.log('Table test passed - Activities table exists');
+      return true;
+    } catch (error) {
+      console.error('Table test failed:', error);
+      return false;
+    }
+  };
+
+  // Test function to manually create an activity
+  const createTestActivity = async () => {
+    try {
+      console.log('Creating test activity...');
+      
+      const { data, error } = await supabase
+        .from('credit_request_activities')
+        .insert({
+          credit_request_id: creditId,
+          activity_type: 'INFO_REQUESTED',
+          message: 'Test activity created at ' + new Date().toLocaleTimeString(),
+          created_by: user?.id,
+          is_internal: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Test activity creation failed:', error);
+        toast.error('Failed to create test activity');
+        return;
+      }
+      
+      console.log('Test activity created successfully:', data);
+      toast.success('Test activity created successfully');
+      
+      // Refresh activities to show the new one
+      fetchActivities();
+    } catch (error) {
+      console.error('Test activity creation failed:', error);
+      toast.error('Failed to create test activity');
     }
   };
 
@@ -173,8 +323,10 @@ export default function CreditReviewPage() {
     }
   };
 
-  const handleRequestMoreInfo = async () => {
-    if (!reviewData.reviewNotes.trim()) {
+  const handleRequestMoreInfo = async (message?: string) => {
+    const messageToUse = message || reviewData.reviewNotes;
+    
+    if (!messageToUse.trim()) {
       toast.error('Please specify what additional information is needed');
       return;
     }
@@ -187,7 +339,7 @@ export default function CreditReviewPage() {
         .update({
           status: 'UNDER_REVIEW',
           additional_info_requested: true,
-          additional_info_notes: reviewData.reviewNotes,
+          additional_info_notes: messageToUse,
           reviewer_id: user?.id,
           reviewed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -202,7 +354,7 @@ export default function CreditReviewPage() {
         .insert({
           credit_request_id: creditId,
           activity_type: 'INFO_REQUESTED',
-          message: reviewData.reviewNotes,
+          message: messageToUse,
           created_by: user?.id,
           is_internal: false
         });
@@ -395,82 +547,185 @@ export default function CreditReviewPage() {
             </CardContent>
           </Card>
 
+          
           {/* Communication History */}
-          {activities.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
+          <Card className={`border-2 border-gray-100 transition-all duration-300 ${newMessageIndicator ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}>
+            <CardHeader className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-b transition-all duration-300 ${newMessageIndicator ? 'bg-blue-100' : ''}`}>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-gray-800">
+                  <MessageSquare className={`h-5 w-5 text-blue-600 transition-all duration-300 ${newMessageIndicator ? 'animate-pulse' : ''}`} />
                   Communication History
+                  {newMessageIndicator && (
+                    <span className="text-xs text-blue-600 font-medium animate-fade-in">New message!</span>
+                  )}
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {activities.map((activity) => (
-                    <div key={activity.id} className={`border-l-4 pl-4 py-2 ${
-                      activity.activity_type === 'INFO_REQUESTED' ? 'border-orange-500' : 'border-blue-500'
-                    }`}>
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={activity.activity_type === 'INFO_REQUESTED' ? 'warning' : 'info'}>
-                            {activity.activity_type === 'INFO_REQUESTED' ? 'Info Requested' : 'Info Provided'}
-                          </Badge>
-                          <p className="text-sm font-semibold text-gray-700">
-                            {activity.users?.name || 'System'}
-                          </p>
+                {activities.length > 0 && (
+                  <Badge variant="info" className={`bg-blue-100 text-blue-800 transition-all duration-300 ${newMessageIndicator ? 'bg-blue-200 text-blue-900' : ''}`}>
+                    {activities.length} {activities.length === 1 ? 'message' : 'messages'}
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {activities.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {activities.map((activity, index) => (
+                    <div key={activity.id} className={`p-6 ${
+                      activity.activity_type === 'INFO_REQUESTED' ? 'bg-orange-50/50' : 'bg-blue-50/30'
+                    } ${index === 0 ? 'rounded-t-lg' : ''} ${index === activities.length - 1 ? 'rounded-b-lg' : ''}`}>
+                      <div className="flex items-start gap-4">
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                          activity.activity_type === 'INFO_REQUESTED' 
+                            ? 'bg-orange-200 text-orange-700' 
+                            : 'bg-blue-200 text-blue-700'
+                        }`}>
+                          {activity.activity_type === 'INFO_REQUESTED' ? (
+                            <AlertCircle className="h-5 w-5" />
+                          ) : (
+                            <CheckCircle className="h-5 w-5" />
+                          )}
                         </div>
-                        <p className="text-xs text-gray-500">
-                          {formatRelativeTime(activity.created_at)}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                activity.activity_type === 'INFO_REQUESTED'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {activity.activity_type === 'INFO_REQUESTED' ? 'Information Requested' : 'Information Provided'}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900">
+                                {activity.users?.name || 'System'}
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {formatRelativeTime(activity.created_at)}
+                            </span>
+                          </div>
+                          <div className="text-gray-700 leading-relaxed">
+                            {activity.message}
+                          </div>
+                          
+                          {/* Display attachments */}
+                          {activity.attachments && activity.attachments.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              <p className="text-sm font-medium text-gray-600">Attachments:</p>
+                              <div className="space-y-2">
+                                {activity.attachments.map((attachment: any, index: number) => (
+                                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-gray-500" />
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-700">{attachment.name}</p>
+                                        <p className="text-xs text-gray-500">{(attachment.size / 1024 / 1024).toFixed(2)} MB</p>
+                                      </div>
+                                    </div>
+                                    <a
+                                      href={attachment.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                    >
+                                      View
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-800 mt-2">{activity.message}</p>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  
+                  {/* Continue Conversation Section */}
+                  <div className="p-6 bg-blue-50/30 border-t border-blue-200">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MessageSquare className="h-5 w-5 text-blue-600" />
+                        <h4 className="font-semibold text-blue-900">Continue Conversation</h4>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-900">Message to Reseller</label>
+                        <Textarea
+                          value={communicationMessage}
+                          onChange={(e) => setCommunicationMessage(e.target.value)}
+                          rows={3}
+                          placeholder="Request additional information or provide feedback..."
+                          className="bg-white border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
 
-          {/* Communication History */}
-          {activities.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Communication History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {activities.map((activity) => (
-                    <div key={activity.id} className={`border-l-4 pl-4 py-2 ${
-                      activity.activity_type === 'INFO_REQUESTED' ? 'border-orange-500' : 'border-blue-500'
-                    }`}>
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={activity.activity_type === 'INFO_REQUESTED' ? 'warning' : 'info'}>
-                            {activity.activity_type === 'INFO_REQUESTED' ? 'Info Requested' : 'Info Provided'}
-                          </Badge>
-                          <p className="text-sm font-semibold text-gray-700">
-                            {activity.users?.name || 'System'}
-                          </p>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {formatRelativeTime(activity.created_at)}
-                        </p>
-                      </div>
-                      <p className="text-sm text-gray-800 mt-2">{activity.message}</p>
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          handleRequestMoreInfo(communicationMessage);
+                          setCommunicationMessage(''); // Clear the communication message after sending
+                        }}
+                        disabled={reviewing || !communicationMessage.trim()}
+                        className="w-full"
+                        size="sm"
+                      >
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        {reviewing ? 'Sending...' : 'Request More Information'}
+                      </Button>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <div className="p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageSquare className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Communication Yet</h3>
+                  <p className="text-gray-500 max-w-md mx-auto mb-6">
+                    Start a conversation by requesting additional information from the reseller.
+                  </p>
+                  
+                  {/* Request More Info Form */}
+                  <div className="max-w-md mx-auto">
+                    <div className="space-y-4">
+                      <div className="text-left">
+                        <label className="block text-sm font-medium text-gray-900 mb-2">Request Additional Information</label>
+                        <Textarea
+                          value={communicationMessage}
+                          onChange={(e) => setCommunicationMessage(e.target.value)}
+                          rows={3}
+                          placeholder="Specify what additional information you need from the reseller..."
+                          className="bg-white border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
+                      
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          handleRequestMoreInfo(communicationMessage);
+                          setCommunicationMessage(''); // Clear the communication message after sending
+                        }}
+                        disabled={reviewing || !communicationMessage.trim()}
+                        className="w-full"
+                      >
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        {reviewing ? 'Sending Request...' : 'Request More Information'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Review Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Credit Review</CardTitle>
+          <Card className="border-2 border-gray-100">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-200 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-green-700" />
+                </div>
+                <CardTitle className="text-gray-800">Credit Review & Decision</CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
@@ -527,31 +782,34 @@ export default function CreditReviewPage() {
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button 
-                  onClick={handleApprove} 
-                  disabled={reviewing}
-                  className="flex-1"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {reviewing ? 'Processing...' : 'Approve'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleRequestMoreInfo}
-                  disabled={reviewing}
-                >
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  Request More Info
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={handleReject}
-                  disabled={reviewing}
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Reject
-                </Button>
+              <div className="border-t pt-6 mt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-3 w-3 text-blue-700" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800">Make Decision</h4>
+                </div>
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={handleApprove} 
+                    disabled={reviewing}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium"
+                    size="lg"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {reviewing ? 'Processing...' : 'Approve Credit'}
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleReject}
+                    disabled={reviewing}
+                    className="flex-1 font-medium"
+                    size="lg"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    {reviewing ? 'Processing...' : 'Reject Credit'}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -35,7 +35,24 @@ export default function CreditRequestsPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRequests(data || []);
+      
+      // Fetch activity counts for each request
+      const requestsWithActivities = await Promise.all(
+        (data || []).map(async (request) => {
+          const { data: activities, error: activityError } = await supabase
+            .from('credit_request_activities')
+            .select('id')
+            .eq('credit_request_id', request.id)
+            .eq('is_internal', false);
+          
+          return {
+            ...request,
+            activity_count: activityError ? 0 : (activities?.length || 0)
+          };
+        })
+      );
+      
+      setRequests(requestsWithActivities);
     } catch (error) {
       console.error('Error fetching credit requests:', error);
     } finally {
@@ -162,34 +179,42 @@ export default function CreditRequestsPage() {
       ) : (
         <div className="space-y-6">
           {requests.map((request) => (
-          <Card key={request.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="mb-2">{request.users?.name || 'Unknown Reseller'}</CardTitle>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={
-                      request.status === 'PENDING' ? 'warning' :
-                      request.status === 'UNDER_REVIEW' ? 'info' :
-                      request.status === 'APPROVED' ? 'success' :
-                      'danger'
-                    }>
-                      {request.status.replace('_', ' ')}
-                    </Badge>
-                    <span className="text-sm text-gray-600">
-                      {formatRelativeTime(request.created_at)}
-                    </span>
+          <Card key={request.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+              <Link href={`/distributor/credit/${request.id}/review`} className="block">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="mb-2 group-hover:text-blue-600 transition-colors">
+                        {request.users?.name || 'Unknown Reseller'}
+                      </CardTitle>
+                      <div className="flex items-center gap-3">
+                        <Badge variant={
+                          request.status === 'PENDING' ? 'warning' :
+                          request.status === 'UNDER_REVIEW' ? 'info' :
+                          request.status === 'APPROVED' ? 'success' :
+                          'danger'
+                        }>
+                          {request.status.replace('_', ' ')}
+                        </Badge>
+                        <span className="text-sm text-gray-600">
+                          {formatRelativeTime(request.created_at)}
+                        </span>
+                        {request.activity_count > 0 && (
+                          <Badge variant="info" className="bg-blue-100 text-blue-800">
+                            {request.activity_count} {request.activity_count === 1 ? 'message' : 'messages'}
+                          </Badge>
+                        )}
+                      </div>
+                    <p className="text-sm text-gray-600 mt-1">{request.users?.email}</p>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{request.users?.email}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600 mb-1">Requested Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(request.amount)}</p>
-                  <p className="text-sm text-gray-600 mt-1">{request.payment_terms || 'N/A'}</p>
-                  {request.expected_monthly_volume && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Expected Monthly: {formatCurrency(request.expected_monthly_volume)}
-                    </p>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600 mb-1">Requested Amount</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(request.amount)}</p>
+                    <p className="text-sm text-gray-600 mt-1">{request.payment_terms || 'N/A'}</p>
+                    {request.expected_monthly_volume && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Expected Monthly: {formatCurrency(request.expected_monthly_volume)}
+                      </p>
                   )}
                 </div>
               </div>
@@ -211,15 +236,21 @@ export default function CreditRequestsPage() {
                         <FileText className="h-4 w-4 text-gray-600" />
                         <span className="text-sm">{doc.document_type || 'Document'}</span>
                       </div>
-                      <a href={doc.document_url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </a>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          window.open(doc.document_url, '_blank', 'noopener,noreferrer');
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                   {(!request.credit_request_documents || request.credit_request_documents.length === 0) && (
-                    <p className="text-sm text-gray-500 col-span-3">No documents uploaded</p>
+                    <p className="text-sm text-gray-500 col-span-2">No documents uploaded</p>
                   )}
                 </div>
               </div>
@@ -254,13 +285,27 @@ export default function CreditRequestsPage() {
                   </div>
                 </div>
               )}
-
-              {request.status === 'PENDING' && (
-                <div className="flex gap-3">
+              </CardContent>
+            </Link>
+            
+            {request.status === 'PENDING' && (
+              <CardContent className="pt-0">
+                <div className="flex gap-3 flex-wrap pt-4 border-t">
                   <Link href={`/distributor/credit/${request.id}/review`}>
                     <Button size="sm" variant="outline">
                       <Eye className="h-4 w-4 mr-2" />
                       Review Documents
+                    </Button>
+                  </Link>
+                  <Link href={`/distributor/credit/${request.id}/review`}>
+                    <Button size="sm" variant="secondary" className="relative">
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Communication
+                      {request.activity_count > 0 && (
+                        <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                          {request.activity_count}
+                        </Badge>
+                      )}
                     </Button>
                   </Link>
                   <Button size="sm" onClick={() => handleApprove(request.id, request.amount)}>
@@ -276,8 +321,38 @@ export default function CreditRequestsPage() {
                     Request More Info
                   </Button>
                 </div>
-              )}
-            </CardContent>
+              </CardContent>
+            )}
+
+            {request.status === 'UNDER_REVIEW' && (
+              <CardContent className="pt-0">
+                <div className="flex gap-3 flex-wrap pt-4 border-t">
+                  <Link href={`/distributor/credit/${request.id}/review`}>
+                    <Button size="sm" variant="secondary" className="relative">
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Communication
+                      {request.activity_count > 0 && (
+                        <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                          {request.activity_count}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+                  <Button size="sm" onClick={() => handleApprove(request.id, request.amount)}>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleDecline(request.id)}>
+                    <X className="h-4 w-4 mr-2" />
+                    Decline
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleRequestMoreInfo(request.id)}>
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Request More Info
+                  </Button>
+                </div>
+              </CardContent>
+            )}
           </Card>
           ))}
         </div>

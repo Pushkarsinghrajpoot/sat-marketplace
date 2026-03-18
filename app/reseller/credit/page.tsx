@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Clock, CheckCircle, XCircle, FileText, CreditCard, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
+import { DollarSign, Clock, CheckCircle, XCircle, FileText, CreditCard, TrendingUp, AlertCircle, Calendar, Eye } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
@@ -313,11 +313,17 @@ export default function CreditRequestsPage() {
                     </div>
                   )}
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 flex-wrap">
                     <Link href={`/reseller/credit/${request.id}`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
-                        <FileText className="h-4 w-4 mr-2" />
+                        <Eye className="h-4 w-4 mr-2" />
                         View Details
+                      </Button>
+                    </Link>
+                    <Link href={`/reseller/credit/${request.id}`} className="flex-1">
+                      <Button variant="secondary" size="sm" className="w-full">
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Communication
                       </Button>
                     </Link>
                     {request.status === 'MORE_INFO_REQUIRED' && (
