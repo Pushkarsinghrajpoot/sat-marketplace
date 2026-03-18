@@ -25,7 +25,11 @@ export default function CreditRequestsPage() {
     try {
       const { data, error } = await supabase
         .from('credit_requests')
-        .select('*, users(*)')
+        .select(`
+          *,
+          users:reseller_id(id, name, email),
+          credit_request_documents(*)
+        `)
         .eq('distributor_id', user.organizationId)
         .order('created_at', { ascending: false });
 
@@ -40,16 +44,31 @@ export default function CreditRequestsPage() {
 
   const handleApprove = async (requestId: string, amount: number) => {
     try {
+      const request = requests.find(r => r.id === requestId);
+      
       const { error } = await supabase
         .from('credit_requests')
         .update({ 
           status: 'APPROVED',
           approved_limit: amount,
+          reviewer_id: user?.id,
+          reviewed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', requestId);
 
       if (error) throw error;
+
+      // Notify reseller
+      if (request?.reseller_id) {
+        await supabase.from('notifications').insert({
+          user_id: request.reseller_id,
+          notification_type: 'CREDIT_APPROVED',
+          title: 'Credit Request Approved',
+          message: `Your credit request for ${formatCurrency(amount)} has been approved`,
+          link: `/reseller/credit`,
+        });
+      }
 
       toast.success('Credit request approved!');
       fetchCreditRequests();
@@ -59,18 +78,33 @@ export default function CreditRequestsPage() {
     }
   };
 
-  const handleDecline = async (requestId: string) => {
+  const handleDecline = async (requestId: string, reason?: string) => {
     try {
+      const request = requests.find(r => r.id === requestId);
+      
       const { error } = await supabase
         .from('credit_requests')
         .update({ 
           status: 'REJECTED',
-          review_notes: 'Request declined by distributor',
+          rejection_reason: reason || 'Request declined by distributor',
+          reviewer_id: user?.id,
+          reviewed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', requestId);
 
       if (error) throw error;
+
+      // Notify reseller
+      if (request?.reseller_id) {
+        await supabase.from('notifications').insert({
+          user_id: request.reseller_id,
+          notification_type: 'CREDIT_REJECTED',
+          title: 'Credit Request Declined',
+          message: `Your credit request has been declined. Reason: ${reason || 'Not specified'}`,
+          link: `/reseller/credit`,
+        });
+      }
 
       toast.info('Credit request declined');
       fetchCreditRequests();
@@ -131,41 +165,61 @@ export default function CreditRequestsPage() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="mb-2">{request.reseller}</CardTitle>
+                  <CardTitle className="mb-2">{request.users?.name || 'Unknown Reseller'}</CardTitle>
                   <div className="flex items-center gap-3">
                     <Badge variant={
                       request.status === 'PENDING' ? 'warning' :
+                      request.status === 'UNDER_REVIEW' ? 'info' :
                       request.status === 'APPROVED' ? 'success' :
                       'danger'
                     }>
-                      {request.status}
+                      {request.status.replace('_', ' ')}
                     </Badge>
                     <span className="text-sm text-gray-600">
-                      Requested {formatRelativeTime(request.submittedAt)}
+                      {formatRelativeTime(request.created_at)}
                     </span>
                   </div>
+                  <p className="text-sm text-gray-600 mt-1">{request.users?.email}</p>
                 </div>
                 <div className="text-right">
+                  <p className="text-sm text-gray-600 mb-1">Requested Amount</p>
                   <p className="text-2xl font-bold text-gray-900">{formatCurrency(request.amount)}</p>
-                  <p className="text-sm text-gray-600">{request.terms}</p>
+                  <p className="text-sm text-gray-600 mt-1">{request.payment_terms || 'N/A'}</p>
+                  {request.expected_monthly_volume && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Expected Monthly: {formatCurrency(request.expected_monthly_volume)}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {request.terms && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Business Justification</p>
+                  <p className="text-sm text-gray-800">{request.terms}</p>
+                </div>
+              )}
+
               <div>
                 <h4 className="font-semibold text-sm mb-3">Submitted Documents</h4>
                 <div className="grid md:grid-cols-3 gap-3">
-                  {(request.documents || []).map((doc: string, idx: number) => (
-                    <div key={idx} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                  {(request.credit_request_documents || []).map((doc: any) => (
+                    <div key={doc.id} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-gray-600" />
-                        <span className="text-sm">{doc}</span>
+                        <span className="text-sm">{doc.document_type || 'Document'}</span>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      <a href={doc.document_url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="sm">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </a>
                     </div>
                   ))}
+                  {(!request.credit_request_documents || request.credit_request_documents.length === 0) && (
+                    <p className="text-sm text-gray-500 col-span-3">No documents uploaded</p>
+                  )}
                 </div>
               </div>
 
@@ -175,12 +229,26 @@ export default function CreditRequestsPage() {
                     <CheckCircle className="h-5 w-5 text-green-600" />
                     <div>
                       <p className="font-semibold text-sm text-green-900">Approved Credit Limit</p>
-                      <p className="text-sm text-green-800">{formatCurrency(request.approvedLimit!)} - {request.terms}</p>
-                      {request.reviewedAt && (
+                      <p className="text-sm text-green-800">
+                        {formatCurrency(request.approved_limit || 0)} - {request.payment_terms}
+                      </p>
+                      {request.reviewed_at && (
                         <p className="text-xs text-green-700 mt-1">
-                          Reviewed {formatRelativeTime(request.reviewedAt)}
+                          Reviewed {formatRelativeTime(request.reviewed_at)}
                         </p>
                       )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {request.status === 'REJECTED' && request.rejection_reason && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <X className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-sm text-red-900">Declined</p>
+                      <p className="text-sm text-red-800">{request.rejection_reason}</p>
                     </div>
                   </div>
                 </div>

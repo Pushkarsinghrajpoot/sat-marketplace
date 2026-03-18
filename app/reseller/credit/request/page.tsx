@@ -101,7 +101,9 @@ export default function CreateCreditRequestPage() {
           reseller_id: user.id,
           distributor_id: formData.distributorId,
           amount: parseFloat(formData.amount),
-          terms: `${formData.paymentTerms} days payment terms. Expected monthly purchase: $${formData.monthlyPurchase}. ${formData.businessJustification}`,
+          expected_monthly_volume: parseFloat(formData.monthlyPurchase),
+          payment_terms: `Net ${formData.paymentTerms}`,
+          terms: formData.businessJustification,
           status: 'PENDING',
         })
         .select()

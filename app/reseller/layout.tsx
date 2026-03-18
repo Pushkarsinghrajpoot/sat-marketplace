@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
@@ -11,6 +11,7 @@ const navigation = [
   { name: 'Dashboard', href: '/reseller/dashboard', icon: LayoutDashboard },
   { name: 'My Deals', href: '/reseller/deals', icon: Briefcase },
   { name: 'Register Deal', href: '/reseller/deals/register', icon: PlusCircle },
+  { name: 'Credit Limit', href: '/reseller/credit', icon: CreditCard },
   { name: 'Messages', href: '/reseller/messages', icon: MessageCircle },
   { name: 'Inquiries', href: '/reseller/inquiries', icon: HelpCircle },
   { name: 'Quotes', href: '/reseller/quotes', icon: FileText },
