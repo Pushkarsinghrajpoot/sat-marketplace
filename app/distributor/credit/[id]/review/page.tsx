@@ -194,6 +194,44 @@ export default function CreditReviewPage() {
     setShowDocumentModal(true);
   };
 
+  const getDocumentPreviewUrl = (doc: any) => {
+    const fileExtension = doc.file_name?.split('.').pop()?.toLowerCase();
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(fileExtension)) {
+      return doc.document_url;
+    }
+    
+    if (fileExtension === 'pdf') {
+      return doc.document_url;
+    }
+    
+    // For doc/docx files, use Google Docs viewer
+    if (['doc', 'docx'].includes(fileExtension)) {
+      return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(doc.document_url)}`;
+    }
+    
+    // Fallback to direct URL
+    return doc.document_url;
+  };
+
+  const getDocumentType = (doc: any) => {
+    const fileExtension = doc.file_name?.split('.').pop()?.toLowerCase();
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(fileExtension)) {
+      return 'image';
+    }
+    
+    if (fileExtension === 'pdf') {
+      return 'pdf';
+    }
+    
+    if (['doc', 'docx'].includes(fileExtension)) {
+      return 'document';
+    }
+    
+    return 'unknown';
+  };
+
   if (loading) {
     return (
       <div className="p-6 lg:p-8">
@@ -451,21 +489,65 @@ export default function CreditReviewPage() {
       {/* Document Modal */}
       {showDocumentModal && selectedDocument && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] w-full mx-4">
+          <div className="bg-white rounded-lg max-w-5xl max-h-[90vh] w-full mx-4">
             <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold">
-                {selectedDocument.document_type?.replace('_', ' ') || 'Document'}
-              </h3>
-              <Button variant="ghost" onClick={() => setShowDocumentModal(false)}>
-                <X className="h-4 w-4" />
-              </Button>
+              <div>
+                <h3 className="font-semibold">
+                  {selectedDocument.document_type?.replace('_', ' ') || 'Document'}
+                </h3>
+                <p className="text-sm text-gray-600">{selectedDocument.file_name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a href={selectedDocument.document_url} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </a>
+                <Button variant="ghost" onClick={() => setShowDocumentModal(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="p-4">
-              <iframe
-                src={selectedDocument.document_url}
-                className="w-full h-[70vh] border rounded"
-                title="Document Preview"
-              />
+              {getDocumentType(selectedDocument) === 'image' && (
+                <div className="flex justify-center">
+                  <img
+                    src={getDocumentPreviewUrl(selectedDocument)}
+                    alt={selectedDocument.file_name}
+                    className="max-w-full max-h-[70vh] object-contain rounded"
+                  />
+                </div>
+              )}
+              
+              {getDocumentType(selectedDocument) === 'pdf' && (
+                <iframe
+                  src={getDocumentPreviewUrl(selectedDocument)}
+                  className="w-full h-[70vh] border rounded"
+                  title="PDF Preview"
+                />
+              )}
+              
+              {getDocumentType(selectedDocument) === 'document' && (
+                <iframe
+                  src={getDocumentPreviewUrl(selectedDocument)}
+                  className="w-full h-[70vh] border rounded"
+                  title="Document Preview"
+                />
+              )}
+              
+              {getDocumentType(selectedDocument) === 'unknown' && (
+                <div className="text-center py-12">
+                  <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">Preview not available for this file type</p>
+                  <a href={selectedDocument.document_url} target="_blank" rel="noopener noreferrer">
+                    <Button>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download File
+                    </Button>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
