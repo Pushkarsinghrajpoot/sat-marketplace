@@ -11,19 +11,24 @@ import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
+type FilterType = 'all' | 'pending' | 'accepted' | 'rejected' | 'boqs';
+
 export default function ResellerQuotesPage() {
   const { user, organization } = useSimpleAuth();
   const [quotes, setQuotes] = useState<any[]>([]);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
+  const [boqs, setBOQs] = useState<any[]>([]);
+  const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadQuotes();
+      loadBOQs();
     }
   }, [user, filter]);
 
   const loadQuotes = async () => {
+    if (filter === 'boqs') return;
     setLoading(true);
     try {
       let query = supabase
@@ -46,13 +51,13 @@ export default function ResellerQuotesPage() {
         .eq('reseller_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (filter !== 'all') {
-        const statusMap = {
+      if (filter !== 'all' && filter !== 'boqs') {
+        const statusMap: Record<string, string> = {
           pending: 'TO_SUBMIT',
           accepted: 'WON',
           rejected: 'LOST'
         };
-        query = query.eq('status', statusMap[filter]);
+        query = query.eq('status', statusMap[filter as keyof typeof statusMap]);
       }
 
       const { data, error } = await query;
@@ -63,6 +68,39 @@ export default function ResellerQuotesPage() {
       console.error('Error loading quotes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBOQs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('boqs')
+        .select(`
+          *,
+          deals (
+            id,
+            opportunity_name,
+            customer_name,
+            customer_company
+          ),
+          quotes:quotes!boq_id (
+            id,
+            status,
+            total,
+            distributor_id,
+            organizations:distributor_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('reseller_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBOQs(data || []);
+    } catch (error) {
+      console.error('Error loading BOQs:', error);
     }
   };
 
@@ -86,6 +124,12 @@ export default function ResellerQuotesPage() {
       </div>
 
       <div className="flex gap-2 mb-6">
+        <Button
+          variant={filter === 'boqs' ? 'primary' : 'outline'}
+          onClick={() => setFilter('boqs')}
+        >
+          My BOQs ({boqs.length})
+        </Button>
         <Button
           variant={filter === 'all' ? 'primary' : 'outline'}
           onClick={() => setFilter('all')}
@@ -112,7 +156,95 @@ export default function ResellerQuotesPage() {
         </Button>
       </div>
 
-      {loading ? (
+      {filter === 'boqs' ? (
+        loading ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <p className="text-gray-500">Loading BOQs...</p>
+            </CardContent>
+          </Card>
+        ) : boqs.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <p className="text-gray-500">No BOQs found</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {boqs.map((boq) => (
+              <Card key={boq.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="font-bold text-lg">BOQ-{boq.id.slice(-8)}</h3>
+                        <Badge variant="info">{boq.visibility}</Badge>
+                        {boq.quotes && boq.quotes.length > 0 && (
+                          <Badge variant="success">{boq.quotes.length} Quote(s) Received</Badge>
+                        )}
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Deal</p>
+                          <p className="font-semibold">{boq.deals?.opportunity_name || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Customer</p>
+                          <p className="font-semibold">{boq.deals?.customer_company || boq.deals?.customer_name || 'N/A'}</p>
+                        </div>
+                      </div>
+
+                      {boq.quotes && boq.quotes.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 mb-2">Quotes Received:</p>
+                          <div className="space-y-2">
+                            {boq.quotes.map((quote: any) => (
+                              <div key={quote.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium">{quote.organizations?.name || 'Unknown'}</span>
+                                  <Badge variant={getStatusBadge(quote.status).props.variant}>
+                                    {getStatusBadge(quote.status).props.children}
+                                  </Badge>
+                                </div>
+                                <span className="text-sm font-bold">{formatCurrency(quote.total || 0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {formatDistanceToNow(new Date(boq.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {boq.file_url && (
+                        <Button variant="outline" size="sm" onClick={() => window.open(boq.file_url, '_blank')}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download BOQ
+                        </Button>
+                      )}
+                      {boq.deal_id && (
+                        <Link href={`/reseller/deals/${boq.deal_id}`}>
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Deal
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
+      ) : loading ? (
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-gray-500">Loading quotes...</p>

@@ -254,12 +254,20 @@ ${quote.notes || 'No additional notes'}
     );
   }
 
+  const handleBack = () => {
+    if (quote?.deal_id) {
+      router.push(`/reseller/deals/${quote.deal_id}/quotes`);
+    } else {
+      router.push('/reseller/quotes');
+    }
+  };
+
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-6">
-        <Button variant="outline" onClick={() => router.back()}>
+        <Button variant="outline" onClick={handleBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Quotes
+          {quote?.deal_id ? 'Back to Deal Quotes' : 'Back to Quotes'}
         </Button>
       </div>
 

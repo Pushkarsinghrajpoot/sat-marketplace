@@ -30,7 +30,7 @@ export default function QuotesPage() {
       console.log('Fetching quotes and BOQs for distributor:', user.organizationId);
       const [quotesData, boqsData] = await Promise.all([
         getQuotes({ distributorId: user.organizationId }),
-        getBOQs({ distributorId: user.organizationId })
+        getBOQs({ distributorId: user.organizationId, excludeAccepted: true })
       ]);
       
       console.log('Fetched quotes:', quotesData.length);

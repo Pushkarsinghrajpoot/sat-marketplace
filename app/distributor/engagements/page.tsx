@@ -90,10 +90,25 @@ export default function EngagementsPage() {
   const handleDecline = async (engagementId: string) => {
     if (!user?.id) return;
     try {
+      // Get engagement details to notify reseller
+      const engagement = engagements.find((e: any) => e.id === engagementId);
+      
       await updateEngagementRequest(engagementId, { 
         status: 'DECLINED',
         decline_reason: 'Not interested at this time'
       }, user.id);
+
+      // Notify reseller about decline
+      if (engagement?.reseller_id) {
+        await supabase.from('notifications').insert({
+          user_id: engagement.reseller_id,
+          notification_type: 'ENGAGEMENT_DECLINED',
+          title: 'Engagement Request Declined',
+          message: `Your engagement request for deal "${engagement.deals?.opportunity_name || 'N/A'}" has been declined`,
+          link: `/reseller/deals/${engagement.deal_id}`,
+        });
+      }
+
       toast.info('Engagement declined');
       fetchEngagements();
     } catch (error) {

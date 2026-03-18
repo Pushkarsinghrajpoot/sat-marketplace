@@ -154,7 +154,7 @@ export async function getQuotes(filters?: { dealId?: string; distributorId?: str
   return mapArray(data || [], mapQuote);
 }
 
-export async function getBOQs(filters?: { distributorId?: string; visibility?: string }) {
+export async function getBOQs(filters?: { distributorId?: string; visibility?: string; excludeAccepted?: boolean }) {
   let query = supabase
     .from('boqs')
     .select(`
@@ -179,7 +179,25 @@ export async function getBOQs(filters?: { distributorId?: string; visibility?: s
     return [];
   }
 
-  return mapArray(data || [], mapBOQ);
+  let boqs = mapArray(data || [], mapBOQ);
+
+  // Filter out BOQs that have accepted/won quotes if requested
+  if (filters?.excludeAccepted) {
+    const boqIds = boqs.map(b => b.id);
+    
+    if (boqIds.length > 0) {
+      const { data: wonQuotes } = await supabase
+        .from('quotes')
+        .select('boq_id')
+        .in('boq_id', boqIds)
+        .eq('status', 'WON');
+      
+      const wonBoqIds = new Set(wonQuotes?.map(q => q.boq_id) || []);
+      boqs = boqs.filter(b => !wonBoqIds.has(b.id));
+    }
+  }
+
+  return boqs;
 }
 
 export async function createEngagementRequest(requestData: any) {
