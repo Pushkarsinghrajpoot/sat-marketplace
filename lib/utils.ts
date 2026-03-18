@@ -10,12 +10,13 @@ export function formatCurrency(amount: number, currency: string = 'SAR'): string
     return 'SAR 0';
   }
   
-  return new Intl.NumberFormat('ar-SA', {
-    style: 'currency',
-    currency,
+  // Format with SAR currency but using English locale for "SAR 10" format
+  const formattedNumber = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
+  
+  return `${currency} ${formattedNumber}`;
 }
 
 export function formatDate(date: string | Date): string {
