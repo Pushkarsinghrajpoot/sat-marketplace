@@ -51,13 +51,13 @@ export default function ResellerQuotesPage() {
         .eq('reseller_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (filter !== 'all' && filter !== 'boqs') {
-        const statusMap: Record<string, string> = {
-          pending: 'TO_SUBMIT',
-          accepted: 'WON',
-          rejected: 'LOST'
-        };
-        query = query.eq('status', statusMap[filter as keyof typeof statusMap]);
+      // Apply status filter only for quote-related filters
+      if (filter === 'pending') {
+        query = query.eq('status', 'TO_SUBMIT');
+      } else if (filter === 'accepted') {
+        query = query.eq('status', 'WON');
+      } else if (filter === 'rejected') {
+        query = query.eq('status', 'LOST');
       }
 
       const { data, error } = await query;
