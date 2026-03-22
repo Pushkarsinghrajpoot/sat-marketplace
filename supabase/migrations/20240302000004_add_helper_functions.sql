@@ -141,7 +141,7 @@ BEGIN
   END IF;
   
   -- WON and LOST are terminal states
-  IF OLD.status IN ('WON', 'LOST', 'CANCELLED') AND NEW.status != OLD.status THEN
+  IF OLD.status IN ('WON', 'LOST') AND NEW.status != OLD.status THEN
     RAISE EXCEPTION 'Cannot change deal status from terminal state %', OLD.status;
   END IF;
   

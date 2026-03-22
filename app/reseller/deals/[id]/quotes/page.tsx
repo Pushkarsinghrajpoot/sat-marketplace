@@ -36,7 +36,7 @@ export default function DealQuotesPage() {
           if (quote.distributor_id) {
             const { data: distributor } = await supabase
               .from('organizations')
-              .select('name, email')
+              .select('name')
               .eq('id', quote.distributor_id)
               .single();
             
@@ -88,16 +88,28 @@ export default function DealQuotesPage() {
         .eq('deal_id', dealId)
         .neq('id', quoteId);
 
-      // Send notification to distributor
+      // Send notification to distributor users
       const quote = quotes.find(q => q.id === quoteId);
       if (quote?.distributor_id) {
-        await supabase.from('notifications').insert({
-          user_id: quote.distributor_id,
-          notification_type: 'QUOTE_ACCEPTED',
-          title: 'Quote Accepted!',
-          message: `Your quote for ${formatCurrency(quote.total || 0)} has been accepted!`,
-          link: `/distributor/quotes/${quoteId}`,
-        });
+        // Find users from the distributor organization
+        const { data: distributorUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('organization_id', quote.distributor_id)
+          .eq('role', 'DISTRIBUTOR');
+        
+        // Send notification to all distributor users
+        if (distributorUsers && distributorUsers.length > 0) {
+          const notifications = distributorUsers.map(user => ({
+            user_id: user.id,
+            notification_type: 'QUOTE_ACCEPTED',
+            title: 'Quote Accepted!',
+            message: `Your quote for ${formatCurrency(quote.total || 0)} has been accepted!`,
+            link: `/distributor/quotes/${quoteId}`,
+          }));
+          
+          await supabase.from('notifications').insert(notifications);
+        }
       }
 
       toast.success('Quote accepted successfully! Deal marked as won.');
