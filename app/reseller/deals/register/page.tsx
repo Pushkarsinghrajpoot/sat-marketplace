@@ -23,6 +23,9 @@ export default function RegisterDealPage() {
   const [verificationSent, setVerificationSent] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerified, setIsVerified] = useState(false);
+  const [sendingOTP, setSendingOTP] = useState(false);
+  const [verifyingOTP, setVerifyingOTP] = useState(false);
+  const [otpRetryAfter, setOtpRetryAfter] = useState(0);
   const [signature, setSignature] = useState('');
   const [loading, setLoading] = useState(false);
   const [distributors, setDistributors] = useState<any[]>([]);
@@ -52,6 +55,23 @@ export default function RegisterDealPage() {
     }
     fetchDistributors();
   }, []);
+
+  // Countdown timer for OTP retry
+  useEffect(() => {
+    if (otpRetryAfter > 0) {
+      const timer = setInterval(() => {
+        setOtpRetryAfter((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [otpRetryAfter]);
 
   const validateCurrentStep = () => {
     switch (currentStep) {
@@ -135,22 +155,95 @@ export default function RegisterDealPage() {
     }
   };
 
-  const handleSendVerification = () => {
+  const handleSendVerification = async () => {
     if (!formData.customerEmail) {
       toast.error('Please enter customer email');
       return;
     }
-    setVerificationSent(true);
-    toast.success('Verification email sent to ' + formData.customerEmail);
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.customerEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setSendingOTP(true);
+    
+    try {
+      const response = await fetch('/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.customerEmail,
+          purpose: 'deal_registration'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          setOtpRetryAfter(data.retryAfter || 120);
+          toast.error(data.error || 'Please wait before requesting a new OTP');
+        } else {
+          throw new Error(data.error || 'Failed to send verification code');
+        }
+        return;
+      }
+
+      setVerificationSent(true);
+      toast.success('Verification code sent to ' + formData.customerEmail);
+    } catch (error: any) {
+      console.error('Error sending OTP:', error);
+      toast.error(error.message || 'Failed to send verification code');
+    } finally {
+      setSendingOTP(false);
+    }
   };
 
-  const handleVerifyCode = () => {
-    if (verificationCode.length === 6) {
+  const handleVerifyCode = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      toast.error('Please enter a valid 6-digit code');
+      return;
+    }
+
+    setVerifyingOTP(true);
+
+    try {
+      const response = await fetch('/api/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.customerEmail,
+          otpCode: verificationCode,
+          purpose: 'deal_registration'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.remainingAttempts !== undefined) {
+          toast.error(`${data.error}. ${data.remainingAttempts} attempts remaining.`);
+        } else {
+          toast.error(data.error || 'Invalid verification code');
+        }
+        return;
+      }
+
       setIsVerified(true);
-      toast.success('Email verified successfully!');
-      setCurrentStep(currentStep + 1);
-    } else {
-      toast.error('Please enter valid 6-digit code');
+      toast.success('✅ Email verified successfully!');
+      
+      // Auto-advance to next step after 1 second
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+      }, 1000);
+    } catch (error: any) {
+      console.error('Error verifying OTP:', error);
+      toast.error(error.message || 'Failed to verify code');
+    } finally {
+      setVerifyingOTP(false);
     }
   };
 
@@ -777,9 +870,13 @@ export default function RegisterDealPage() {
                     </Card>
 
                     <div className="text-center">
-                      <Button onClick={handleSendVerification} size="lg">
+                      <Button 
+                        onClick={handleSendVerification} 
+                        size="lg"
+                        disabled={sendingOTP || otpRetryAfter > 0}
+                      >
                         <Send className="h-4 w-4 mr-2" />
-                        Send Verification Code
+                        {sendingOTP ? 'Sending...' : otpRetryAfter > 0 ? `Wait ${otpRetryAfter}s` : 'Send Verification Code'}
                       </Button>
                     </div>
                   </div>
@@ -805,20 +902,25 @@ export default function RegisterDealPage() {
                       />
                     </div>
 
-                    <div className="text-center">
-                      <Button onClick={handleVerifyCode} disabled={verificationCode.length !== 6}>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Verify Code
-                      </Button>
-                    </div>
-
-                    <div className="text-center">
-                      <button 
-                        onClick={handleSendVerification}
-                        className="text-sm text-blue-600 hover:underline"
+                    <div className="text-center space-y-3">
+                      <Button 
+                        onClick={handleVerifyCode} 
+                        disabled={verificationCode.length !== 6 || verifyingOTP}
+                        size="lg"
                       >
-                        Resend verification code
-                      </button>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        {verifyingOTP ? 'Verifying...' : 'Verify Code'}
+                      </Button>
+                      
+                      <div>
+                        <button 
+                          onClick={handleSendVerification}
+                          className="text-sm text-blue-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={sendingOTP || otpRetryAfter > 0}
+                        >
+                          {sendingOTP ? 'Sending...' : otpRetryAfter > 0 ? `Resend in ${otpRetryAfter}s` : 'Resend verification code'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
