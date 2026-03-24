@@ -251,20 +251,38 @@ export async function addProductReview(review: {
 // Get trending products
 export async function getTrendingProducts(limit: number = 10) {
   try {
-    const { data, error } = await supabase
+    // First try to get products marked as trending
+    const { data: trendingData, error: trendingError } = await supabase
       .from('products')
-      .select('*')
+      .select('*, product_images(*)')
       .eq('is_trending', true)
       .eq('status', 'ACTIVE')
       .order('view_count', { ascending: false })
       .limit(limit);
 
-    if (error) {
-      console.error('Error fetching trending products:', error);
+    if (trendingError) {
+      console.error('Error fetching trending products:', trendingError);
+    }
+
+    // If we have trending products, return them
+    if (trendingData && trendingData.length > 0) {
+      return trendingData;
+    }
+
+    // Otherwise, return recent ACTIVE products
+    const { data: recentData, error: recentError } = await supabase
+      .from('products')
+      .select('*, product_images(*)')
+      .eq('status', 'ACTIVE')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (recentError) {
+      console.error('Error fetching recent products:', recentError);
       return [];
     }
 
-    return data || [];
+    return recentData || [];
   } catch (error) {
     console.error('Error in getTrendingProducts:', error);
     return [];
@@ -274,20 +292,38 @@ export async function getTrendingProducts(limit: number = 10) {
 // Get featured products
 export async function getFeaturedProducts(limit: number = 10) {
   try {
-    const { data, error } = await supabase
+    // First try to get products marked as featured
+    const { data: featuredData, error: featuredError } = await supabase
       .from('products')
-      .select('*')
+      .select('*, product_images(*)')
       .eq('is_featured', true)
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (error) {
-      console.error('Error fetching featured products:', error);
+    if (featuredError) {
+      console.error('Error fetching featured products:', featuredError);
+    }
+
+    // If we have featured products, return them
+    if (featuredData && featuredData.length > 0) {
+      return featuredData;
+    }
+
+    // Otherwise, return recent ACTIVE products
+    const { data: recentData, error: recentError } = await supabase
+      .from('products')
+      .select('*, product_images(*)')
+      .order('created_at', { ascending: false })
+      .eq('status', 'ACTIVE')
+      .limit(limit);
+
+    if (recentError) {
+      console.error('Error fetching recent products:', recentError);
       return [];
     }
 
-    return data || [];
+    return recentData || [];
   } catch (error) {
     console.error('Error in getFeaturedProducts:', error);
     return [];

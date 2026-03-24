@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { Network, Cloud, Shield, Database, Key, Server, Briefcase, GraduationCap } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import type { Category } from '@/lib/types';
 
 const categoryIcons: { [key: string]: any } = {
@@ -18,10 +19,36 @@ export default function CategoriesPage() {
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    const cats = JSON.parse(localStorage.getItem('categories') || '[]');
-    setCategories(cats);
-    setFilteredCategories(cats);
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('status', 'ACTIVE')
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+
+      const formattedCategories = (data || []).map((cat: any) => ({
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        icon: 'Network',
+        productCount: cat.product_count || 0
+      }));
+
+      setCategories(formattedCategories);
+      setFilteredCategories(formattedCategories);
+    } catch (error) {
+      console.error('Error in fetchCategories:', error);
+    }
+  };
 
   useEffect(() => {
     const filtered = categories.filter(category =>

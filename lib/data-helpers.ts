@@ -609,6 +609,7 @@ export async function getCategories() {
   const { data, error } = await supabase
     .from('categories')
     .select('*')
+    .eq('status', 'ACTIVE')
     .order('name', { ascending: true });
 
   if (error) {
@@ -616,7 +617,10 @@ export async function getCategories() {
     return [];
   }
 
-  return mapArray(data || [], mapCategory);
+  // Remove duplicates based on id
+  const uniqueCategories = data ? Array.from(new Map(data.map(item => [item.id, item])).values()) : [];
+  
+  return mapArray(uniqueCategories, mapCategory);
 }
 
 export async function createCategory(categoryData: any) {

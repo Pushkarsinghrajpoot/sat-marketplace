@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, SlidersHorizontal } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import type { Product, Category } from '@/lib/types';
 
 export default function CategoryPage() {
@@ -22,15 +23,67 @@ export default function CategoryPage() {
   const [availability, setAvailability] = useState<string[]>([]);
 
   useEffect(() => {
-    const cats = JSON.parse(localStorage.getItem('categories') || '[]');
-    const cat = cats.find((c: Category) => c.slug === params.slug);
-    setCategory(cat || null);
-
-    const prods = JSON.parse(localStorage.getItem('products') || '[]');
-    const categoryProds = prods.filter((p: Product) => p.category === cat?.id);
-    setProducts(categoryProds);
-    setFilteredProducts(categoryProds);
+    fetchCategoryAndProducts();
   }, [params.slug]);
+
+  const fetchCategoryAndProducts = async () => {
+    try {
+      // Fetch category by slug
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', params.slug)
+        .eq('status', 'ACTIVE')
+        .single();
+
+      if (categoryError) {
+        console.error('Error fetching category:', categoryError);
+        return;
+      }
+
+      if (categoryData) {
+        const cat: Category = {
+          id: categoryData.id,
+          name: categoryData.name,
+          slug: categoryData.slug,
+          icon: 'Network',
+          productCount: categoryData.product_count || 0
+        };
+        setCategory(cat);
+
+        // Fetch products for this category
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
+          .select('*, product_images(*)')
+          .eq('category_id', categoryData.id)
+          .eq('status', 'ACTIVE')
+          .order('created_at', { ascending: false });
+
+        if (productsError) {
+          console.error('Error fetching products:', productsError);
+          return;
+        }
+
+        const formattedProducts = (productsData || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          price: p.price,
+          image: p.product_images?.[0]?.url || '',
+          category: p.category_id,
+          availability: p.stock_status || 'IN_STOCK',
+          rating: p.average_rating || 0,
+          reviews: 0,
+          createdAt: p.created_at
+        })) as any;
+
+        setProducts(formattedProducts);
+        setFilteredProducts(formattedProducts);
+      }
+    } catch (error) {
+      console.error('Error in fetchCategoryAndProducts:', error);
+    }
+  };
 
   useEffect(() => {
     let filtered = [...products];
