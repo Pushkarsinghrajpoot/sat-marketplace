@@ -54,7 +54,7 @@ export default function CategoryPage() {
         // Fetch products for this category
         const { data: productsData, error: productsError } = await supabase
           .from('products')
-          .select('*, product_images(*)')
+          .select('*, product_images(*), organizations(id, name)')
           .eq('category_id', categoryData.id)
           .eq('status', 'ACTIVE')
           .order('created_at', { ascending: false });
@@ -74,7 +74,10 @@ export default function CategoryPage() {
           availability: p.stock_status || 'IN_STOCK',
           rating: p.average_rating || 0,
           reviews: 0,
-          createdAt: p.created_at
+          createdAt: p.created_at,
+          organization_id: p.organization_id,
+          product_images: p.product_images,
+          organizations: p.organizations
         })) as any;
 
         setProducts(formattedProducts);

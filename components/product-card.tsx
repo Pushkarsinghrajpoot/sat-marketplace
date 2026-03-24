@@ -11,16 +11,37 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const organization = JSON.parse(localStorage.getItem('organizations') || '[]').find(
-    (o: any) => o.id === product.organizationId
-  );
+  const productAny = product as any;
+  const organization = productAny.organizations || null;
+
+  // Get image URL - prioritize product_images, fallback to legacy image field
+  const getImageUrl = () => {
+    const productAny = product as any;
+    if (productAny.product_images && productAny.product_images.length > 0) {
+      return productAny.product_images[0].url;
+    }
+    if (productAny.image) {
+      return productAny.image;
+    }
+    return null;
+  };
+
+  const imageUrl = getImageUrl();
 
   return (
     <Card className="group overflow-hidden transition-all hover:shadow-lg">
       <div className="relative aspect-square overflow-hidden bg-gray-100">
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-          <div className="text-4xl font-bold text-gray-300">{product.brand.charAt(0)}</div>
-        </div>
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+            <div className="text-4xl font-bold text-gray-300">{product.brand.charAt(0)}</div>
+          </div>
+        )}
         <div className="absolute top-2 right-2 flex gap-2">
           <button className="rounded-full bg-white p-2 shadow-sm hover:bg-gray-50">
             <Heart className="h-4 w-4 text-gray-600" />
