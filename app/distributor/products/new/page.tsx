@@ -180,16 +180,33 @@ export default function AddProductPage() {
       // Save images to product_images table (URLs first, then uploads)
       if (product && (imageUrls.length > 0 || uploadedImages.length > 0)) {
         const allImageUrls = [...imageUrls, ...uploadedImages];
-        const { supabase } = await import('@/lib/supabase');
         
-        for (let i = 0; i < allImageUrls.length; i++) {
-          await supabase
-            .from('product_images')
-            .insert({
+        try {
+          const response = await fetch('/api/products/save-images', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
               product_id: product.id,
-              url: allImageUrls[i],
-              display_order: i
-            });
+              image_urls: allImageUrls
+            })
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to save images');
+          }
+
+          console.log('Images saved successfully:', result);
+          
+          if (result.error_count > 0) {
+            toast.error(`${result.error_count} image(s) failed to save`);
+          }
+        } catch (error: any) {
+          console.error('Error saving product images:', error);
+          toast.error(error.message || 'Failed to save product images');
         }
       }
       
