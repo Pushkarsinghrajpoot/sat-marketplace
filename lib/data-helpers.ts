@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { sendNotificationWithEmail } from './notification-with-email';
 import {
   mapUser,
   mapOrganization,
@@ -242,24 +243,31 @@ export async function updateEngagementRequest(requestId: string, updates: any, u
       points: 10,
     });
 
-    // Notify reseller
-    await supabase.from('notifications').insert({
-      user_id: data.reseller_id,
-      notification_type: 'ENGAGEMENT_APPROVED',
+    // Notify reseller with email
+    await sendNotificationWithEmail({
+      userId: data.reseller_id,
+      notificationType: 'ENGAGEMENT_APPROVED',
       title: 'Engagement Request Approved',
       message: `Your engagement request for "${data.deals?.opportunity_name}" has been approved.`,
       link: `/reseller/deals/${data.deal_id}`,
+      emailData: {
+        dealName: data.deals?.opportunity_name || 'your deal',
+      },
     });
   }
 
-  // If declined, notify reseller
+  // If declined, notify reseller with email
   if (updates.status === 'DECLINED') {
-    await supabase.from('notifications').insert({
-      user_id: data.reseller_id,
-      notification_type: 'ENGAGEMENT_DECLINED',
+    await sendNotificationWithEmail({
+      userId: data.reseller_id,
+      notificationType: 'ENGAGEMENT_DECLINED',
       title: 'Engagement Request Declined',
       message: `Your engagement request for "${data.deals?.opportunity_name}" has been declined. Reason: ${updates.decline_reason || 'No reason provided'}`,
       link: `/reseller/deals/${data.deal_id}`,
+      emailData: {
+        dealName: data.deals?.opportunity_name || 'your deal',
+        reason: updates.decline_reason || 'No reason provided',
+      },
     });
   }
 
@@ -405,13 +413,16 @@ export async function convertDealToBidding(dealId: string, userId: string) {
     }
   }
 
-  // Create notification for reseller
-  await supabase.from('notifications').insert({
-    user_id: userId,
-    notification_type: 'DEAL_CONVERTED',
+  // Create notification for reseller with email
+  await sendNotificationWithEmail({
+    userId: userId,
+    notificationType: 'DEAL_CONVERTED',
     title: 'Deal Converted to Bidding',
     message: `Your deal "${deal.opportunity_name}" has been converted to bidding and is now open for quotes.`,
     link: `/reseller/deals/${dealId}`,
+    emailData: {
+      dealName: deal.opportunity_name,
+    },
   });
 
   // Create activity record

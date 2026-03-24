@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { createDeal, getDistributors, createEngagementRequest } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Engagement', 'Declaration'];
 
@@ -222,12 +223,30 @@ export default function RegisterDealPage() {
               status: 'PENDING',
             });
 
-            // Send notification to distributors
-            await supabase.from('notifications').insert({
-              notification_type: 'ENGAGEMENT_REQUEST',
-              title: `New ${engagementType.replace('_', ' ')} Request`,
-              message: `${user.name} requested ${engagementType.replace('_', ' ')} for direct query "${formData.opportunityName}"`,
-            });
+            // Send notification to distributor users with email
+            if (selectedDistributor) {
+              const { data: distributorUsers } = await supabase
+                .from('users')
+                .select('id')
+                .eq('organization_id', selectedDistributor)
+                .eq('role', 'DISTRIBUTOR');
+              
+              if (distributorUsers && distributorUsers.length > 0) {
+                for (const distUser of distributorUsers) {
+                  await sendNotificationWithEmail({
+                    userId: distUser.id,
+                    notificationType: 'ENGAGEMENT_REQUEST',
+                    title: `New ${engagementType.replace('_', ' ')} Request`,
+                    message: `${user.name} requested ${engagementType.replace('_', ' ')} for direct query "${formData.opportunityName}"`,
+                    link: `/distributor/engagements`,
+                    emailData: {
+                      resellerName: user.name,
+                      dealName: formData.opportunityName,
+                    },
+                  });
+                }
+              }
+            }
 
             console.log('Engagement request created for direct query');
           } catch (err) {
@@ -307,12 +326,30 @@ export default function RegisterDealPage() {
             status: 'PENDING',
           });
 
-          // Send notification to distributors
-          await supabase.from('notifications').insert({
-            notification_type: 'ENGAGEMENT_REQUEST',
-            title: `New ${engagementType.replace('_', ' ')} Request`,
-            message: `${user.name} requested ${engagementType.replace('_', ' ')} for deal "${formData.opportunityName}"`,
-          });
+          // Send notification to distributor users with email
+          if (distributorId) {
+            const { data: distributorUsers } = await supabase
+              .from('users')
+              .select('id')
+              .eq('organization_id', distributorId)
+              .eq('role', 'DISTRIBUTOR');
+            
+            if (distributorUsers && distributorUsers.length > 0) {
+              for (const distUser of distributorUsers) {
+                await sendNotificationWithEmail({
+                  userId: distUser.id,
+                  notificationType: 'ENGAGEMENT_REQUEST',
+                  title: `New ${engagementType.replace('_', ' ')} Request`,
+                  message: `${user.name} requested ${engagementType.replace('_', ' ')} for deal "${formData.opportunityName}"`,
+                  link: `/distributor/engagements`,
+                  emailData: {
+                    resellerName: user.name,
+                    dealName: formData.opportunityName,
+                  },
+                });
+              }
+            }
+          }
 
           console.log('Engagement request created');
         } catch (err) {

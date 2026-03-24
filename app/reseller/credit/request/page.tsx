@@ -13,6 +13,7 @@ import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { getDistributors } from '@/lib/data-helpers';
 import { formatCurrency } from '@/lib/utils';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 export default function CreateCreditRequestPage() {
   const router = useRouter();
@@ -149,13 +150,29 @@ export default function CreateCreditRequestPage() {
 
       await Promise.all(uploadPromises);
 
-      // Notify distributor
-      await supabase.from('notifications').insert({
-        notification_type: 'CREDIT_REQUEST',
-        title: 'New Credit Request',
-        message: `${user.name} requested ${formatCurrency(parseFloat(formData.amount))} credit limit`,
-        link: `/distributor/credit/${creditRequest.id}`,
-      });
+      // Notify distributor users with email
+      // Get distributor users
+      const { data: distributorUsers } = await supabase
+        .from('users')
+        .select('id, name')
+        .eq('organization_id', formData.distributorId)
+        .eq('role', 'DISTRIBUTOR');
+
+      if (distributorUsers && distributorUsers.length > 0) {
+        for (const distUser of distributorUsers) {
+          await sendNotificationWithEmail({
+            userId: distUser.id,
+            notificationType: 'CREDIT_REQUEST',
+            title: 'New Credit Request',
+            message: `${user.name} requested ${formatCurrency(parseFloat(formData.amount))} credit limit`,
+            link: `/distributor/credit/${creditRequest.id}`,
+            emailData: {
+              resellerName: user.name,
+              amount: formatCurrency(parseFloat(formData.amount)),
+            },
+          });
+        }
+      }
 
       toast.success('Credit request submitted successfully!');
       router.push('/reseller/credit');

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { getEngagementRequests, updateEngagementRequest } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 export default function EngagementsPage() {
   const [activeTab, setActiveTab] = useState('pending');
@@ -87,7 +88,7 @@ export default function EngagementsPage() {
     }
   };
 
-  const handleDecline = async (engagementId: string) => {
+  const handleDecline = async (engagementId: string, reason: string) => {
     if (!user?.id) return;
     try {
       // Get engagement details to notify reseller
@@ -95,17 +96,20 @@ export default function EngagementsPage() {
       
       await updateEngagementRequest(engagementId, { 
         status: 'DECLINED',
-        decline_reason: 'Not interested at this time'
+        decline_reason: reason
       }, user.id);
 
-      // Notify reseller about decline
+      // Notify reseller about decline with email
       if (engagement?.reseller_id) {
-        await supabase.from('notifications').insert({
-          user_id: engagement.reseller_id,
-          notification_type: 'ENGAGEMENT_DECLINED',
+        await sendNotificationWithEmail({
+          userId: engagement.reseller_id,
+          notificationType: 'ENGAGEMENT_DECLINED',
           title: 'Engagement Request Declined',
-          message: `Your engagement request for deal "${engagement.deals?.opportunity_name || 'N/A'}" has been declined`,
+          message: `Your engagement request was declined. Reason: ${reason}`,
           link: `/reseller/deals/${engagement.deal_id}`,
+          emailData: {
+            reason,
+          },
         });
       }
 
@@ -304,7 +308,10 @@ export default function EngagementsPage() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleDecline(engagement.id)}
+                      onClick={() => {
+                        const reason = prompt('Please provide a reason for declining:');
+                        if (reason) handleDecline(engagement.id, reason);
+                      }}
                     >
                       Decline
                     </Button>

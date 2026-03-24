@@ -10,7 +10,9 @@ import { ArrowLeft, Plus, Trash2, Send, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatRelativeTime } from '@/lib/utils';
+import { getQuotes, createQuote } from '@/lib/data-helpers';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 function CreateQuoteContent() {
   const router = useRouter();
@@ -202,13 +204,17 @@ function CreateQuoteContent() {
         // Non-critical, continue
       }
 
-      // Send notification to reseller
-      await supabase.from('notifications').insert({
-        user_id: deal?.reseller_id,
-        notification_type: 'QUOTE_RECEIVED',
+      // Send notification to reseller with email
+      await sendNotificationWithEmail({
+        userId: deal?.reseller_id,
+        notificationType: 'QUOTE_RECEIVED',
         title: 'New Quote Received',
         message: `You received a quote for ${formatCurrency(total)} for ${deal?.opportunity_name}`,
         link: `/reseller/deals/${dealId}/quotes`,
+        emailData: {
+          dealName: deal?.opportunity_name,
+          amount: formatCurrency(total),
+        },
       });
 
       toast.success('Quote submitted successfully!');

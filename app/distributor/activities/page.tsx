@@ -10,6 +10,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 export default function DistributorActivitiesPage() {
   const [activities, setActivities] = useState<any[]>([]);
@@ -94,13 +95,16 @@ export default function DistributorActivitiesPage() {
 
       if (updateError) throw updateError;
 
-      // Send notification to reseller
-      await supabase.from('notifications').insert({
-        user_id: resellerId,
-        notification_type: 'ACTIVITY_ACKNOWLEDGED',
+      // Send notification to reseller with email
+      await sendNotificationWithEmail({
+        userId: resellerId,
+        notificationType: 'ACTIVITY_ACKNOWLEDGED',
         title: 'Activity Acknowledged',
         message: `Your activity has been acknowledged! You earned ${points} points.`,
         link: `/reseller/deals/${dealId}/activities`,
+        emailData: {
+          points,
+        },
       });
 
       toast.success(`Activity acknowledged! Reseller earned ${points} points.`);
@@ -134,13 +138,16 @@ export default function DistributorActivitiesPage() {
 
       if (updateError) throw updateError;
 
-      // Send notification to reseller
-      await supabase.from('notifications').insert({
-        user_id: resellerId,
-        notification_type: 'ACTIVITY_REJECTED',
+      // Send notification to reseller with email
+      await sendNotificationWithEmail({
+        userId: resellerId,
+        notificationType: 'ACTIVITY_REJECTED',
         title: 'Activity Rejected',
         message: `Your activity was rejected: ${reason}`,
         link: `/reseller/deals/${dealId}/activities`,
+        emailData: {
+          reason,
+        },
       });
 
       toast.info('Activity rejected');

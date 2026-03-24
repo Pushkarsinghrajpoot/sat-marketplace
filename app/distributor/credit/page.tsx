@@ -9,6 +9,7 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 import Link from 'next/link';
 
 export default function CreditRequestsPage() {
@@ -77,14 +78,17 @@ export default function CreditRequestsPage() {
 
       if (error) throw error;
 
-      // Notify reseller
+      // Notify reseller with email
       if (request?.reseller_id) {
-        await supabase.from('notifications').insert({
-          user_id: request.reseller_id,
-          notification_type: 'CREDIT_APPROVED',
+        await sendNotificationWithEmail({
+          userId: request.reseller_id,
+          notificationType: 'CREDIT_APPROVED',
           title: 'Credit Request Approved',
           message: `Your credit request for ${formatCurrency(amount)} has been approved`,
-          link: `/reseller/credit`,
+          link: `/reseller/credit/${requestId}`,
+          emailData: {
+            amount: formatCurrency(amount),
+          },
         });
       }
 
@@ -113,14 +117,17 @@ export default function CreditRequestsPage() {
 
       if (error) throw error;
 
-      // Notify reseller
+      // Notify reseller with email
       if (request?.reseller_id) {
-        await supabase.from('notifications').insert({
-          user_id: request.reseller_id,
-          notification_type: 'CREDIT_REJECTED',
+        await sendNotificationWithEmail({
+          userId: request.reseller_id,
+          notificationType: 'CREDIT_REJECTED',
           title: 'Credit Request Declined',
           message: `Your credit request has been declined. Reason: ${reason || 'Not specified'}`,
-          link: `/reseller/credit`,
+          link: `/reseller/credit/${requestId}`,
+          emailData: {
+            reason: reason || 'Not specified',
+          },
         });
       }
 

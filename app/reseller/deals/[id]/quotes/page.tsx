@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { sendBulkNotificationWithEmail } from '@/lib/notification-with-email';
 
 export default function DealQuotesPage() {
   const params = useParams();
@@ -88,7 +89,7 @@ export default function DealQuotesPage() {
         .eq('deal_id', dealId)
         .neq('id', quoteId);
 
-      // Send notification to distributor users
+      // Send notification to distributor users with email
       const quote = quotes.find(q => q.id === quoteId);
       if (quote?.distributor_id) {
         // Find users from the distributor organization
@@ -100,15 +101,14 @@ export default function DealQuotesPage() {
         
         // Send notification to all distributor users
         if (distributorUsers && distributorUsers.length > 0) {
-          const notifications = distributorUsers.map(user => ({
-            user_id: user.id,
-            notification_type: 'QUOTE_ACCEPTED',
-            title: 'Quote Accepted!',
-            message: `Your quote for ${formatCurrency(quote.total || 0)} has been accepted!`,
-            link: `/distributor/quotes/${quoteId}`,
-          }));
-          
-          await supabase.from('notifications').insert(notifications);
+          await sendBulkNotificationWithEmail(
+            distributorUsers.map(u => u.id),
+            'QUOTE_ACCEPTED',
+            'Quote Accepted!',
+            `Your quote for ${formatCurrency(quote.total || 0)} has been accepted!`,
+            `/distributor/quotes/${quoteId}`,
+            { amount: formatCurrency(quote.total || 0) }
+          );
         }
       }
 

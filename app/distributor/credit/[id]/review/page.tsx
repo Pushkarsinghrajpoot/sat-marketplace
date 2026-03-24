@@ -12,6 +12,7 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 export default function CreditReviewPage() {
   const params = useParams();
@@ -263,13 +264,16 @@ export default function CreditReviewPage() {
 
       if (error) throw error;
 
-      // Notify reseller
-      await supabase.from('notifications').insert({
-        user_id: credit.reseller_id,
-        notification_type: 'CREDIT_APPROVED',
+      // Notify reseller with email
+      await sendNotificationWithEmail({
+        userId: credit.reseller_id,
+        notificationType: 'CREDIT_APPROVED',
         title: 'Credit Request Approved',
         message: `Your credit request for ${formatCurrency(parseFloat(reviewData.approvedLimit))} has been approved`,
         link: `/reseller/credit/${creditId}`,
+        emailData: {
+          amount: formatCurrency(parseFloat(reviewData.approvedLimit)),
+        },
       });
 
       toast.success('Credit request approved successfully!');
@@ -304,13 +308,16 @@ export default function CreditReviewPage() {
 
       if (error) throw error;
 
-      // Notify reseller
-      await supabase.from('notifications').insert({
-        user_id: credit.reseller_id,
-        notification_type: 'CREDIT_REJECTED',
+      // Notify reseller with email
+      await sendNotificationWithEmail({
+        userId: credit.reseller_id,
+        notificationType: 'CREDIT_REJECTED',
         title: 'Credit Request Declined',
         message: `Your credit request has been declined. Reason: ${reviewData.rejectionReason}`,
         link: `/reseller/credit/${creditId}`,
+        emailData: {
+          reason: reviewData.rejectionReason,
+        },
       });
 
       toast.success('Credit request rejected');
@@ -361,13 +368,16 @@ export default function CreditReviewPage() {
 
       if (activityError) throw activityError;
 
-      // Notify reseller
-      await supabase.from('notifications').insert({
-        user_id: credit.reseller_id,
-        notification_type: 'CREDIT_MORE_INFO',
+      // Notify reseller with email
+      await sendNotificationWithEmail({
+        userId: credit.reseller_id,
+        notificationType: 'CREDIT_MORE_INFO',
         title: 'Additional Information Required',
-        message: `Your credit request requires additional information: ${reviewData.reviewNotes.substring(0, 100)}...`,
+        message: messageToUse,
         link: `/reseller/credit/${creditId}`,
+        emailData: {
+          message: messageToUse,
+        },
       });
 
       toast.success('Information request sent to reseller');

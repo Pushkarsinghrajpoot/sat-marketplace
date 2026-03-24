@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 export function Header() {
   const { user, organization, isAuthenticated, logout, loading } = useSimpleAuth();
@@ -66,14 +67,7 @@ export function Header() {
               </div>
             ) : isAuthenticated ? (
               <>
-                <Link href="/notifications">
-                  <Button variant="ghost" size="sm" className="relative">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white">
-                      3
-                    </span>
-                  </Button>
-                </Link>
+                <NotificationBell />
                 <div className="relative">
                   <Button
                     variant="ghost"

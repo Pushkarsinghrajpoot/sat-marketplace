@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 export default function RespondToQueryPage() {
   const params = useParams();
@@ -91,13 +92,16 @@ export default function RespondToQueryPage() {
 
       if (updateError) throw updateError;
 
-      // Send notification to reseller
-      await supabase.from('notifications').insert({
-        user_id: query.reseller_id,
-        notification_type: 'QUERY_RESPONSE',
+      // Send notification to reseller with email
+      await sendNotificationWithEmail({
+        userId: query.reseller_id,
+        notificationType: 'QUERY_RESPONSE',
         title: 'Query Response Received',
         message: `Your direct query "${query.title}" has been responded to`,
         link: `/reseller/queries`,
+        emailData: {
+          queryTitle: query.title,
+        },
       });
 
       toast.success('Response sent successfully!');

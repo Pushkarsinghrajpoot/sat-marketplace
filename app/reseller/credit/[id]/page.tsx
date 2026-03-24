@@ -12,6 +12,7 @@ import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { getCreditTransactions } from '@/lib/credit-helpers';
 import { toast } from 'sonner';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 export default function CreditDetailPage() {
   const params = useParams();
@@ -252,12 +253,15 @@ export default function CreditDetailPage() {
           credit_request_id: creditId
         });
 
-        await supabase.from('notifications').insert({
-          user_id: credit.reviewer_id,
-          notification_type: 'CREDIT_INFO_PROVIDED',
+        await sendNotificationWithEmail({
+          userId: credit.reviewer_id,
+          notificationType: 'CREDIT_INFO_PROVIDED',
           title: 'Additional Information Provided',
           message: `Reseller has provided additional information for credit request${uploadedFiles.length > 0 ? ` with ${uploadedFiles.length} file(s)` : ''}`,
           link: `/distributor/credit/${creditId}/review`,
+          emailData: {
+            hasAttachments: uploadedFiles.length > 0,
+          },
         });
       } else {
         console.log('No reviewer_id found, skipping notification');

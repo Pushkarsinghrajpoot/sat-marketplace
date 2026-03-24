@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { getQuotes } from '@/lib/data-helpers';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { sendNotificationWithEmail } from '@/lib/notification-with-email';
 
 export default function QuoteDetailPage() {
   const router = useRouter();
@@ -136,15 +137,28 @@ export default function QuoteDetailPage() {
         console.log('Direct quote accepted (no associated deal)');
       }
 
-      // Send notification to distributor
+      // Send notification to distributor users with email
       if (quote.distributor_id) {
-        await supabase.from('notifications').insert({
-          user_id: quote.distributor_id,
-          notification_type: 'QUOTE_ACCEPTED',
-          title: 'Quote Accepted!',
-          message: `Your quote for ${formatCurrency(quote.total || 0)} has been accepted!`,
-          link: `/distributor/quotes/${quote.id}`,
-        });
+        const { data: distributorUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('organization_id', quote.distributor_id)
+          .eq('role', 'DISTRIBUTOR');
+        
+        if (distributorUsers && distributorUsers.length > 0) {
+          for (const distUser of distributorUsers) {
+            await sendNotificationWithEmail({
+              userId: distUser.id,
+              notificationType: 'QUOTE_ACCEPTED',
+              title: 'Quote Accepted!',
+              message: `Your quote for ${formatCurrency(quote.total || 0)} has been accepted!`,
+              link: `/distributor/quotes/${quoteId}`,
+              emailData: {
+                amount: formatCurrency(quote.total || 0),
+              },
+            });
+          }
+        }
       }
 
       // Update local quote status
