@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { getQuotes } from '@/lib/data-helpers';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 export default function QuoteDetailPage() {
   const router = useRouter();
@@ -147,7 +147,7 @@ export default function QuoteDetailPage() {
         
         if (distributorUsers && distributorUsers.length > 0) {
           for (const distUser of distributorUsers) {
-            await sendNotificationWithEmail({
+            await sendNotification({
               userId: distUser.id,
               notificationType: 'QUOTE_ACCEPTED',
               title: 'Quote Accepted!',

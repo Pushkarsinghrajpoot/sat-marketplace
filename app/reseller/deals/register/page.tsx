@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { createDeal, getDistributors, createEngagementRequest } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Engagement', 'Declaration'];
 
@@ -233,7 +233,7 @@ export default function RegisterDealPage() {
               
               if (distributorUsers && distributorUsers.length > 0) {
                 for (const distUser of distributorUsers) {
-                  await sendNotificationWithEmail({
+                  await sendNotification({
                     userId: distUser.id,
                     notificationType: 'ENGAGEMENT_REQUEST',
                     title: `New ${engagementType.replace('_', ' ')} Request`,
@@ -336,7 +336,7 @@ export default function RegisterDealPage() {
             
             if (distributorUsers && distributorUsers.length > 0) {
               for (const distUser of distributorUsers) {
-                await sendNotificationWithEmail({
+                await sendNotification({
                   userId: distUser.id,
                   notificationType: 'ENGAGEMENT_REQUEST',
                   title: `New ${engagementType.replace('_', ' ')} Request`,

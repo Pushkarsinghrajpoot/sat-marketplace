@@ -9,7 +9,7 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 import Link from 'next/link';
 
 export default function CreditRequestsPage() {
@@ -80,7 +80,7 @@ export default function CreditRequestsPage() {
 
       // Notify reseller with email
       if (request?.reseller_id) {
-        await sendNotificationWithEmail({
+        await sendNotification({
           userId: request.reseller_id,
           notificationType: 'CREDIT_APPROVED',
           title: 'Credit Request Approved',
@@ -119,7 +119,7 @@ export default function CreditRequestsPage() {
 
       // Notify reseller with email
       if (request?.reseller_id) {
-        await sendNotificationWithEmail({
+        await sendNotification({
           userId: request.reseller_id,
           notificationType: 'CREDIT_REJECTED',
           title: 'Credit Request Declined',

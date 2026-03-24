@@ -12,7 +12,7 @@ import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { getCreditTransactions } from '@/lib/credit-helpers';
 import { toast } from 'sonner';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 export default function CreditDetailPage() {
   const params = useParams();
@@ -253,7 +253,7 @@ export default function CreditDetailPage() {
           credit_request_id: creditId
         });
 
-        await sendNotificationWithEmail({
+        await sendNotification({
           userId: credit.reviewer_id,
           notificationType: 'CREDIT_INFO_PROVIDED',
           title: 'Additional Information Provided',

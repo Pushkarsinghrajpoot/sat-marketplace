@@ -10,7 +10,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 export default function DistributorActivitiesPage() {
   const [activities, setActivities] = useState<any[]>([]);
@@ -96,7 +96,7 @@ export default function DistributorActivitiesPage() {
       if (updateError) throw updateError;
 
       // Send notification to reseller with email
-      await sendNotificationWithEmail({
+      await sendNotification({
         userId: resellerId,
         notificationType: 'ACTIVITY_ACKNOWLEDGED',
         title: 'Activity Acknowledged',
@@ -139,7 +139,7 @@ export default function DistributorActivitiesPage() {
       if (updateError) throw updateError;
 
       // Send notification to reseller with email
-      await sendNotificationWithEmail({
+      await sendNotification({
         userId: resellerId,
         notificationType: 'ACTIVITY_REJECTED',
         title: 'Activity Rejected',

@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useSimpleAuth } from '@/lib/simple-auth';
-import { sendBulkNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendBulkNotification } from '@/lib/notification-client';
 
 export default function DealQuotesPage() {
   const params = useParams();
@@ -101,7 +101,7 @@ export default function DealQuotesPage() {
         
         // Send notification to all distributor users
         if (distributorUsers && distributorUsers.length > 0) {
-          await sendBulkNotificationWithEmail(
+          await sendBulkNotification(
             distributorUsers.map(u => u.id),
             'QUOTE_ACCEPTED',
             'Quote Accepted!',

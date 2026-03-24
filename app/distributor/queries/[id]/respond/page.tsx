@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 export default function RespondToQueryPage() {
   const params = useParams();
@@ -93,7 +93,7 @@ export default function RespondToQueryPage() {
       if (updateError) throw updateError;
 
       // Send notification to reseller with email
-      await sendNotificationWithEmail({
+      await sendNotification({
         userId: query.reseller_id,
         notificationType: 'QUERY_RESPONSE',
         title: 'Query Response Received',

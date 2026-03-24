@@ -13,7 +13,7 @@ import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { getDistributors } from '@/lib/data-helpers';
 import { formatCurrency } from '@/lib/utils';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 export default function CreateCreditRequestPage() {
   const router = useRouter();
@@ -160,7 +160,7 @@ export default function CreateCreditRequestPage() {
 
       if (distributorUsers && distributorUsers.length > 0) {
         for (const distUser of distributorUsers) {
-          await sendNotificationWithEmail({
+          await sendNotification({
             userId: distUser.id,
             notificationType: 'CREDIT_REQUEST',
             title: 'New Credit Request',

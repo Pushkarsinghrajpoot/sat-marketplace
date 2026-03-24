@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { getQuotes, createQuote } from '@/lib/data-helpers';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 function CreateQuoteContent() {
   const router = useRouter();
@@ -205,7 +205,7 @@ function CreateQuoteContent() {
       }
 
       // Send notification to reseller with email
-      await sendNotificationWithEmail({
+      await sendNotification({
         userId: deal?.reseller_id,
         notificationType: 'QUOTE_RECEIVED',
         title: 'New Quote Received',

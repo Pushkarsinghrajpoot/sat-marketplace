@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { getEngagementRequests, updateEngagementRequest } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 export default function EngagementsPage() {
   const [activeTab, setActiveTab] = useState('pending');
@@ -101,7 +101,7 @@ export default function EngagementsPage() {
 
       // Notify reseller about decline with email
       if (engagement?.reseller_id) {
-        await sendNotificationWithEmail({
+        await sendNotification({
           userId: engagement.reseller_id,
           notificationType: 'ENGAGEMENT_DECLINED',
           title: 'Engagement Request Declined',

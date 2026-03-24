@@ -12,7 +12,7 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { sendNotificationWithEmail } from '@/lib/notification-with-email';
+import { sendNotification } from '@/lib/notification-client';
 
 export default function CreditReviewPage() {
   const params = useParams();
@@ -265,7 +265,7 @@ export default function CreditReviewPage() {
       if (error) throw error;
 
       // Notify reseller with email
-      await sendNotificationWithEmail({
+      await sendNotification({
         userId: credit.reseller_id,
         notificationType: 'CREDIT_APPROVED',
         title: 'Credit Request Approved',
@@ -309,7 +309,7 @@ export default function CreditReviewPage() {
       if (error) throw error;
 
       // Notify reseller with email
-      await sendNotificationWithEmail({
+      await sendNotification({
         userId: credit.reseller_id,
         notificationType: 'CREDIT_REJECTED',
         title: 'Credit Request Declined',
@@ -369,7 +369,7 @@ export default function CreditReviewPage() {
       if (activityError) throw activityError;
 
       // Notify reseller with email
-      await sendNotificationWithEmail({
+      await sendNotification({
         userId: credit.reseller_id,
         notificationType: 'CREDIT_MORE_INFO',
         title: 'Additional Information Required',
