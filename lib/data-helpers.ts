@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { sendNotificationWithEmail } from './notification-with-email';
+import { sendNotification } from './notification-client';
 import {
   mapUser,
   mapOrganization,
@@ -244,7 +244,7 @@ export async function updateEngagementRequest(requestId: string, updates: any, u
     });
 
     // Notify reseller with email
-    await sendNotificationWithEmail({
+    await sendNotification({
       userId: data.reseller_id,
       notificationType: 'ENGAGEMENT_APPROVED',
       title: 'Engagement Request Approved',
@@ -258,7 +258,7 @@ export async function updateEngagementRequest(requestId: string, updates: any, u
 
   // If declined, notify reseller with email
   if (updates.status === 'DECLINED') {
-    await sendNotificationWithEmail({
+    await sendNotification({
       userId: data.reseller_id,
       notificationType: 'ENGAGEMENT_DECLINED',
       title: 'Engagement Request Declined',
@@ -414,7 +414,7 @@ export async function convertDealToBidding(dealId: string, userId: string) {
   }
 
   // Create notification for reseller with email
-  await sendNotificationWithEmail({
+  await sendNotification({
     userId: userId,
     notificationType: 'DEAL_CONVERTED',
     title: 'Deal Converted to Bidding',
