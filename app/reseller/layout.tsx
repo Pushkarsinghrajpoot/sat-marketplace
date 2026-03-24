@@ -6,6 +6,7 @@ import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, Lo
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 const navigation = [
   { name: 'Dashboard', href: '/reseller/dashboard', icon: LayoutDashboard },
@@ -158,12 +159,7 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-4">
-              <button className="relative w-9 h-9 flex items-center justify-center border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors">
-                <Bell className="h-[18px] w-[18px] text-[#71717A]" />
-                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-[#EF4444] text-[10px] font-medium text-white">
-                  5
-                </span>
-              </button>
+              <NotificationBell />
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-[#6366F1] rounded-full flex items-center justify-center text-white text-sm font-semibold">
                   {user?.name.charAt(0)}

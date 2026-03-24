@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ import {
 
 export function NotificationBell() {
   const { user } = useSimpleAuth();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -71,28 +73,52 @@ export function NotificationBell() {
   };
 
   const fetchNotifications = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('No user ID, cannot fetch notifications');
+      return;
+    }
     
+    console.log('Fetching notifications for user:', user.id);
     setLoading(true);
-    const { data } = await getNotifications(user.id, { limit: 10 });
-    setNotifications(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await getNotifications(user.id, { limit: 10 });
+      if (error) {
+        console.error('Error fetching notifications:', error);
+      }
+      console.log('Fetched notifications:', data?.length || 0, 'items');
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Exception fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleToggle = () => {
+    console.log('Notification bell clicked, current isOpen:', isOpen);
     if (!isOpen) {
+      console.log('Fetching notifications...');
       fetchNotifications();
     }
     setIsOpen(!isOpen);
+    console.log('New isOpen state will be:', !isOpen);
   };
 
   const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if unread
     if (!notification.read) {
       await markAsRead(notification.id);
       fetchUnreadCount();
       fetchNotifications();
     }
+    
+    // Close dropdown
     setIsOpen(false);
+    
+    // Navigate to link if available
+    if (notification.link) {
+      router.push(notification.link);
+    }
   };
 
   const getIconComponent = (iconName: string) => {
