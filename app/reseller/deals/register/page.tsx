@@ -200,6 +200,37 @@ export default function RegisterDealPage() {
         
         console.log('Direct query created successfully:', data);
         
+        // Send notification to distributor users about direct query
+        if (selectedDistributor && data && data[0]) {
+          try {
+            const { data: distributorUsers } = await supabase
+              .from('users')
+              .select('id')
+              .eq('organization_id', selectedDistributor)
+              .eq('role', 'DISTRIBUTOR');
+            
+            if (distributorUsers && distributorUsers.length > 0) {
+              for (const distUser of distributorUsers) {
+                await sendNotification({
+                  userId: distUser.id,
+                  notificationType: 'QUERY_RECEIVED',
+                  title: 'New Direct Query Received',
+                  message: `${user.name} sent you a direct query: "${formData.opportunityName}"`,
+                  link: `/distributor/queries`,
+                  emailData: {
+                    resellerName: user.name,
+                    queryTitle: formData.opportunityName,
+                    estimatedValue: formData.estimatedValue,
+                  },
+                });
+              }
+            }
+          } catch (err) {
+            console.error('Error sending direct query notifications:', err);
+            // Don't fail the submission if notification fails
+          }
+        }
+        
         // Create activity record with points
         await supabase.from('deal_activities').insert({
           reseller_id: user.id,
@@ -303,6 +334,74 @@ export default function RegisterDealPage() {
       const createdDeal = await createDeal(dealData);
       
       console.log('Deal created successfully:', createdDeal);
+      
+      // Send notifications to distributors about new deal
+      if (createdDeal.id) {
+        try {
+          if (dealType === 'BIDDING') {
+            // For BIDDING deals, notify ALL distributors
+            const { data: allDistributors } = await supabase
+              .from('organizations')
+              .select('id')
+              .eq('type', 'DISTRIBUTOR')
+              .eq('verified', true);
+            
+            if (allDistributors && allDistributors.length > 0) {
+              for (const distributor of allDistributors) {
+                const { data: distributorUsers } = await supabase
+                  .from('users')
+                  .select('id')
+                  .eq('organization_id', distributor.id)
+                  .eq('role', 'DISTRIBUTOR');
+                
+                if (distributorUsers && distributorUsers.length > 0) {
+                  for (const distUser of distributorUsers) {
+                    await sendNotification({
+                      userId: distUser.id,
+                      notificationType: 'DEAL_REGISTERED',
+                      title: 'New Bidding Deal Available',
+                      message: `${user.name} registered a bidding deal: "${formData.opportunityName}"`,
+                      link: `/distributor/deals/${createdDeal.id}`,
+                      emailData: {
+                        resellerName: user.name,
+                        dealName: formData.opportunityName,
+                        estimatedValue: formData.estimatedValue,
+                      },
+                    });
+                  }
+                }
+              }
+            }
+          } else if (dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
+            // For DEAL_REGISTRATION with selected distributor, notify that distributor
+            const { data: distributorUsers } = await supabase
+              .from('users')
+              .select('id')
+              .eq('organization_id', selectedDistributor)
+              .eq('role', 'DISTRIBUTOR');
+            
+            if (distributorUsers && distributorUsers.length > 0) {
+              for (const distUser of distributorUsers) {
+                await sendNotification({
+                  userId: distUser.id,
+                  notificationType: 'DEAL_REGISTERED',
+                  title: 'Deal Registration',
+                  message: `${user.name} registered a deal: "${formData.opportunityName}"`,
+                  link: `/distributor/deals/${createdDeal.id}`,
+                  emailData: {
+                    resellerName: user.name,
+                    dealName: formData.opportunityName,
+                    estimatedValue: formData.estimatedValue,
+                  },
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error sending deal notifications:', err);
+          // Don't fail the submission if notification fails
+        }
+      }
       
       // Create engagement request if selected
       if (engagementType && createdDeal.id) {

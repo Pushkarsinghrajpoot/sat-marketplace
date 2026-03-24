@@ -11,6 +11,7 @@ import { Send, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { sendNotification } from '@/lib/notification-client';
 
 export default function CreateQueryPage() {
   const router = useRouter();
@@ -77,11 +78,37 @@ export default function CreateQueryPage() {
         status: 'OPEN',
       }));
 
-      const { error } = await supabase
+      const { data: createdQueries, error } = await supabase
         .from('direct_queries')
-        .insert(queries);
+        .insert(queries)
+        .select();
 
       if (error) throw error;
+
+      // Send notification with email to all distributor users
+      for (const distributorId of selectedDistributors) {
+        const { data: distributorUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('organization_id', distributorId)
+          .eq('role', 'DISTRIBUTOR');
+        
+        if (distributorUsers && distributorUsers.length > 0) {
+          for (const distUser of distributorUsers) {
+            await sendNotification({
+              userId: distUser.id,
+              notificationType: 'QUERY_RECEIVED',
+              title: 'New Direct Query Received',
+              message: `${user.name} sent you a query: "${formData.title}"`,
+              link: `/distributor/queries`,
+              emailData: {
+                resellerName: user.name,
+                queryTitle: formData.title,
+              },
+            });
+          }
+        }
+      }
 
       toast.success(`Direct query sent to ${selectedDistributors.length} distributor(s)!`);
       router.push('/reseller/queries');
