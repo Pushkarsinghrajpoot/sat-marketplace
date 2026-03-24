@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the most recent OTP for this email and purpose
-    const { data: otpRecord, error: fetchError } = await supabase
+    const { data: otpRecord, error: fetchError } = await supabaseServer
       .from('otp_verifications')
       .select('*')
       .eq('email', email)
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Verify OTP code
     if (otpRecord.otp_code !== otpCode) {
       // Update attempts count
-      await supabase
+      await supabaseServer
         .from('otp_verifications')
         .update({ attempts: newAttempts })
         .eq('id', otpRecord.id);
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // OTP is correct - mark as verified
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseServer
       .from('otp_verifications')
       .update({
         verified: true,

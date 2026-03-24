@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-server';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Check if there's a recent unverified OTP for this email
-    const { data: existingOTP } = await supabase
+    const { data: existingOTP } = await supabaseServer
       .from('otp_verifications')
       .select('*')
       .eq('email', email)
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Store OTP in database
-    const { data: otpRecord, error: dbError } = await supabase
+    const { data: otpRecord, error: dbError } = await supabaseServer
       .from('otp_verifications')
       .insert({
         email,
@@ -83,8 +83,11 @@ export async function POST(request: NextRequest) {
 
     // Send OTP email
     try {
-      await resend.emails.send({
-        from: 'SAT Marketplace <noreply@satmarketplace.com>',
+      console.log('Attempting to send OTP email to:', email);
+      console.log('Resend API Key exists:', !!process.env.RESEND_API_KEY);
+      
+      const emailResult = await resend.emails.send({
+        from: 'SAT Marketplace <noreply@one.satmz.com>',
         to: email,
         subject: 'Your Verification Code - SAT Marketplace',
         html: `
@@ -133,16 +136,24 @@ export async function POST(request: NextRequest) {
         `,
       });
 
+      if (emailResult.error) {
+        console.error('Resend API error:', emailResult.error);
+        throw new Error(emailResult.error.message || 'Failed to send email via Resend');
+      }
+
+      console.log('Email sent successfully to:', email);
+
       return NextResponse.json({
         success: true,
         message: 'OTP sent successfully',
         expiresIn: 600, // 10 minutes in seconds
       });
-    } catch (emailError) {
+    } catch (emailError: any) {
       console.error('Error sending email:', emailError);
+      console.error('Error details:', emailError.message, emailError.stack);
       
       // Delete the OTP record if email fails
-      await supabase
+      await supabaseServer
         .from('otp_verifications')
         .delete()
         .eq('id', otpRecord.id);
