@@ -19,6 +19,10 @@ export default function AddProductPage() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [currentImageUrl, setCurrentImageUrl] = useState('');
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [tempUploadPreviews, setTempUploadPreviews] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -64,25 +68,78 @@ export default function AddProductPage() {
     }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  const handleAddImageUrl = () => {
+    if (!currentImageUrl) {
+      toast.error('Please enter an image URL');
+      return;
+    }
 
-    // For now, create data URLs for preview
-    // In production, upload to Supabase Storage or S3
+    // Validate URL format
+    try {
+      new URL(currentImageUrl);
+      setImageUrls(prev => [...prev, currentImageUrl]);
+      setCurrentImageUrl('');
+      toast.success('Image URL added');
+    } catch {
+      toast.error('Please enter a valid URL');
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Create temporary previews immediately
+    const previews: string[] = [];
     Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setUploadedImages(prev => [...prev, reader.result as string]);
+        previews.push(reader.result as string);
+        if (previews.length === files.length) {
+          setTempUploadPreviews(prev => [...prev, ...previews]);
+        }
       };
       reader.readAsDataURL(file);
     });
 
-    toast.success(`${files.length} image(s) uploaded`);
+    setUploadingImages(true);
+
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('images', file);
+      });
+
+      const response = await fetch('/api/products/upload-images', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload images');
+      }
+
+      // Replace temp previews with actual URLs
+      setTempUploadPreviews([]);
+      setUploadedImages(prev => [...prev, ...data.urls]);
+      toast.success(`${data.count} image(s) uploaded successfully`);
+    } catch (error: any) {
+      console.error('Error uploading images:', error);
+      toast.error(error.message || 'Failed to upload images');
+      setTempUploadPreviews([]);
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
-  const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  const removeImage = (index: number, type: 'url' | 'upload') => {
+    if (type === 'url') {
+      setImageUrls(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const handleSubmit = async (isDraft: boolean = false) => {
@@ -118,9 +175,30 @@ export default function AddProductPage() {
         featured: formData.featured,
       };
 
-      await createProduct(productData);
+      const product = await createProduct(productData);
+
+      // Save images to product_images table (URLs first, then uploads)
+      if (product && (imageUrls.length > 0 || uploadedImages.length > 0)) {
+        const allImageUrls = [...imageUrls, ...uploadedImages];
+        const { supabase } = await import('@/lib/supabase');
+        
+        for (let i = 0; i < allImageUrls.length; i++) {
+          await supabase
+            .from('product_images')
+            .insert({
+              product_id: product.id,
+              url: allImageUrls[i],
+              display_order: i
+            });
+        }
+      }
       
-      toast.success(isDraft ? 'Product saved as draft!' : 'Product published successfully!');
+      const imageCount = imageUrls.length + uploadedImages.length;
+      const message = isDraft 
+        ? `Product saved as draft${imageCount > 0 ? ` with ${imageCount} image(s)` : ''}!`
+        : `Product published successfully${imageCount > 0 ? ` with ${imageCount} image(s)` : ''}!`;
+      
+      toast.success(message);
       router.push('/distributor/products');
     } catch (error: any) {
       console.error('Error creating product:', error);
@@ -410,39 +488,120 @@ export default function AddProductPage() {
                 <CardTitle>Images & Media</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <label className="block">
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 cursor-pointer transition-colors">
-                      <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-2">Click to upload product images</p>
-                      <p className="text-sm text-gray-500">PNG, JPG up to 10MB (max 10 images)</p>
+                <div className="space-y-6">
+                  {/* Image URL Input */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Add Image URL</label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        value={currentImageUrl}
+                        onChange={(e) => setCurrentImageUrl(e.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                        className="flex-1"
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddImageUrl()}
+                      />
+                      <Button type="button" onClick={handleAddImageUrl} variant="outline" disabled={!currentImageUrl}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add URL
+                      </Button>
                     </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
+                    {/* Show added URLs */}
+                    {imageUrls.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs text-gray-500">Added URLs:</p>
+                        {imageUrls.map((url, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex-shrink-0 w-12 h-12 bg-white rounded overflow-hidden border">
+                              <img
+                                src={url}
+                                alt={`URL ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48"%3E%3Crect fill="%23ddd" width="48" height="48"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-size="10"%3E✕%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-gray-600 truncate">{url}</p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeImage(idx, 'url')}
+                              className="flex-shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                  {uploadedImages.length > 0 && (
-                    <div className="grid grid-cols-4 gap-4">
-                      {uploadedImages.map((image, idx) => (
-                        <div key={idx} className="relative group">
-                          <img
-                            src={image}
-                            alt={`Product ${idx + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border"
-                          />
-                          <button
-                            onClick={() => removeImage(idx)}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
+                  {/* File Upload */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Or Upload Images</label>
+                    <label className="block">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 cursor-pointer transition-colors">
+                        <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-600 mb-1">{uploadingImages ? 'Uploading...' : 'Click to upload'}</p>
+                        <p className="text-sm text-gray-500">PNG, JPG up to 10MB</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={uploadingImages}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Display all images */}
+                  {(imageUrls.length > 0 || uploadedImages.length > 0) && (
+                    <div className="space-y-4">
+                      <label className="block text-sm font-medium">Product Images</label>
+                      <div className="grid grid-cols-4 gap-4">
+                        {/* URL Images */}
+                        {imageUrls.map((image, idx) => (
+                          <div key={`url-${idx}`} className="relative group">
+                            <img
+                              src={image}
+                              alt={`URL ${idx + 1}`}
+                              className="w-full h-32 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(idx, 'url')}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                            <span className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">URL</span>
+                          </div>
+                        ))}
+                        {/* Uploaded Images */}
+                        {uploadedImages.map((image, idx) => (
+                          <div key={`upload-${idx}`} className="relative group">
+                            <img
+                              src={image}
+                              alt={`Upload ${idx + 1}`}
+                              className="w-full h-32 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(idx, 'upload')}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                            <span className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">Uploaded</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -479,7 +638,22 @@ export default function AddProductPage() {
                 <div className="pt-4 border-t">
                   <p className="text-sm text-gray-600 mb-2">Product Preview</p>
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3"></div>
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 overflow-hidden">
+                      {(() => {
+                        const allImages = [...imageUrls, ...uploadedImages, ...tempUploadPreviews];
+                        return allImages.length > 0 ? (
+                          <img
+                            src={allImages[0]}
+                            alt="Product preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                            No image
+                          </div>
+                        );
+                      })()}
+                    </div>
                     <p className="font-semibold text-sm line-clamp-2">{formData.name || 'Product Name'}</p>
                     <p className="text-lg font-bold text-gray-900 mt-2">{formatCurrency(formData.price || 0)}</p>
                   </div>
