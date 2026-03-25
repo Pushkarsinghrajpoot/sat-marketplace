@@ -433,23 +433,42 @@ export default function RegisterDealPage() {
         try {
           if (dealType === 'BIDDING') {
             // For BIDDING deals, notify ALL distributors
-            const { data: allDistributors } = await supabase
+            console.log('BIDDING: Starting notification process for all distributors');
+            
+            const { data: allDistributors, error: distError } = await supabase
               .from('organizations')
-              .select('id')
+              .select('id, name')
               .eq('type', 'DISTRIBUTOR')
               .eq('verified', true);
             
+            console.log('BIDDING: Found distributors:', allDistributors?.length || 0, allDistributors);
+            
+            if (distError) {
+              console.error('BIDDING: Error fetching distributors:', distError);
+            }
+            
             if (allDistributors && allDistributors.length > 0) {
+              let notificationCount = 0;
               for (const distributor of allDistributors) {
-                const { data: distributorUsers } = await supabase
+                console.log(`BIDDING: Processing distributor ${distributor.name} (${distributor.id})`);
+                
+                const { data: distributorUsers, error: usersError } = await supabase
                   .from('users')
-                  .select('id')
+                  .select('id, email, name')
                   .eq('organization_id', distributor.id)
                   .eq('role', 'DISTRIBUTOR');
                 
+                console.log(`BIDDING: Found ${distributorUsers?.length || 0} users for ${distributor.name}`);
+                
+                if (usersError) {
+                  console.error(`BIDDING: Error fetching users for ${distributor.name}:`, usersError);
+                }
+                
                 if (distributorUsers && distributorUsers.length > 0) {
                   for (const distUser of distributorUsers) {
-                    await sendNotification({
+                    console.log(`BIDDING: Sending notification to ${distUser.name} (${distUser.email})`);
+                    
+                    const result = await sendNotification({
                       userId: distUser.id,
                       notificationType: 'DEAL_REGISTERED',
                       title: 'New Bidding Deal Available',
@@ -461,29 +480,58 @@ export default function RegisterDealPage() {
                         estimatedValue: formData.estimatedValue,
                       },
                     });
+                    
+                    if (result.success) {
+                      notificationCount++;
+                      console.log(`BIDDING: ✓ Notification sent to ${distUser.name}`);
+                    } else {
+                      console.error(`BIDDING: ✗ Failed to send notification to ${distUser.name}:`, result.error);
+                    }
                   }
                 }
               }
+              console.log(`BIDDING: Total notifications sent: ${notificationCount}`);
+            } else {
+              console.warn('BIDDING: No verified distributors found!');
             }
           } else if (dealType === 'DEAL_REGISTRATION') {
             // For DEAL_REGISTRATION, notify ALL distributors (not just selected)
-            const { data: allDistributors } = await supabase
+            console.log('DEAL_REGISTRATION: Starting notification process for all distributors');
+            
+            const { data: allDistributors, error: distError } = await supabase
               .from('organizations')
-              .select('id')
+              .select('id, name')
               .eq('type', 'DISTRIBUTOR')
               .eq('verified', true);
             
+            console.log('DEAL_REGISTRATION: Found distributors:', allDistributors?.length || 0, allDistributors);
+            
+            if (distError) {
+              console.error('DEAL_REGISTRATION: Error fetching distributors:', distError);
+            }
+            
             if (allDistributors && allDistributors.length > 0) {
+              let notificationCount = 0;
               for (const distributor of allDistributors) {
-                const { data: distributorUsers } = await supabase
+                console.log(`DEAL_REGISTRATION: Processing distributor ${distributor.name} (${distributor.id})`);
+                
+                const { data: distributorUsers, error: usersError } = await supabase
                   .from('users')
-                  .select('id')
+                  .select('id, email, name')
                   .eq('organization_id', distributor.id)
                   .eq('role', 'DISTRIBUTOR');
                 
+                console.log(`DEAL_REGISTRATION: Found ${distributorUsers?.length || 0} users for ${distributor.name}`);
+                
+                if (usersError) {
+                  console.error(`DEAL_REGISTRATION: Error fetching users for ${distributor.name}:`, usersError);
+                }
+                
                 if (distributorUsers && distributorUsers.length > 0) {
                   for (const distUser of distributorUsers) {
-                    await sendNotification({
+                    console.log(`DEAL_REGISTRATION: Sending notification to ${distUser.name} (${distUser.email})`);
+                    
+                    const result = await sendNotification({
                       userId: distUser.id,
                       notificationType: 'DEAL_REGISTERED',
                       title: 'New Deal Registration',
@@ -495,9 +543,19 @@ export default function RegisterDealPage() {
                         estimatedValue: formData.estimatedValue,
                       },
                     });
+                    
+                    if (result.success) {
+                      notificationCount++;
+                      console.log(`DEAL_REGISTRATION: ✓ Notification sent to ${distUser.name}`);
+                    } else {
+                      console.error(`DEAL_REGISTRATION: ✗ Failed to send notification to ${distUser.name}:`, result.error);
+                    }
                   }
                 }
               }
+              console.log(`DEAL_REGISTRATION: Total notifications sent: ${notificationCount}`);
+            } else {
+              console.warn('DEAL_REGISTRATION: No verified distributors found!');
             }
           }
         } catch (err) {

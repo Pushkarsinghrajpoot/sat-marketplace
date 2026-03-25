@@ -228,34 +228,60 @@ export default function BOQUploadPage() {
 
       // 7. Send notifications to distributors
       try {
+        console.log('BOQ_UPLOAD: Starting notification process, visibility:', visibility);
+        
         // Get the deal info for notification
-        const { data: dealInfo } = await supabase
+        const { data: dealInfo, error: dealError } = await supabase
           .from('deals')
           .select('opportunity_name')
           .eq('id', dealId)
           .single();
 
+        if (dealError) {
+          console.error('BOQ_UPLOAD: Error fetching deal info:', dealError);
+        }
+
         const dealName = dealInfo?.opportunity_name || 'a deal';
+        console.log('BOQ_UPLOAD: Deal name:', dealName);
 
         if (visibility === 'BIDDING') {
           // Notify ALL distributors for BIDDING visibility
-          const { data: allDistributors } = await supabase
+          console.log('BOQ_UPLOAD: BIDDING mode - notifying all distributors');
+          
+          const { data: allDistributors, error: distError } = await supabase
             .from('organizations')
-            .select('id')
+            .select('id, name')
             .eq('type', 'DISTRIBUTOR')
             .eq('verified', true);
           
+          console.log('BOQ_UPLOAD: Found distributors:', allDistributors?.length || 0, allDistributors);
+          
+          if (distError) {
+            console.error('BOQ_UPLOAD: Error fetching distributors:', distError);
+          }
+          
           if (allDistributors && allDistributors.length > 0) {
+            let notificationCount = 0;
             for (const distributor of allDistributors) {
-              const { data: distributorUsers } = await supabase
+              console.log(`BOQ_UPLOAD: Processing distributor ${distributor.name} (${distributor.id})`);
+              
+              const { data: distributorUsers, error: usersError } = await supabase
                 .from('users')
                 .select('id, email, name')
                 .eq('organization_id', distributor.id)
                 .eq('role', 'DISTRIBUTOR');
               
+              console.log(`BOQ_UPLOAD: Found ${distributorUsers?.length || 0} users for ${distributor.name}`);
+              
+              if (usersError) {
+                console.error(`BOQ_UPLOAD: Error fetching users for ${distributor.name}:`, usersError);
+              }
+              
               if (distributorUsers && distributorUsers.length > 0) {
                 for (const distUser of distributorUsers) {
-                  await sendNotification({
+                  console.log(`BOQ_UPLOAD: Sending notification to ${distUser.name} (${distUser.email})`);
+                  
+                  const result = await sendNotification({
                     userId: distUser.id,
                     notificationType: 'BOQ_UPLOADED',
                     title: 'New BOQ Available',
@@ -267,27 +293,53 @@ export default function BOQUploadPage() {
                       boqFileName: file.name,
                     },
                   });
+                  
+                  if (result.success) {
+                    notificationCount++;
+                    console.log(`BOQ_UPLOAD: ✓ Notification sent to ${distUser.name}`);
+                  } else {
+                    console.error(`BOQ_UPLOAD: ✗ Failed to send notification to ${distUser.name}:`, result.error);
+                  }
                 }
               }
             }
+            console.log(`BOQ_UPLOAD: Total notifications sent: ${notificationCount}`);
+          } else {
+            console.warn('BOQ_UPLOAD: No verified distributors found!');
           }
         } else if (visibility === 'PROTECTED' && selectedDistributors.length > 0) {
           // Notify only selected distributors for PROTECTED visibility
+          console.log('BOQ_UPLOAD: PROTECTED mode - notifying selected distributors:', selectedDistributors);
+          
           // Map distributor names to IDs
           const distributorIds = distributors
             .filter(d => selectedDistributors.includes(d.name))
             .map(d => d.id);
           
+          console.log('BOQ_UPLOAD: Mapped distributor IDs:', distributorIds);
+          
+          let notificationCount = 0;
           for (const distributorId of distributorIds) {
-            const { data: distributorUsers } = await supabase
+            const distributorName = distributors.find(d => d.id === distributorId)?.name || distributorId;
+            console.log(`BOQ_UPLOAD: Processing distributor ${distributorName} (${distributorId})`);
+            
+            const { data: distributorUsers, error: usersError } = await supabase
               .from('users')
               .select('id, email, name')
               .eq('organization_id', distributorId)
               .eq('role', 'DISTRIBUTOR');
             
+            console.log(`BOQ_UPLOAD: Found ${distributorUsers?.length || 0} users for ${distributorName}`);
+            
+            if (usersError) {
+              console.error(`BOQ_UPLOAD: Error fetching users for ${distributorName}:`, usersError);
+            }
+            
             if (distributorUsers && distributorUsers.length > 0) {
               for (const distUser of distributorUsers) {
-                await sendNotification({
+                console.log(`BOQ_UPLOAD: Sending notification to ${distUser.name} (${distUser.email})`);
+                
+                const result = await sendNotification({
                   userId: distUser.id,
                   notificationType: 'BOQ_UPLOADED',
                   title: 'New BOQ - Private Invitation',
@@ -299,14 +351,24 @@ export default function BOQUploadPage() {
                     boqFileName: file.name,
                   },
                 });
+                
+                if (result.success) {
+                  notificationCount++;
+                  console.log(`BOQ_UPLOAD: ✓ Notification sent to ${distUser.name}`);
+                } else {
+                  console.error(`BOQ_UPLOAD: ✗ Failed to send notification to ${distUser.name}:`, result.error);
+                }
               }
             }
           }
+          console.log(`BOQ_UPLOAD: Total notifications sent: ${notificationCount}`);
+        } else {
+          console.warn('BOQ_UPLOAD: No notifications sent - visibility:', visibility, 'selectedDistributors:', selectedDistributors.length);
         }
 
-        console.log('BOQ upload notifications sent');
+        console.log('BOQ_UPLOAD: Notification process completed');
       } catch (err) {
-        console.error('Error sending BOQ notifications:', err);
+        console.error('BOQ_UPLOAD: Error sending notifications:', err);
         // Don't fail the submission if notification fails
       }
 
@@ -447,23 +509,27 @@ export default function BOQUploadPage() {
                   <div>
                     <label className="block text-sm font-medium mb-2">Select Distributors</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                      {['TechDist Global', 'NetSupply Corp', 'CloudFirst Distribution'].map((dist) => (
-                        <label key={dist} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                          <input
-                            type="checkbox"
-                            checked={selectedDistributors.includes(dist)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedDistributors([...selectedDistributors, dist]);
-                              } else {
-                                setSelectedDistributors(selectedDistributors.filter(d => d !== dist));
-                              }
-                            }}
-                            className="rounded"
-                          />
-                          <span className="text-sm">{dist}</span>
-                        </label>
-                      ))}
+                      {distributors.length > 0 ? (
+                        distributors.map((dist) => (
+                          <label key={dist.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                            <input
+                              type="checkbox"
+                              checked={selectedDistributors.includes(dist.name)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedDistributors([...selectedDistributors, dist.name]);
+                                } else {
+                                  setSelectedDistributors(selectedDistributors.filter(d => d !== dist.name));
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <span className="text-sm">{dist.name}</span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 p-2">Loading distributors...</p>
+                      )}
                     </div>
                   </div>
                 )}
