@@ -465,28 +465,65 @@ export default function RegisterDealPage() {
                 }
               }
             }
-          } else if (dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
-            // For DEAL_REGISTRATION with selected distributor, notify that distributor
-            const { data: distributorUsers } = await supabase
-              .from('users')
-              .select('id')
-              .eq('organization_id', selectedDistributor)
-              .eq('role', 'DISTRIBUTOR');
-            
-            if (distributorUsers && distributorUsers.length > 0) {
-              for (const distUser of distributorUsers) {
-                await sendNotification({
-                  userId: distUser.id,
-                  notificationType: 'DEAL_REGISTERED',
-                  title: 'Deal Registration',
-                  message: `${user.name} registered a deal: "${formData.opportunityName}"`,
-                  link: `/distributor/deals/${createdDeal.id}`,
-                  emailData: {
-                    resellerName: user.name,
-                    dealName: formData.opportunityName,
-                    estimatedValue: formData.estimatedValue,
-                  },
-                });
+          } else if (dealType === 'DEAL_REGISTRATION') {
+            // For DEAL_REGISTRATION, notify selected distributor OR all distributors if none selected
+            if (selectedDistributor) {
+              // Notify specific distributor
+              const { data: distributorUsers } = await supabase
+                .from('users')
+                .select('id')
+                .eq('organization_id', selectedDistributor)
+                .eq('role', 'DISTRIBUTOR');
+              
+              if (distributorUsers && distributorUsers.length > 0) {
+                for (const distUser of distributorUsers) {
+                  await sendNotification({
+                    userId: distUser.id,
+                    notificationType: 'DEAL_REGISTERED',
+                    title: 'New Deal Registration',
+                    message: `${user.name} registered a deal: "${formData.opportunityName}"`,
+                    link: `/distributor/deals/${createdDeal.id}`,
+                    emailData: {
+                      resellerName: user.name,
+                      dealName: formData.opportunityName,
+                      estimatedValue: formData.estimatedValue,
+                    },
+                  });
+                }
+              }
+            } else {
+              // No distributor selected - notify ALL verified distributors
+              const { data: allDistributors } = await supabase
+                .from('organizations')
+                .select('id')
+                .eq('type', 'DISTRIBUTOR')
+                .eq('verified', true);
+              
+              if (allDistributors && allDistributors.length > 0) {
+                for (const distributor of allDistributors) {
+                  const { data: distributorUsers } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('organization_id', distributor.id)
+                    .eq('role', 'DISTRIBUTOR');
+                  
+                  if (distributorUsers && distributorUsers.length > 0) {
+                    for (const distUser of distributorUsers) {
+                      await sendNotification({
+                        userId: distUser.id,
+                        notificationType: 'DEAL_REGISTERED',
+                        title: 'New Deal Registration',
+                        message: `${user.name} registered a deal: "${formData.opportunityName}"`,
+                        link: `/distributor/deals/${createdDeal.id}`,
+                        emailData: {
+                          resellerName: user.name,
+                          dealName: formData.opportunityName,
+                          estimatedValue: formData.estimatedValue,
+                        },
+                      });
+                    }
+                  }
+                }
               }
             }
           }

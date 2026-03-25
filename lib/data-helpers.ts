@@ -347,7 +347,7 @@ export async function createDeal(dealData: any) {
   return mapDeal(data);
 }
 
-export async function updateDeal(dealId: string, updates: any) {
+export async function updateDeal(dealId: string, updates: any, notifyDistributors: boolean = true) {
   const { data, error } = await supabase
     .from('deals')
     .update(updates)
@@ -358,6 +358,57 @@ export async function updateDeal(dealId: string, updates: any) {
   if (error) {
     console.error('Error updating deal:', error);
     throw error;
+  }
+
+  // Send notifications to distributors about deal update
+  if (notifyDistributors && data) {
+    try {
+      // Get the user who created the deal
+      const { data: dealCreator } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', data.reseller_id)
+        .single();
+
+      const creatorName = dealCreator?.name || 'A reseller';
+
+      // Notify all verified distributors about the deal update
+      const { data: allDistributors } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('type', 'DISTRIBUTOR')
+        .eq('verified', true);
+      
+      if (allDistributors && allDistributors.length > 0) {
+        for (const distributor of allDistributors) {
+          const { data: distributorUsers } = await supabase
+            .from('users')
+            .select('id')
+            .eq('organization_id', distributor.id)
+            .eq('role', 'DISTRIBUTOR');
+          
+          if (distributorUsers && distributorUsers.length > 0) {
+            for (const distUser of distributorUsers) {
+              await sendNotification({
+                userId: distUser.id,
+                notificationType: 'DEAL_UPDATED',
+                title: 'Deal Updated',
+                message: `${creatorName} updated deal: "${data.opportunity_name}"`,
+                link: `/distributor/deals/${dealId}`,
+                emailData: {
+                  resellerName: creatorName,
+                  dealName: data.opportunity_name,
+                  estimatedValue: data.estimated_value,
+                },
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error sending deal update notifications:', err);
+      // Don't fail the update if notification fails
+    }
   }
 
   return mapDeal(data);
