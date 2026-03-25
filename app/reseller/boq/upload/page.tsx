@@ -8,11 +8,10 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { getDeals, createDealActivity, getDistributors } from '@/lib/data-helpers';
+import { getDeals, createDealActivity } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
-import { sendNotification } from '@/lib/notification-client';
 
 // Create service role client for storage operations
 const supabaseService = createClient(
@@ -33,41 +32,36 @@ export default function BOQUploadPage() {
   const [deals, setDeals] = useState<any[]>([]);
   const [visibility, setVisibility] = useState<'PROTECTED' | 'BIDDING'>('PROTECTED');
   const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
-  const [distributors, setDistributors] = useState<any[]>([]);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useSimpleAuth();
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchDeals() {
       if (!user?.id) {
-        console.log('BOQ: No user ID, skipping data fetch');
+        console.log('BOQ: No user ID, skipping deal fetch');
         return;
       }
       
       try {
-        // Fetch deals
         console.log('BOQ: Fetching deals for user:', user.id);
-        const dealsData = await getDeals({ userId: user.id });
-        console.log('BOQ: Fetched deals:', dealsData.length, dealsData);
-        setDeals(dealsData);
+        const data = await getDeals({ userId: user.id });
+        console.log('BOQ: Fetched deals:', data.length, data);
         
-        if (dealsData.length === 0) {
+        // Show ALL deals - user can select any deal for BOQ upload
+        setDeals(data);
+        
+        if (data.length === 0) {
           console.warn('BOQ: No deals found for user');
           toast.info('No deals found. Please create a deal first.');
         }
-
-        // Fetch distributors
-        const distributorsData = await getDistributors();
-        console.log('BOQ: Fetched distributors:', distributorsData.length);
-        setDistributors(distributorsData);
       } catch (error) {
-        console.error('BOQ: Error fetching data:', error);
-        toast.error('Failed to load data');
+        console.error('BOQ: Error fetching deals:', error);
+        toast.error('Failed to load deals');
       }
     }
 
-    fetchData();
+    fetchDeals();
   }, [user?.id]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,89 +194,11 @@ export default function BOQUploadPage() {
         }
       }
 
-      // 4. If visibility is PROTECTED, insert invited distributors and notify them
+      // 4. If visibility is PROTECTED, insert invited distributors
       if (visibility === 'PROTECTED' && selectedDistributors.length > 0 && boqData.id) {
-        // Insert invited distributors
-        const invitations = selectedDistributors.map(distId => ({
-          boq_id: boqData.id,
-          distributor_id: distId,
-        }));
-
-        const { error: inviteError } = await supabase
-          .from('boq_invited_distributors')
-          .insert(invitations);
-
-        if (inviteError) {
-          console.error('Error inviting distributors:', inviteError);
-        }
-
-        // Send notifications to invited distributors
-        for (const distId of selectedDistributors) {
-          try {
-            const { data: distributorUsers } = await supabase
-              .from('users')
-              .select('id, name, email')
-              .eq('organization_id', distId)
-              .eq('role', 'DISTRIBUTOR');
-            
-            if (distributorUsers && distributorUsers.length > 0) {
-              for (const distUser of distributorUsers) {
-                await sendNotification({
-                  userId: distUser.id,
-                  notificationType: 'BOQ_UPLOADED',
-                  title: 'New BOQ Available',
-                  message: `${user.name} uploaded a BOQ for deal: "${deals.find(d => d.id === dealId)?.opportunityName || 'Unknown'}"`,
-                  link: `/distributor/deals`,
-                  emailData: {
-                    resellerName: user.name,
-                    dealName: deals.find(d => d.id === dealId)?.opportunityName || 'Unknown',
-                    fileName: file.name,
-                  },
-                });
-              }
-            }
-          } catch (err) {
-            console.error('Error sending BOQ notification to distributor:', distId, err);
-          }
-        }
-      } else if (visibility === 'BIDDING' && boqData.id) {
-        // For BIDDING, notify ALL verified distributors
-        try {
-          const { data: allDistributors } = await supabase
-            .from('organizations')
-            .select('id')
-            .eq('type', 'DISTRIBUTOR')
-            .eq('verified', true);
-          
-          if (allDistributors && allDistributors.length > 0) {
-            for (const distributor of allDistributors) {
-              const { data: distributorUsers } = await supabase
-                .from('users')
-                .select('id, name, email')
-                .eq('organization_id', distributor.id)
-                .eq('role', 'DISTRIBUTOR');
-              
-              if (distributorUsers && distributorUsers.length > 0) {
-                for (const distUser of distributorUsers) {
-                  await sendNotification({
-                    userId: distUser.id,
-                    notificationType: 'BOQ_UPLOADED',
-                    title: 'New BOQ Available - Open Bidding',
-                    message: `${user.name} uploaded a BOQ for open bidding: "${deals.find(d => d.id === dealId)?.opportunityName || 'Unknown'}"`,
-                    link: `/distributor/deals`,
-                    emailData: {
-                      resellerName: user.name,
-                      dealName: deals.find(d => d.id === dealId)?.opportunityName || 'Unknown',
-                      fileName: file.name,
-                    },
-                  });
-                }
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error sending BOQ notifications to all distributors:', err);
-        }
+        // Note: selectedDistributors currently contains names, need to map to IDs
+        // For now, we'll skip this - you'd need to fetch distributor IDs first
+        console.log('Private BOQ - distributors to invite:', selectedDistributors);
       }
 
       // 5. Create deal activity for tracking
@@ -439,27 +355,23 @@ export default function BOQUploadPage() {
                   <div>
                     <label className="block text-sm font-medium mb-2">Select Distributors</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                      {distributors.length === 0 ? (
-                        <p className="text-sm text-gray-500 p-2">No distributors available</p>
-                      ) : (
-                        distributors.map((dist) => (
-                          <label key={dist.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                            <input
-                              type="checkbox"
-                              checked={selectedDistributors.includes(dist.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedDistributors([...selectedDistributors, dist.id]);
-                                } else {
-                                  setSelectedDistributors(selectedDistributors.filter(d => d !== dist.id));
-                                }
-                              }}
-                              className="rounded"
-                            />
-                            <span className="text-sm">{dist.name}</span>
-                          </label>
-                        ))
-                      )}
+                      {['TechDist Global', 'NetSupply Corp', 'CloudFirst Distribution'].map((dist) => (
+                        <label key={dist} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedDistributors.includes(dist)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDistributors([...selectedDistributors, dist]);
+                              } else {
+                                setSelectedDistributors(selectedDistributors.filter(d => d !== dist));
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm">{dist}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 )}
