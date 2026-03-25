@@ -8,10 +8,11 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { getDeals, createDealActivity } from '@/lib/data-helpers';
+import { getDeals, createDealActivity, getDistributors } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
+import { sendNotification } from '@/lib/notification-client';
 
 // Create service role client for storage operations
 const supabaseService = createClient(
@@ -32,36 +33,43 @@ export default function BOQUploadPage() {
   const [deals, setDeals] = useState<any[]>([]);
   const [visibility, setVisibility] = useState<'PROTECTED' | 'BIDDING'>('PROTECTED');
   const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
+  const [distributors, setDistributors] = useState<any[]>([]);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useSimpleAuth();
 
   useEffect(() => {
-    async function fetchDeals() {
+    async function fetchData() {
       if (!user?.id) {
-        console.log('BOQ: No user ID, skipping deal fetch');
+        console.log('BOQ: No user ID, skipping data fetch');
         return;
       }
       
       try {
+        // Fetch deals
         console.log('BOQ: Fetching deals for user:', user.id);
-        const data = await getDeals({ userId: user.id });
-        console.log('BOQ: Fetched deals:', data.length, data);
+        const dealsData = await getDeals({ userId: user.id });
+        console.log('BOQ: Fetched deals:', dealsData.length, dealsData);
         
         // Show ALL deals - user can select any deal for BOQ upload
-        setDeals(data);
+        setDeals(dealsData);
         
-        if (data.length === 0) {
+        if (dealsData.length === 0) {
           console.warn('BOQ: No deals found for user');
           toast.info('No deals found. Please create a deal first.');
         }
+
+        // Fetch distributors for selection
+        const distributorsData = await getDistributors();
+        console.log('BOQ: Fetched distributors:', distributorsData.length);
+        setDistributors(distributorsData);
       } catch (error) {
-        console.error('BOQ: Error fetching deals:', error);
-        toast.error('Failed to load deals');
+        console.error('BOQ: Error fetching data:', error);
+        toast.error('Failed to load data');
       }
     }
 
-    fetchDeals();
+    fetchData();
   }, [user?.id]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,7 +226,91 @@ export default function BOQUploadPage() {
         .update({ is_locked: true })
         .eq('id', dealId);
 
-      toast.success('BOQ uploaded successfully! Distributors can now view and submit quotes.');
+      // 7. Send notifications to distributors
+      try {
+        // Get the deal info for notification
+        const { data: dealInfo } = await supabase
+          .from('deals')
+          .select('opportunity_name')
+          .eq('id', dealId)
+          .single();
+
+        const dealName = dealInfo?.opportunity_name || 'a deal';
+
+        if (visibility === 'BIDDING') {
+          // Notify ALL distributors for BIDDING visibility
+          const { data: allDistributors } = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('type', 'DISTRIBUTOR')
+            .eq('verified', true);
+          
+          if (allDistributors && allDistributors.length > 0) {
+            for (const distributor of allDistributors) {
+              const { data: distributorUsers } = await supabase
+                .from('users')
+                .select('id, email, name')
+                .eq('organization_id', distributor.id)
+                .eq('role', 'DISTRIBUTOR');
+              
+              if (distributorUsers && distributorUsers.length > 0) {
+                for (const distUser of distributorUsers) {
+                  await sendNotification({
+                    userId: distUser.id,
+                    notificationType: 'BOQ_UPLOADED',
+                    title: 'New BOQ Available',
+                    message: `${user.name} uploaded a BOQ for "${dealName}". Submit your quote now!`,
+                    link: `/distributor/deals/${dealId}`,
+                    emailData: {
+                      resellerName: user.name,
+                      dealName: dealName,
+                      boqFileName: file.name,
+                    },
+                  });
+                }
+              }
+            }
+          }
+        } else if (visibility === 'PROTECTED' && selectedDistributors.length > 0) {
+          // Notify only selected distributors for PROTECTED visibility
+          // Map distributor names to IDs
+          const distributorIds = distributors
+            .filter(d => selectedDistributors.includes(d.name))
+            .map(d => d.id);
+          
+          for (const distributorId of distributorIds) {
+            const { data: distributorUsers } = await supabase
+              .from('users')
+              .select('id, email, name')
+              .eq('organization_id', distributorId)
+              .eq('role', 'DISTRIBUTOR');
+            
+            if (distributorUsers && distributorUsers.length > 0) {
+              for (const distUser of distributorUsers) {
+                await sendNotification({
+                  userId: distUser.id,
+                  notificationType: 'BOQ_UPLOADED',
+                  title: 'New BOQ - Private Invitation',
+                  message: `${user.name} invited you to quote on "${dealName}". View BOQ and submit your quote!`,
+                  link: `/distributor/deals/${dealId}`,
+                  emailData: {
+                    resellerName: user.name,
+                    dealName: dealName,
+                    boqFileName: file.name,
+                  },
+                });
+              }
+            }
+          }
+        }
+
+        console.log('BOQ upload notifications sent');
+      } catch (err) {
+        console.error('Error sending BOQ notifications:', err);
+        // Don't fail the submission if notification fails
+      }
+
+      toast.success('BOQ uploaded successfully! Distributors have been notified.');
       router.push('/reseller/deals');
     } catch (error: any) {
       console.error('Error uploading BOQ:', error);
