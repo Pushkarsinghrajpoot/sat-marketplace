@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from './supabase';
+import { supabase } from './supabase';
 import { sendNotification } from './notification-client';
 
 export async function createTeamMemberDirect(data: {
@@ -12,38 +12,33 @@ export async function createTeamMemberDirect(data: {
   createdBy: string;
 }) {
   try {
-    // Create auth account with admin API - email confirmed by default, no verification email
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-      user_metadata: {
-        name: data.name,
-      }
-    });
-
-    if (authError) throw authError;
-
-    // Create user record
-    const { error: userError } = await supabaseAdmin
-      .from('users')
-      .insert({
-        id: authData.user!.id,
+    // Call server-side API to create user with admin privileges
+    const response = await fetch('/api/team/create-member', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         email: data.email,
+        password: data.password,
         name: data.name,
         role: data.role,
-        team_role: data.teamRole,
-        permissions: data.permissions || {},
-        organization_id: data.organizationId,
-        invited_by: data.createdBy,
-        invitation_status: 'ACTIVE',
-      });
+        teamRole: data.teamRole,
+        organizationId: data.organizationId,
+        createdBy: data.createdBy,
+        permissions: data.permissions,
+      }),
+    });
 
-    if (userError) throw userError;
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Failed to create team member');
+    }
 
     // Send welcome notification
     await sendNotification({
-      userId: authData.user!.id,
+      userId: result.userId,
       notificationType: 'TEAM_INVITATION',
       title: 'Welcome to the Team',
       message: `Your account has been created. You can now login with your email and password.`,
@@ -55,7 +50,7 @@ export async function createTeamMemberDirect(data: {
       },
     });
 
-    return { success: true, userId: authData.user!.id };
+    return { success: true, userId: result.userId };
   } catch (error) {
     console.error('Error creating team member:', error);
     return { success: false, error };
