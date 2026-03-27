@@ -52,8 +52,7 @@ export async function POST(request: NextRequest) {
       email_confirm: true, // This should prevent verification email
       user_metadata: {
         name,
-      },
-      email: email, // Explicitly set email
+      }
     });
 
     if (createUserError) {
