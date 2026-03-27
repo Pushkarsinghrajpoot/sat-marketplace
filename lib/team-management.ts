@@ -12,11 +12,19 @@ export async function createTeamMemberDirect(data: {
   createdBy: string;
 }) {
   try {
+    // Get current session token
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.access_token) {
+      throw new Error('Authentication required');
+    }
+
     // Call server-side API to create user with admin privileges
     const response = await fetch('/api/team/create-member', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         email: data.email,

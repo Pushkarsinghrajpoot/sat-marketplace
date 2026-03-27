@@ -3,6 +3,28 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the auth token from the request
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Verify the user is authenticated and has permission
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('Auth verification failed:', authError);
+      return NextResponse.json(
+        { error: 'Invalid authentication' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { email, password, name, role, teamRole, organizationId, createdBy, permissions } = body;
 
@@ -13,25 +35,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create auth account with admin API - email confirmed by default, no verification email
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // Verify the user has permission to create team members for this organization
+    if (createdBy !== user.id) {
+      return NextResponse.json(
+        { error: 'Permission denied' },
+        { status: 403 }
+      );
+    }
+
+    console.log('Creating team member:', { email, name, organizationId, createdBy });
+
+    // Create auth account with admin API using service role key
+    const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: true, // This should prevent verification email
       user_metadata: {
         name,
-      }
+      },
+      email: email, // Explicitly set email
     });
 
-    if (authError) {
-      console.error('Auth error creating user:', authError);
+    if (createUserError) {
+      console.error('Auth error creating user:', createUserError);
       return NextResponse.json(
-        { error: 'Failed to create auth account', details: authError.message },
+        { error: 'Failed to create auth account', details: createUserError.message },
         { status: 400 }
       );
     }
 
-    // Create user record
+    console.log('Auth user created:', authData.user!.id);
+
+    // Create user record in database
     const { error: userError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -54,6 +89,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Team member creation completed:', authData.user!.id);
+
     return NextResponse.json({ 
       success: true, 
       userId: authData.user!.id,
@@ -63,7 +100,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('API error creating team member:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
