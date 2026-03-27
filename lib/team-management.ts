@@ -44,19 +44,8 @@ export async function createTeamMemberDirect(data: {
       throw new Error(result.error || 'Failed to create team member');
     }
 
-    // Send welcome notification
-    await sendNotification({
-      userId: result.userId,
-      notificationType: 'TEAM_INVITATION',
-      title: 'Welcome to the Team',
-      message: `Your account has been created. You can now login with your email and password.`,
-      link: '/auth/login',
-      emailData: {
-        recipientEmail: data.email,
-        tempPassword: data.password,
-        loginLink: `${process.env.NEXT_PUBLIC_APP_URL}/auth/login`,
-      },
-    });
+    // Welcome email is sent directly from the API route
+    console.log('Team member created and welcome email sent');
 
     return { success: true, userId: result.userId };
   } catch (error) {
