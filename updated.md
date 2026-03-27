@@ -1,317 +1,380 @@
-1️⃣ USER & ROLE STRUCTURE
-Three types of user:
-1. Reseller
-The Reseller is the primary operational user of the system. This role initiates business opportunities and manages the full lifecycle of a deal. The reseller is responsible for creating deal registrations, initiating direct queries, creating bidding opportunities, scheduling meetings, conducting demos, uploading BOQs, and maintaining all related documentation. The reseller drives engagement and progresses the deal toward closure or competitive bidding.
-2. Distributor
-The Distributor functions as a governance and oversight role. This role does not initiate or modify deals but monitors reseller activity and deal maturity. The distributor tracks who locked a deal, when it was locked, how the score is progressing, and how actively the reseller is engaging through meetings, demos, and revisions. The objective of this role is to maintain transparency, performance tracking, and structured opportunity management.
-3. End User (View Only)
-Strictly read-only access.
-Cannot create or modify anything.
-The End User role is designed for visibility and transparency. Users under this role can view deal progress, meeting records, scoring, and lock details but are not allowed to create, edit, or modify any system data. This ensures information access without operational interference.
+1.	Deal registration should be only visible to reseller no visibility to distributor until it is converted to bidding or direct query.
+2.	In deal registration there shoul be option to select distributor on engagement request step.
+3.	Add convert to direct query CTA in deal registration similar to convert to biddding CTA.
+4.	Need to show message after email verification that your deal has been locked & you have earned these many points like that.
+5.	Swap deal registration steps such as after email verification,show declaration step then engagement step. 
+6.	Direct query should also have the option to be raised to specific distributor, also we can visibility setting just like upload BOQ
+7.	Within deal details page provide the options to upload BOQ from there,also provide messaging option as well.
+8.	Add User management feature to onboard there team members
+9.	For messaging user management implement assignment logic to specific user for specific product or we can assign the user to a specific responsibility or he can manage it , like in a team someone will look on tickets someone on sales and some will assigned to products or one or more responsibilty can assigned .
+10.	Also add central admin for reviewing users and provide badging from there.  Also should be able to do distributor/resller qualification, based on reviewing documents uploaded while sign up. -----need to discuss
+11.	Deal detail page add activity fucntion should be connected with user module and provide drop down list of user
+12.	Need to add user rating system which should be public. Also one user can rate other user as well.
+
+RATING FLOW
+
+Great—this is a very important trust-building feature for your marketplace. Since you want:
+✅ Users can rate other users (Reseller ↔ Distributor)
+✅ Customers can rate users / representatives
+✅ Ratings should be publicly visible
+Below is a complete, refined User Rating System Flow aligned with your marketplace model.
  
-Important Notes:
-• Deals and quotes are created by individual users, not by the company itself.
-Every deal is associated with a specific user for accountability and traceability. Deals are not generated at the company entity level.
-• Quotes can be sent to:
-o A specific user
-o OR a specific role within a company
-This ensures targeted and structured communication.
-• Quotes are not publicly visible.
-Quotes remain restricted to authorized recipients only.
-• Meeting documentation is visible based on role permissions.
-Access to meeting records is controlled through role-based visibility.
-2️⃣ ROLE PERMISSIONS
-2.1 Reseller (Operational Role)
-The reseller is the primary active user in the system.
-Can:
-• Create Deal Registration
-The reseller can initiate a structured opportunity that includes verification, declaration, locking, and scoring mechanisms.
-• Create Direct Query
-The reseller can initiate a quick requirement-based inquiry without going through the full registration process.
-• Create Direct Bidding
-The reseller can create a competitive bidding opportunity directly without deal registration.
-• Upload BOQ
-After engagement and discussions, the reseller can upload a detailed Bill of Quantities (BOQ) document.
-• Perform activities:
-o Meeting
-The reseller can schedule and document structured meetings related to the deal.
-o Demo
-The reseller can record product demonstrations conducted for the opportunity.
-o BOQ Revision
-The reseller can upload revised BOQs to reflect updated commercial or technical discussions.
-• Lock a deal (if first to register)
-If the reseller completes a valid registration first, the system automatically locks the deal to that reseller.
-• Convert a registered deal into bidding
-A structured and locked deal can later be converted into competitive bidding.
-• Add meeting documentation
-The reseller can update meeting details after completion.
-• Add decisions taken
-The reseller can formally document agreements reached during meetings.
-• Add structured meeting tasks (with owner & deadline)
-The reseller can create actionable tasks with clear ownership and deadlines to ensure accountability.
-2.2 Distributor
-Can:
-• View Deal Registrations
-The distributor can monitor all structured registered deals.
-• View Bidding Deals
-The distributor can track competitive opportunities.
-• View Direct Queries
-The distributor can review simple requirement-based inquiries.
-• See who locked the deal
-The distributor can view which reseller secured ownership of the deal.
-• See lock date and time
-The exact timestamp of lock assignment is visible.
-• See deal score
-The distributor can evaluate engagement strength through scoring.
-• Track reseller history
-The distributor can review the reseller’s past performance and activity levels.
-• View meeting details
-All scheduled and completed meetings are visible.
-• View decisions taken
-Agreements documented during meetings can be reviewed.
-• View meeting tasks and deadlines
-Defined tasks and their completion timelines can be monitored.
-Cannot:
-• Create deals
-The distributor does not initiate business opportunities.
-• Lock deals
-Lock authority remains with the reseller.
-• Modify meeting records
-Meeting documentation cannot be edited by the distributor.
-2.3 End User (Strictly View-Only Role)
-Can View:
-• Deal Registrations
-• Bidding Deals
-• Direct Queries
-• Quotes
-• Lock status
-• Lock owner
-• Lock date
-• Deal score
-• Activity history
-• Meeting details
-• Decisions taken
-• Meeting tasks & deadlines
-This ensures complete transparency without operational control.
-Cannot:
-• Create deals
-• Create bidding
-• Send queries
-• Lock deals
-• Upload BOQ
-• Perform activities
-• Modify meeting data
-This role is completely read-only.
+Marketplace User Rating & Review System
+(Public Rating – Customer, Reseller, Distributor, Representative)
+This system allows:
+•	Customers → Rate Resellers / Representatives
+•	Resellers → Rate Distributors
+•	Distributors → Rate Resellers (optional)
+•	Ratings are public and visible on profile & listings
+ 
+1. Who Can Rate Whom
+Allowed Rating Relationships
+Customer → Reseller / Representative
+•	After:
+o	Quote interaction
+o	Product purchase
+o	Service delivery
+ 
+Reseller → Distributor
+•	After:
+o	BOQ processing
+o	Quote received
+o	Deal execution
+ 
+Distributor → Reseller (Optional)
+•	Based on:
+o	Order quality
+o	Payment behavior
+o	Communication
+ 
+Internal Rating (Optional)
+•	Representative rating by:
+o	Customer
+o	Reseller Admin
+ 
+2. Rating Trigger Points
+Ratings should NOT be open randomly, only triggered after valid interactions.
+Trigger Events
+For Product Flow
+•	Quote accepted
+•	Order completed
+ 
+For Service Flow
+•	Service marked as completed
+ 
+For Support Flow
+•	Ticket resolved
+ 
+For Interaction-Based Rating
+•	After chat / engagement request closure
+ 
+3. Rating Submission Flow
+Step 1 – Rating Request Trigger
+System Action
+After completion of interaction:
+•	System sends:
+o	Notification
+o	Email
+o	In-app popup
+Example:
+“Please rate your experience with this seller.”
+ 
+Step 2 – User Submits Rating
+User Action
+User provides:
+Rating Fields
+•	⭐ Star Rating (1 to 5)
+•	Review Comment
+•	Tags (optional):
+Example:
+•	Communication
+•	Pricing
+•	Delivery
+•	Technical Support
+ 
+Step 3 – Submit Review
+System Action
+•	Rating is saved
+•	Linked with:
+o	Order ID / Quote ID / Ticket ID
+ 
+4. Public Display of Ratings
+Where Ratings Are Visible
+Product Listing Page
+•	Seller rating shown with product
+ 
+User Profile Page
+Each reseller/distributor profile shows:
+•	Average Rating
+•	Total Reviews
+•	Recent Reviews
+ 
+Representative Profile (Optional)
+•	Individual performance rating
+ 
+Example Display
+⭐⭐⭐⭐☆ (4.2 / 5)
+“Very good pricing and quick response.”
+ 
+5. Rating Calculation Logic
+Average Rating Formula
+Average Rating =
+(Total Rating Score) / (Number of Reviews)
+ 
+Weighted Rating (Advanced – Recommended)
+Give more weight to:
+•	Recent ratings
+•	Verified transactions
+ 
+6. Review Moderation (Important)
+Since ratings are public, moderation is required.
+Step 1 – Auto Moderation
+System checks:
+•	Offensive language
+•	Spam content
+ 
+Step 2 – Admin Moderation
+Admin can:
+•	Approve review
+•	Reject review
+•	Hide inappropriate content
+ 
+Step 3 – Dispute Handling
+User can:
+•	Report a review
+•	Request removal
+Admin reviews and takes action.
+ 
+7. Fraud & Abuse Prevention
+Controls
+•	Only verified interactions can be rated
+•	One rating per transaction
+•	No anonymous ratings
+ 
+Restrictions
+•	Self-rating not allowed
+•	Fake accounts blocked
+ 
+8. Rating Impact on Marketplace
+Use Cases
+For Customers
+•	Choose best reseller
+ 
+For Resellers
+•	Select reliable distributors
+ 
+For Platform
+•	Rank sellers in search results
+ 
+9. Rating-Based Ranking (Advanced)
+You can use rating for:
+•	Product listing ranking
+•	Featured sellers
+•	Recommended vendors
+ 
+Example Logic
+Higher rating + more transactions
+= Higher visibility
+ 
+10. Badge System (Optional but Powerful)
+Based on Rating
+•	⭐ Top Rated Seller
+•	⭐ Trusted Distributor
+•	⭐ Fast Response Partner
 
 
-3️⃣ DEAL TYPES (System Level)
-The system supports three types of deals:
-• Deal Registration
-A structured opportunity management process that includes verification, declaration, locking, engagement activities, and scoring.
-• Bidding
-A competitive opportunity format where multiple resellers can participate.
-• Direct Query
-A simplified inquiry-based communication flow without locking or scoring.
-Each deal/quote must have a tag:
-• Normal Quote
-Standard quotation without competitive structure.
-• Bidding Quote
-Quotation generated within a competitive bidding environment.
-Based on scoring parameters, a deal may be marked as a high-value or “Gold Deal.”
-This classification reflects engagement intensity and commercial seriousness.
-Meeting functionality is available in all three deal types.
-Every deal type supports structured meeting documentation.
-4️⃣ DIRECT QUERY FLOW
+Sign up flow with user qualification logic
+
+Got it—your requirement is strict approval-based onboarding:
+👉 No Distributor or Reseller becomes active until Admin reviews and approves them.
+Below is the refined, clean, and enforceable onboarding + qualification flow aligned to that rule.
+ 
+Marketplace Signup & Qualification Flow
+(Strict Approval-Based Onboarding – Reseller & Distributor)
+This flow ensures that:
+✅ Users can register
+❌ But cannot access marketplace features
+✅ Until Admin/Reviewer approves them after qualification
+ 
+1. User Signup (Registration Only – No Access Yet)
+Step 1 – Select Role
+User Action
+User clicks Sign Up and selects:
+•	Reseller
+•	Distributor
+ 
+Step 2 – Basic Account Creation
+User enters:
+•	Name
+•	Company Name
+•	Email
+•	Mobile Number
+•	Password
+System Action
+•	OTP / Email verification completed
+•	Account created with status:
+👉 Status: Registered (Inactive)
+⚠️ User is NOT onboarded yet
+ 
+2. Mandatory Qualification Step (Blocking Step)
+Step 3 – Force Qualification Form
+After login, user is forced to complete qualification.
+User cannot skip this.
+ 
+Step 4 – Business Qualification Form
+For Reseller
+•	Company details (GST, PAN, business type)
+•	Industry & product categories
+•	Revenue range
+•	Years in business
+•	Service locations
+ 
+For Distributor
+•	Trade License / CR
+•	Regions covered
+•	Warehouse & logistics capability
+•	Brand authorization details
+ 
+3. Document Upload (Mandatory for Submission)
+Step 5 – Upload Documents
+Reseller Documents
+•	GST Certificate
+•	PAN
+•	Business Registration
+Distributor Documents
+•	Trade License / CR
+•	Tax Certificate
+•	Brand Authorization
+ 
+Validation Rules
+•	Minimum required documents must be uploaded
+•	File validation (format, size)
+•	Secure storage (encrypted)
+ 
+4. Submit for Approval
+Step 6 – Submission
+User Action
+User clicks Submit for Verification
+System Action
+•	Status updated to:
+👉 Status: Pending Approval
+•	Request appears in:
+Admin Dashboard → User Qualification Review
+ 
+5. Admin / Reviewer Qualification Process
+Step 7 – Admin Review
+Admin/Reviewer Actions
+Admin reviews:
+•	Business details
+•	Uploaded documents
+•	Market credibility
+ 
+Available Actions
+Admin can:
+1️⃣ Approve
+•	User becomes active
+•	Role assigned (Reseller / Distributor)
+ 
+2️⃣ Reject
+•	User is blocked from onboarding
+•	Reason is captured
+ 
+3️⃣ Request More Information
+•	User must re-submit missing data
+ 
+6. Status Lifecycle (Strict Control)
+Registered (Inactive)
+↓
+Qualification Pending
+↓
+Pending Approval
+↓
+→ Approved ✅
+→ Rejected ❌
+→ Info Required 🔁
+ 
+7. Access Control Logic (Critical)
+Before Approval
+User CANNOT access:
+•	Product pricing
+•	BOQ upload
+•	Quote requests
+•	Deal registration
+•	Credit request
+•	Distributor/reseller interactions
+User can only see:
+•	Limited marketplace (optional)
+•	“Under Verification” message
+ 
+After Approval
+If Reseller Approved
+Access to:
+•	Product catalog (with pricing)
+•	BOQ Upload
+•	Quote Requests
+•	Deal Registration
+•	Credit Request Module
+ 
+If Distributor Approved
+Access to:
+•	Product listing
+•	Quote management
+•	Engagement requests
+•	Reseller interactions
+ 
+8. Rejection Flow
+Step 8 – If Rejected
+System Action
+•	Status → Rejected
+•	User receives:
+•	Email notification
+•	Portal message
+User Options
+•	Re-apply (optional)
+•	Contact support
+ 
+9. Re-Submission Flow
+Step 9 – Info Required Case
+If admin selects Request More Info:
 Flow:
-Reseller
-→ Creates Query
-→ Enters requirement
-→ Sends to Distributor
-This flow is designed for quick communication without structured validation.
-System Behavior:
-• No customer verification
-No corporate email validation is required.
-• No locking mechanism
-The opportunity is not exclusively secured.
-• No scoring
-No engagement score is generated in this flow.
-Distributor:
-→ Can respond with a quote
-The distributor may provide pricing or clarification.
-End User:
-→ Can view the query and responses
-Full transparency of communication is maintained.
-🔔 Meeting Flow in Direct Query
-Within a Direct Query, the reseller can create structured meeting records.
-Meeting Structure:
-• Meeting Title
-Defines the subject or purpose of the meeting.
-• Date & Time
-Records the scheduled meeting timestamp.
-• Attendees
-Captures who participated in the discussion.
-• Decisions Taken
-Documents agreements, clarifications, or conclusions reached.
-• Meeting Tasks:
-o Task Description
-Defines actionable follow-up steps.
-o Owner
-Specifies responsible individual.
-o Deadline
-Defines completion timeline.
-Meetings serve as structured documentation and engagement tracking.
-No lock impact.
-No scoring impact.
-5️⃣ DEAL REGISTRATION FLOW
-Deal Registration is a structured process.
-5.1 Registration Step
-Reseller:
-→ Enters customer details
-Captures necessary customer information for opportunity validation.
-→ Enters corporate email
-Ensures authenticity and prevents false registrations.
-→ Submits
-System:
-→ Sends verification email
-Validates customer authenticity before activation.
-5.2 Declaration Step
-Reseller must:
-• Accept declaration checkbox
-Confirms compliance and ownership responsibility.
-• Provide e-signature
-Creates formal commitment record.
-After completion:
-→ Deal becomes Active
-The opportunity enters the operational lifecycle.
-5.3 Lock Mechanism
-If a reseller is the first to register:
-System:
-• Automatically locks the deal to that specific user
-Assigns exclusive ownership.
-• Displays a lock badge
-Provides visual clarity.
-• Prevents others from locking
-Avoids ownership conflicts.
-Rules:
-• Even users from the same company cannot lock it once locked
-• No reassignment allowed
-• Lock remains valid for the entire MVP phase
-Distributor:
-• Can view lock owner
-• Can view lock date and time
-End User:
-• Can view lock badge and details
-• Cannot modify anything
-6️⃣ DEAL ACTIVITIES, MEETING FLOW & POINT SYSTEM
-Once the deal becomes Active:
-Reseller can perform:
-• Meeting
-• Demo
-• BOQ Revision
-6.1 Meeting Flow 
-Meeting is treated as a formal engagement record.
-When creating a meeting, reseller must enter:
-1.	Meeting Title
-2.	Date & Time
-3.	Attendees
-Post-Meeting Documentation:
-Decisions Taken
-Documents agreements, commercial direction, and technical clarifications.
-Meeting Tasks (Structured):
-For each task:
-• Task Description
-• Owner
-• Deadline
-Meeting history remains permanently attached to the deal for audit and tracking.
-6.2 Point System (Updated)
-Only applicable for Deal Registration and Converted Bidding.
-Each activity adds fixed points:
-• Meeting Scheduled → +10
-• Demo → +10
-• BOQ Revision → +10
-Frontend displays:
-• Activity log
-• Meeting history
-• Total score (example: 30/100)
-Higher score indicates stronger engagement and seriousness.
-Direct Query:
-• No scoring applied.
-7️⃣ BOQ Submission Flow
-After performing activities:
-Reseller:
-→ Uploads BOQ
-Then selects:
-Option A: Protected Quoting
-Controlled participation quoting model.
-Option B: Open BOQ Bidding
-Competitive participation enabled.
-End User:
-→ Can view uploaded BOQ
-→ Cannot upload BOQ
-
-
-8️⃣ BIDDING FLOW
-Two possible scenarios:
-8.1 Bidding from Registered Deal (Path A)
-Flow:
-Deal Registration
-→ Lock
-→ Activities (Meeting/Demo/BOQ)
-→ Points accumulated
-→ Convert to Bidding
-In bidding:
-• Other resellers can participate
-• Original lock remains visible
-• Deal score remains visible
-• Meeting history remains visible
-8.2 Fresh Bidding (Path B)
-Reseller directly creates a bidding deal.
-System Behavior:
-• No deal registration
-• No scoring
-• No lock
-However:
-Meeting functionality is available for documentation.
-Distributor:
-• Can view bidding deal and meetings
-End User:
-• Can view bidding status and meeting history
-
-
-
-9️⃣ LOCK CONFLICT LOGIC
-Case 1:
-Same product already locked
-→ Can register
-→ Cannot lock
-Case 2:
-Different product not part of locked deal
-→ Can lock
-Case 3:
-Increase quantity
-→ Can lock increased quantity
-→ Original locked deal remains
-System must always display:
-• Lock badge
-• Locked by user
-• Lock date
-End User:
-→ View only
-🔟 DISTRIBUTOR DASHBOARD VIEW
-Distributor must have four tabs:
-• Deal Registrations
-• Bidding
-• Direct Queries
-• Quotes
-For each deal, distributor can see:
-• Lock owner
-• Lock date
-• Deal score
-• Reseller history
-• Meeting count
-• Meeting details
-• Task deadlines
-End User:
-→ Same view but without action button
-
-
+Pending Approval
+↓
+Info Required
+↓
+User updates data/documents
+↓
+Resubmits
+↓
+Back to Pending Approval
+ 
+10. Audit & Security Layer
+Security Requirements
+•	Documents stored encrypted
+•	Role-based access control
+ 
+Audit Logs
+Track:
+•	Who approved/rejected user
+•	Timestamp
+•	Document access logs
+ 
+Final Strict Onboarding Flow
+User Registers
+↓
+Status: Registered (Inactive)
+↓
+Complete Qualification Form
+↓
+Upload Documents
+↓
+Submit for Verification
+↓
+Status: Pending Approval
+↓
+Admin Review
+↓
+Approved / Rejected / Info Required
+↓
+If Approved → User Onboarded & Activated
+↓
+Full Marketplace Access Enabled

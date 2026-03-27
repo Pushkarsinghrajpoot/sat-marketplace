@@ -14,7 +14,7 @@ import { useSimpleAuth } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
 import { sendNotification } from '@/lib/notification-client';
 
-const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Engagement', 'Declaration'];
+const steps = ['Deal Type', 'Customer Info', 'Deal Details', 'Verification', 'Declaration', 'Engagement'];
 
 export default function RegisterDealPage() {
   const router = useRouter();
@@ -389,6 +389,24 @@ export default function RegisterDealPage() {
       }
       
       // For DEAL_REGISTRATION and BIDDING: Insert into deals table
+      // Combine productsNeeded and notes with delimiter for separate display
+      let combinedNotes = '';
+      if (formData.productsNeeded) {
+        combinedNotes += `[PRODUCTS_NEEDED]${formData.productsNeeded}[/PRODUCTS_NEEDED]`;
+      }
+      if (formData.notes) {
+        if (combinedNotes) combinedNotes += '\n\n';
+        combinedNotes += formData.notes;
+      }
+
+      // Determine visibility based on deal type and distributor selection
+      let dealVisibility = 'PRIVATE';
+      if (dealType === 'BIDDING') {
+        dealVisibility = 'PUBLIC';
+      } else if (dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
+        dealVisibility = 'DISTRIBUTOR';
+      }
+
       const dealData: any = {
         opportunity_name: formData.opportunityName,
         deal_type: dealType, // Keep original type
@@ -398,7 +416,7 @@ export default function RegisterDealPage() {
         customer_contact: formData.customerContact,
         estimated_value: parseFloat(formData.estimatedValue) || 0,
         close_date: formData.closeDate,
-        notes: formData.notes,
+        notes: combinedNotes,
         status: 'ACTIVE',
         reseller_id: user.id,
         reseller_organization_id: user.organizationId,
@@ -408,6 +426,8 @@ export default function RegisterDealPage() {
         locked_at: dealType === 'DEAL_REGISTRATION' ? new Date().toISOString() : null,
         // Set initial score based on deal type and points earned
         score: dealType === 'DEAL_REGISTRATION' ? 0 : 50,
+        // Visibility control
+        visibility: dealVisibility,
       };
       
       // Add verification and declaration fields only if applicable
@@ -427,6 +447,21 @@ export default function RegisterDealPage() {
       const createdDeal = await createDeal(dealData);
       
       console.log('Deal created successfully:', createdDeal);
+
+      // Track distributor engagement for DEAL_REGISTRATION with selected distributor
+      if (createdDeal.id && dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
+        try {
+          await supabase
+            .from('deal_engaged_distributors')
+            .insert({
+              deal_id: createdDeal.id,
+              distributor_id: selectedDistributor,
+            });
+          console.log('DEAL_REGISTRATION: Tracked distributor engagement');
+        } catch (err) {
+          console.error('Error tracking distributor engagement:', err);
+        }
+      }
       
       // Send notifications to distributors about new deal
       if (createdDeal.id) {
@@ -494,68 +529,50 @@ export default function RegisterDealPage() {
             } else {
               console.warn('BIDDING: No verified distributors found!');
             }
-          } else if (dealType === 'DEAL_REGISTRATION') {
-            // For DEAL_REGISTRATION, notify ALL distributors (not just selected)
-            console.log('DEAL_REGISTRATION: Starting notification process for all distributors');
+          } else if (dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
+            // For DEAL_REGISTRATION, only notify selected distributor
+            console.log('DEAL_REGISTRATION: Starting notification process for selected distributor');
             
-            const { data: allDistributors, error: distError } = await supabase
-              .from('organizations')
-              .select('id, name')
-              .eq('type', 'DISTRIBUTOR')
-              .eq('verified', true);
+            const { data: distributorUsers, error: usersError } = await supabase
+              .from('users')
+              .select('id, email, name')
+              .eq('organization_id', selectedDistributor)
+              .eq('role', 'DISTRIBUTOR');
             
-            console.log('DEAL_REGISTRATION: Found distributors:', allDistributors?.length || 0, allDistributors);
+            console.log(`DEAL_REGISTRATION: Found ${distributorUsers?.length || 0} users for selected distributor`);
             
-            if (distError) {
-              console.error('DEAL_REGISTRATION: Error fetching distributors:', distError);
+            if (usersError) {
+              console.error(`DEAL_REGISTRATION: Error fetching users:`, usersError);
             }
             
-            if (allDistributors && allDistributors.length > 0) {
+            if (distributorUsers && distributorUsers.length > 0) {
               let notificationCount = 0;
-              for (const distributor of allDistributors) {
-                console.log(`DEAL_REGISTRATION: Processing distributor ${distributor.name} (${distributor.id})`);
+              for (const distUser of distributorUsers) {
+                console.log(`DEAL_REGISTRATION: Sending notification to ${distUser.name} (${distUser.email})`);
                 
-                const { data: distributorUsers, error: usersError } = await supabase
-                  .from('users')
-                  .select('id, email, name')
-                  .eq('organization_id', distributor.id)
-                  .eq('role', 'DISTRIBUTOR');
+                const result = await sendNotification({
+                  userId: distUser.id,
+                  notificationType: 'DEAL_REGISTERED',
+                  title: 'New Deal Registration - You\'re Invited',
+                  message: `${user.name} registered a new deal and selected you: "${formData.opportunityName}"`,
+                  link: `/distributor/deals/${createdDeal.id}`,
+                  emailData: {
+                    resellerName: user.name,
+                    dealName: formData.opportunityName,
+                    estimatedValue: formData.estimatedValue,
+                  },
+                });
                 
-                console.log(`DEAL_REGISTRATION: Found ${distributorUsers?.length || 0} users for ${distributor.name}`);
-                
-                if (usersError) {
-                  console.error(`DEAL_REGISTRATION: Error fetching users for ${distributor.name}:`, usersError);
-                }
-                
-                if (distributorUsers && distributorUsers.length > 0) {
-                  for (const distUser of distributorUsers) {
-                    console.log(`DEAL_REGISTRATION: Sending notification to ${distUser.name} (${distUser.email})`);
-                    
-                    const result = await sendNotification({
-                      userId: distUser.id,
-                      notificationType: 'DEAL_REGISTERED',
-                      title: 'New Deal Registration',
-                      message: `${user.name} registered a new deal: "${formData.opportunityName}"`,
-                      link: `/distributor/deals/${createdDeal.id}`,
-                      emailData: {
-                        resellerName: user.name,
-                        dealName: formData.opportunityName,
-                        estimatedValue: formData.estimatedValue,
-                      },
-                    });
-                    
-                    if (result.success) {
-                      notificationCount++;
-                      console.log(`DEAL_REGISTRATION: ✓ Notification sent to ${distUser.name}`);
-                    } else {
-                      console.error(`DEAL_REGISTRATION: ✗ Failed to send notification to ${distUser.name}:`, result.error);
-                    }
-                  }
+                if (result.success) {
+                  notificationCount++;
+                  console.log(`DEAL_REGISTRATION: ✓ Notification sent to ${distUser.name}`);
+                } else {
+                  console.error(`DEAL_REGISTRATION: ✗ Failed to send notification to ${distUser.name}:`, result.error);
                 }
               }
               console.log(`DEAL_REGISTRATION: Total notifications sent: ${notificationCount}`);
             } else {
-              console.warn('DEAL_REGISTRATION: No verified distributors found!');
+              console.warn('DEAL_REGISTRATION: No users found for selected distributor!');
             }
           }
         } catch (err) {
@@ -992,15 +1009,35 @@ export default function RegisterDealPage() {
                     </div>
                   </div>
                 ) : (
-                  <Card className="bg-green-50 border-green-200">
-                    <CardContent className="p-6 text-center">
-                      <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-3" />
-                      <p className="font-semibold text-green-900 mb-1">Email Verified Successfully!</p>
-                      <p className="text-sm text-green-800">
-                        Customer relationship confirmed. Proceed to declaration.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <div className="space-y-4">
+                    <Card className="bg-green-50 border-green-200">
+                      <CardContent className="p-6 text-center">
+                        <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-3" />
+                        <p className="font-semibold text-green-900 mb-1">Email Verified Successfully!</p>
+                        <p className="text-sm text-green-800">
+                          Customer relationship confirmed.
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-center gap-3 mb-4">
+                          <Lock className="h-8 w-8 text-blue-600" />
+                          <div className="text-center">
+                            <p className="font-bold text-blue-900 text-lg">Deal Will Be Locked!</p>
+                            <p className="text-sm text-blue-800">You'll earn 15 points upon completion</p>
+                          </div>
+                        </div>
+                        <div className="bg-white/50 rounded-lg p-3">
+                          <p className="text-xs text-blue-900 text-center">
+                            <strong>What this means:</strong><br/>
+                            This opportunity will be exclusively locked to you. No one else (including team members) can register this same customer deal. Your lock status will be visible to distributors.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 )}
               </div>
             )}
@@ -1019,95 +1056,8 @@ export default function RegisterDealPage() {
               </div>
             )}
 
-            {/* Step 4: Engagement Request (Optional) - for DEAL_REGISTRATION after verification, BIDDING, and DIRECT_QUERY */}
-            {((currentStep === 4 && dealType === 'DEAL_REGISTRATION' && isVerified) || 
-              (currentStep === 4 && dealType === 'BIDDING') ||
-              (currentStep === 4 && dealType === 'DIRECT_QUERY')) && (
-              <div className="space-y-6">
-                <CardHeader className="px-0 pt-0">
-                  <CardTitle>Request Engagement (Optional)</CardTitle>
-                  <p className="text-sm text-gray-600">Request distributor support before finalizing</p>
-                </CardHeader>
-
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-blue-900">
-                      <strong>Optional:</strong> Request technical support or demonstration from distributors.
-                      You can skip this and proceed directly to the next step.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Engagement Type</label>
-                  <Select
-                    value={engagementType}
-                    onChange={(e) => setEngagementType(e.target.value)}
-                  >
-                    <option value="">Skip - No engagement needed</option>
-                    <option value="TECHNICAL_MEETING">Technical Meeting</option>
-                    <option value="DEMO_POC">Request Demo/POC</option>
-                    <option value="BOQ_REVISION">Request BOQ Revision</option>
-                    <option value="TECH_DISCUSSION">Request Tech Discussion</option>
-                  </Select>
-                </div>
-
-                {/* Distributor Selection for BIDDING */}
-                {(dealType === 'BIDDING' || dealType === 'DIRECT_QUERY') && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      {dealType === 'BIDDING' ? 'Select Distributor for Engagement' : 'Select Distributor *'}
-                    </label>
-                    <Select
-                      value={selectedDistributor}
-                      onChange={(e) => setSelectedDistributor(e.target.value)}
-                      required={dealType === 'DIRECT_QUERY'}
-                    >
-                      <option value="">Select a distributor</option>
-                      {distributors.map((dist) => (
-                        <option key={dist.id} value={dist.id}>
-                          {dist.name} - {dist.city || 'N/A'}
-                        </option>
-                      ))}
-                    </Select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {dealType === 'BIDDING' 
-                        ? 'This engagement request will be sent to the selected distributor'
-                        : 'This query will only be visible to the selected distributor'
-                      }
-                    </p>
-                  </div>
-                )}
-
-                {engagementType && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Message to Distributor</label>
-                    <Textarea
-                      value={engagementMessage}
-                      onChange={(e) => setEngagementMessage(e.target.value)}
-                      rows={3}
-                      placeholder="Provide details about your engagement request..."
-                    />
-                  </div>
-                )}
-
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-900">
-                    <strong>What happens next:</strong>
-                  </p>
-                  <ul className="text-sm text-green-800 mt-2 space-y-1 ml-4">
-                    <li>• {dealType === 'DEAL_REGISTRATION' ? 'Your deal will be registered and locked to you' : 
-                        dealType === 'BIDDING' ? 'Your bidding deal will be open to distributors' : 'Your query will be sent to distributors'}</li>
-                    <li>• {engagementType ? 'Distributor will be notified of your engagement request' : 'You can request engagement later from deal details'}</li>
-                    <li>• You'll earn activity points for each step</li>
-                    <li>• Proceed to declaration and finalize your {dealType === 'DEAL_REGISTRATION' ? 'registration' : dealType === 'BIDDING' ? 'bidding deal' : 'query'}</li>
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5: Declaration (for BIDDING, DEAL_REGISTRATION, and DIRECT_QUERY) */}
-            {currentStep === 5 && (dealType === 'BIDDING' || dealType === 'DEAL_REGISTRATION' || dealType === 'DIRECT_QUERY') && (
+            {/* Step 4: Declaration (for BIDDING, DEAL_REGISTRATION, and DIRECT_QUERY) */}
+            {currentStep === 4 && (dealType === 'BIDDING' || dealType === 'DEAL_REGISTRATION' || dealType === 'DIRECT_QUERY') && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0">
                   <CardTitle>Declaration & E-Sign</CardTitle>
@@ -1220,6 +1170,95 @@ export default function RegisterDealPage() {
                     </CardContent>
                   </Card>
                 )}
+              </div>
+            )}
+
+            {/* Step 5: Engagement Request (Optional) */}
+            {((currentStep === 5 && dealType === 'DEAL_REGISTRATION' && isVerified) || 
+              (currentStep === 5 && dealType === 'BIDDING') ||
+              (currentStep === 5 && dealType === 'DIRECT_QUERY')) && (
+              <div className="space-y-6">
+                <CardHeader className="px-0 pt-0">
+                  <CardTitle>Request Engagement (Optional)</CardTitle>
+                  <p className="text-sm text-gray-600">Request distributor support before finalizing</p>
+                </CardHeader>
+
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-blue-900">
+                      <strong>Optional:</strong> Request technical support or demonstration from distributors.
+                      You can skip this and proceed directly to submit.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Engagement Type</label>
+                  <Select
+                    value={engagementType}
+                    onChange={(e) => setEngagementType(e.target.value)}
+                  >
+                    <option value="">Skip - No engagement needed</option>
+                    <option value="TECHNICAL_MEETING">Technical Meeting</option>
+                    <option value="DEMO_POC">Request Demo/POC</option>
+                    <option value="BOQ_REVISION">Request BOQ Revision</option>
+                    <option value="TECH_DISCUSSION">Request Tech Discussion</option>
+                  </Select>
+                </div>
+
+                {(dealType === 'BIDDING' || dealType === 'DIRECT_QUERY' || dealType === 'DEAL_REGISTRATION') && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {dealType === 'DEAL_REGISTRATION' ? 'Select Distributor (Optional)' : 
+                       dealType === 'BIDDING' ? 'Select Distributor for Engagement' : 'Select Distributor *'}
+                    </label>
+                    <Select
+                      value={selectedDistributor}
+                      onChange={(e) => setSelectedDistributor(e.target.value)}
+                      required={dealType === 'DIRECT_QUERY'}
+                    >
+                      <option value="">Select a distributor</option>
+                      {distributors.map((dist) => (
+                        <option key={dist.id} value={dist.id}>
+                          {dist.name} - {dist.city || 'N/A'}
+                        </option>
+                      ))}
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {dealType === 'DEAL_REGISTRATION'
+                        ? 'If selected, this specific distributor will be able to view your deal and receive engagement requests'
+                        : dealType === 'BIDDING' 
+                        ? 'This engagement request will be sent to the selected distributor'
+                        : 'This query will only be visible to the selected distributor'
+                      }
+                    </p>
+                  </div>
+                )}
+
+                {engagementType && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Message to Distributor</label>
+                    <Textarea
+                      value={engagementMessage}
+                      onChange={(e) => setEngagementMessage(e.target.value)}
+                      rows={3}
+                      placeholder="Provide details about your engagement request..."
+                    />
+                  </div>
+                )}
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-900">
+                    <strong>What happens next:</strong>
+                  </p>
+                  <ul className="text-sm text-green-800 mt-2 space-y-1 ml-4">
+                    <li>• {dealType === 'DEAL_REGISTRATION' ? 'Your deal will be registered and locked to you' : 
+                        dealType === 'BIDDING' ? 'Your bidding deal will be open to distributors' : 'Your query will be sent to distributors'}</li>
+                    <li>• {engagementType ? 'Distributor will be notified of your engagement request' : 'You can request engagement later from deal details'}</li>
+                    <li>• You'll earn activity points for each step</li>
+                    <li>• Click Submit to finalize your {dealType === 'DEAL_REGISTRATION' ? 'registration' : dealType === 'BIDDING' ? 'bidding deal' : 'query'}</li>
+                  </ul>
+                </div>
               </div>
             )}
 

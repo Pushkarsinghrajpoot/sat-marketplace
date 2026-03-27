@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Building, FileText, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Users, Building, FileText, DollarSign, AlertTriangle, CheckCircle, Shield, Award } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { getUsers, getOrganizations, getDeals } from '@/lib/data-helpers';
+import { getAdminStats, getPendingQualifications } from '@/lib/admin-helpers';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -16,15 +17,19 @@ export default function AdminDashboard() {
     gmv: 0,
     pendingVerifications: 0,
   });
+  const [adminStats, setAdminStats] = useState<any>(null);
+  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [users, organizations, deals] = await Promise.all([
+        const [users, organizations, deals, adminStatsData, pendingUsersData] = await Promise.all([
           getUsers(),
           getOrganizations(),
           getDeals(),
+          getAdminStats(),
+          getPendingQualifications({ type: 'users', limit: 5 }),
         ]);
 
         const activeDeals = deals.filter((d: any) => 
@@ -41,6 +46,8 @@ export default function AdminDashboard() {
           gmv: totalGMV,
           pendingVerifications: organizations.filter((o: any) => !o.verified).length,
         });
+        setAdminStats(adminStatsData);
+        setPendingUsers(pendingUsersData);
       } catch (error) {
         console.error('Error fetching admin stats:', error);
       } finally {
@@ -57,7 +64,7 @@ export default function AdminDashboard() {
         <p className="text-gray-600">Monitor and manage the B2B marketplace</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -119,6 +126,23 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <Link href="/admin/qualifications">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-red-600" />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-gray-900">{adminStats?.pendingUsers || 0}</p>
+                <p className="text-sm text-gray-600 mt-1">Pending Reviews</p>
+                <p className="text-xs text-red-600 mt-2">{adminStats?.pendingDocuments || 0} docs pending</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
@@ -133,22 +157,28 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                    <div>
-                      <p className="font-semibold text-sm">TechCorp Distribution Inc.</p>
-                      <p className="text-xs text-gray-600">Submitted 2 days ago</p>
+              {pendingUsers.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">No pending reviews</p>
+              ) : (
+                pendingUsers.slice(0, 3).map((user: any) => (
+                  <div key={user.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                      <div>
+                        <p className="font-semibold text-sm">{user.name}</p>
+                        <p className="text-xs text-gray-600">
+                          {user.organizations?.name} • {user.role}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href={`/admin/qualifications/${user.id}`}>
+                        <Button size="sm" variant="outline">Review</Button>
+                      </Link>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Link href="/admin/organizations">
-                      <Button size="sm" variant="outline">Review</Button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

@@ -45,6 +45,11 @@ export default function DistributorMessagesPage() {
         .from('chat_conversations')
         .select(`
           *,
+          assigned_to,
+          users:assigned_to (
+            id,
+            name
+          ),
           products (
             id,
             name,

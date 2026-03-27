@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Building2, User, Calendar, DollarSign, Lock, FileText, TrendingUp, CheckCircle, XCircle, Clock, Video, Users } from 'lucide-react';
+import { ArrowLeft, Building2, User, Calendar, DollarSign, Lock, FileText, TrendingUp, CheckCircle, XCircle, Clock, Video, Users, MessageCircle } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
@@ -49,6 +49,7 @@ export default function DistributorDealDetailPage() {
   const [deal, setDeal] = useState<any>(null);
   const [boqs, setBOQs] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [dealProducts, setDealProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   const [scheduledDate, setScheduledDate] = useState('');
@@ -246,6 +247,25 @@ export default function DistributorDealDetailPage() {
       // Fetch activities for this deal
       await fetchActivities();
 
+      // Fetch deal products
+      const { data: productsData } = await supabase
+        .from('deal_products')
+        .select(`
+          *,
+          products (
+            id,
+            name,
+            sku,
+            price,
+            brand,
+            description,
+            product_services (*)
+          )
+        `)
+        .eq('deal_id', dealId);
+      
+      setDealProducts(productsData || []);
+
     } catch (error) {
       console.error('Error fetching deal details:', error);
     } finally {
@@ -313,14 +333,26 @@ export default function DistributorDealDetailPage() {
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">Customer</CardTitle>
+              <CardTitle>Customer Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-3">
-                <Building2 className="h-8 w-8 text-blue-600" />
-                <div>
-                  <p className="font-semibold">{deal.customer_name}</p>
-                  <p className="text-sm text-gray-600">{deal.customer_company}</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-8 w-8 text-blue-600" />
+                  <div>
+                    <p className="font-semibold">{deal.customer_name}</p>
+                    <p className="text-sm text-gray-600">{deal.customer_company || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="border-t pt-3 space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-600">Email</p>
+                    <p className="text-sm font-medium">{deal.customer_email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Contact</p>
+                    <p className="text-sm font-medium">{deal.customer_contact || 'N/A'}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -328,14 +360,22 @@ export default function DistributorDealDetailPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">Reseller</CardTitle>
+              <CardTitle>Reseller Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-3">
-                <User className="h-8 w-8 text-purple-600" />
-                <div>
-                  <p className="font-semibold">{deal.users?.name || 'Unknown'}</p>
-                  <p className="text-sm text-gray-600">{deal.users?.organizations?.name || 'N/A'}</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <User className="h-8 w-8 text-purple-600" />
+                  <div>
+                    <p className="font-semibold">{deal.users?.name || 'Unknown'}</p>
+                    <p className="text-sm text-gray-600">{deal.users?.organizations?.name || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="border-t pt-3 space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-600">Email</p>
+                    <p className="text-sm font-medium">{deal.users?.email || 'N/A'}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -359,30 +399,89 @@ export default function DistributorDealDetailPage() {
           </Card>
         </div>
 
+        {/* Quick Actions */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <Link href={`/distributor/chat?dealId=${deal.id}`}>
+                <Button variant="outline">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Message Reseller
+                </Button>
+              </Link>
+              <Link href={`/distributor/quotes/create?dealId=${deal.id}`}>
+                <Button variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Submit Quote
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Deal Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Status</p>
-                <Badge variant="default">{deal.status}</Badge>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Status</p>
+                  <Badge variant="default">{deal.status}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Priority</p>
+                  <Badge variant={deal.priority === 'HIGH' ? 'danger' : deal.priority === 'NORMAL' ? 'default' : 'info'}>
+                    {deal.priority || 'NORMAL'}
+                  </Badge>
+                </div>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Expected Close Date</p>
                 <p className="font-medium">
-                  {deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString() : 'Not set'}
+                  {deal.close_date ? new Date(deal.close_date).toLocaleDateString() : 'Not set'}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Created</p>
                 <p className="font-medium">{formatRelativeTime(deal.created_at)}</p>
               </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Last Updated</p>
+                <p className="font-medium">{formatRelativeTime(deal.updated_at)}</p>
+              </div>
+              {deal.is_verified && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <p className="text-sm font-semibold text-green-900">Customer Verified</p>
+                  </div>
+                  <p className="text-xs text-green-800">
+                    Verified on: {deal.verified_at ? new Date(deal.verified_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              )}
+              {deal.declaration_accepted && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircle className="h-4 w-4 text-blue-600" />
+                    <p className="text-sm font-semibold text-blue-900">Declaration Accepted</p>
+                  </div>
+                  <p className="text-xs text-blue-800">
+                    Accepted on: {deal.declaration_accepted_at ? new Date(deal.declaration_accepted_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              )}
               {deal.converted_to_bidding && (
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Converted to Bidding</p>
-                  <p className="font-medium">{formatRelativeTime(deal.converted_to_bidding_at)}</p>
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                  <p className="text-sm font-semibold text-purple-900">Converted to Open Bidding</p>
+                  <p className="text-xs text-purple-800">
+                    Converted on: {formatRelativeTime(deal.converted_to_bidding_at)}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -437,6 +536,119 @@ export default function DistributorDealDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Products Section */}
+        {dealProducts.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Products & Services</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {dealProducts.map((dealProduct) => (
+                  <div key={dealProduct.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="font-semibold text-gray-900">
+                            {dealProduct.products?.name || 'Product'}
+                          </h4>
+                          <Badge variant="info">Qty: {dealProduct.quantity}</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-600">SKU</p>
+                            <p className="font-medium">{dealProduct.products?.sku || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Brand</p>
+                            <p className="font-medium">{dealProduct.products?.brand || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Unit Price</p>
+                            <p className="font-medium">{formatCurrency(dealProduct.products?.price || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Total Value</p>
+                            <p className="font-semibold text-blue-600">
+                              {formatCurrency((dealProduct.products?.price || 0) * dealProduct.quantity)}
+                            </p>
+                          </div>
+                        </div>
+                        {dealProduct.products?.description && (
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-600">Description</p>
+                            <p className="text-sm text-gray-900">{dealProduct.products.description}</p>
+                          </div>
+                        )}
+                        {dealProduct.products?.product_services && dealProduct.products.product_services.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Associated Services:</p>
+                            <div className="space-y-2">
+                              {dealProduct.products.product_services.map((service: any) => (
+                                <div key={service.id} className="bg-blue-50 border border-blue-200 rounded p-2">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-sm font-medium text-blue-900">{service.service_name}</p>
+                                      <p className="text-xs text-blue-700">{service.service_type}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      {service.is_included ? (
+                                        <Badge variant="success">Included</Badge>
+                                      ) : (
+                                        <p className="text-sm font-semibold text-blue-900">
+                                          {formatCurrency(service.price || 0)}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-xs text-blue-800 mt-1">{service.description}</p>
+                                  )}
+                                  {service.duration && (
+                                    <p className="text-xs text-blue-700 mt-1">Duration: {service.duration}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Products/Services Needed Section */}
+        {deal.notes && deal.notes.includes('[PRODUCTS_NEEDED]') && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Products/Services Needed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-900 whitespace-pre-wrap">
+                {deal.notes.match(/\[PRODUCTS_NEEDED\]([\s\S]*?)\[\/PRODUCTS_NEEDED\]/)?.[1] || ''}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Additional Notes Section */}
+        {deal.notes && deal.notes.replace(/\[PRODUCTS_NEEDED\][\s\S]*?\[\/PRODUCTS_NEEDED\]\n*/g, '').trim() && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Additional Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-900 whitespace-pre-wrap">
+                {deal.notes.replace(/\[PRODUCTS_NEEDED\][\s\S]*?\[\/PRODUCTS_NEEDED\]\n*/g, '').trim()}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Score Display */}
         <Card className="mt-6 bg-gradient-to-br from-blue-600 to-blue-700 text-white">

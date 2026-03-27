@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Mail, Phone, Award, Building, Calendar, TrendingUp } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { RatingDisplay } from '@/components/ratings/RatingDisplay';
 import type { User, Organization } from '@/lib/types';
 
 export default function ProfilePage() {
@@ -148,6 +149,11 @@ export default function ProfilePage() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Ratings & Reviews Section */}
+            <div className="mt-8">
+              <RatingDisplay userId={params.id as string} showStats={true} />
             </div>
           </div>
         </div>

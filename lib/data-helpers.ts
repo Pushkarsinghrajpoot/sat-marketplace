@@ -54,7 +54,13 @@ export async function getUsers() {
   return mapArray(data || [], mapUser);
 }
 
-export async function getDeals(filters?: { userId?: string; organizationId?: string; dealType?: string }) {
+export async function getDeals(filters?: { 
+  userId?: string; 
+  organizationId?: string; 
+  dealType?: string;
+  userRole?: string;
+  distributorId?: string;
+}) {
   let query = supabase
     .from('deals')
     .select('*')
@@ -72,12 +78,40 @@ export async function getDeals(filters?: { userId?: string; organizationId?: str
     query = query.eq('deal_type', filters.dealType);
   }
 
+  // Visibility control for distributors
+  if (filters?.userRole === 'DISTRIBUTOR') {
+    // Distributors can only see PUBLIC deals or deals they're engaged with
+    query = query.or('visibility.eq.PUBLIC,visibility.eq.DISTRIBUTOR');
+  }
+
   const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching deals:', error);
     console.error('Error details:', JSON.stringify(error, null, 2));
     return [];
+  }
+
+  // Additional filtering for distributor-specific deals
+  if (filters?.userRole === 'DISTRIBUTOR' && filters?.distributorId && data) {
+    // Filter to only show deals where this distributor is engaged
+    const filteredData = await Promise.all(
+      data.map(async (deal) => {
+        if (deal.visibility === 'PUBLIC') return deal;
+        
+        // Check if distributor is engaged with this deal
+        const { data: engagement } = await supabase
+          .from('deal_engaged_distributors')
+          .select('id')
+          .eq('deal_id', deal.id)
+          .eq('distributor_id', filters.distributorId)
+          .single();
+        
+        return engagement ? deal : null;
+      })
+    );
+    
+    return mapArray(filteredData.filter(Boolean) as any[], mapDeal);
   }
 
   return mapArray(data || [], mapDeal);
@@ -99,7 +133,12 @@ export async function getDealActivities(dealId: string) {
   return data || [];
 }
 
-export async function getDirectQueries(filters?: { userId?: string; organizationId?: string }) {
+export async function getDirectQueries(filters?: { 
+  userId?: string; 
+  organizationId?: string;
+  userRole?: string;
+  distributorId?: string;
+}) {
   let query = supabase
     .from('direct_queries')
     .select('*')
@@ -111,6 +150,12 @@ export async function getDirectQueries(filters?: { userId?: string; organization
 
   if (filters?.organizationId) {
     query = query.eq('reseller_organization_id', filters.organizationId);
+  }
+
+  // Visibility control for distributors
+  if (filters?.userRole === 'DISTRIBUTOR' && filters?.distributorId) {
+    // Distributors can only see PUBLIC queries or queries specifically for them
+    query = query.or(`visibility.eq.PUBLIC,and(visibility.eq.PRIVATE,distributor_id.eq.${filters.distributorId})`);
   }
 
   const { data, error } = await query;

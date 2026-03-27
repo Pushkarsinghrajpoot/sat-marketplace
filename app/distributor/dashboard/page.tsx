@@ -36,11 +36,16 @@ export default function DistributorDashboard() {
       if (!user?.id) return;
 
       try {
-        // Distributors should see ALL deals (not filtered by userId)
-        // They see deals they can engage with, not deals they created
+        // Distributors should see only PUBLIC and engaged deals/queries
         const [deals, queries, quotes, boqData] = await Promise.all([
-          getDeals({}), // Fetch all deals for distributor view
-          getDirectQueries({}), // Fetch all queries for distributor view
+          getDeals({ 
+            userRole: 'DISTRIBUTOR',
+            distributorId: user.organizationId 
+          }),
+          getDirectQueries({
+            userRole: 'DISTRIBUTOR',
+            distributorId: user.organizationId
+          }),
           getQuotes({ distributorId: user.organizationId }),
           getBOQs({ distributorId: user.organizationId }),
         ]);
