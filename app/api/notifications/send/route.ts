@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       emailData,
     });
 
-    if (result.error) {
-      console.error('Error sending notification:', result.error);
+    if (!result.success) {
+      console.error('Error sending notification:', 'error' in result ? result.error : 'Unknown error');
       return NextResponse.json(
         { error: 'Failed to send notification' },
         { status: 500 }
