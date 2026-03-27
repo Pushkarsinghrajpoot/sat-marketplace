@@ -1,6 +1,63 @@
 import { supabase } from './supabase';
 import { sendNotification } from './notification-client';
 
+export async function createTeamMemberDirect(data: {
+  organizationId: string;
+  email: string;
+  name: string;
+  password: string;
+  role: string;
+  teamRole: string;
+  permissions?: any;
+  createdBy: string;
+}) {
+  try {
+    // Create auth account with admin-set password
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (authError) throw authError;
+
+    // Create user record
+    const { error: userError } = await supabase
+      .from('users')
+      .insert({
+        id: authData.user!.id,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        team_role: data.teamRole,
+        permissions: data.permissions || {},
+        organization_id: data.organizationId,
+        invited_by: data.createdBy,
+        invitation_status: 'ACTIVE',
+      });
+
+    if (userError) throw userError;
+
+    // Send welcome notification
+    await sendNotification({
+      userId: authData.user!.id,
+      notificationType: 'TEAM_INVITATION',
+      title: 'Welcome to the Team',
+      message: `Your account has been created. You can now login with your email and password.`,
+      link: '/auth/login',
+      emailData: {
+        recipientEmail: data.email,
+        tempPassword: data.password,
+        loginLink: `${process.env.NEXT_PUBLIC_APP_URL}/auth/login`,
+      },
+    });
+
+    return { success: true, userId: authData.user!.id };
+  } catch (error) {
+    console.error('Error creating team member:', error);
+    return { success: false, error };
+  }
+}
+
 export async function inviteTeamMember(data: {
   organizationId: string;
   email: string;

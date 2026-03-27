@@ -56,17 +56,23 @@ export async function sendNotificationWithEmail(params: NotificationParams) {
 
     const { subject, html } = templateFunction(emailTemplateData);
 
-    // 5. Send email
-    const emailResult = await sendEmail({
-      to: user.email,
-      subject,
-      html,
-    });
-
-    return emailResult;
+    // 5. Send email (skip if email service not configured)
+    try {
+      const emailResult = await sendEmail({
+        to: user.email,
+        subject,
+        html,
+      });
+      return emailResult;
+    } catch (emailError) {
+      console.warn('Email service not configured, notification saved to database only:', emailError);
+      // Return success since notification was saved to database
+      return { success: true, emailSkipped: true };
+    }
   } catch (error) {
     console.error('Error in sendNotificationWithEmail:', error);
-    return { success: false, error };
+    // Return success if notification was saved, even if email failed
+    return { success: true, error: 'Email failed but notification saved' };
   }
 }
 

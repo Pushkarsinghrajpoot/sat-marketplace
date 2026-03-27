@@ -10,7 +10,8 @@ import { Users, UserPlus, Mail, Shield, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { 
-  inviteTeamMember, 
+  inviteTeamMember,
+  createTeamMemberDirect,
   getTeamMembers, 
   getPendingInvitations,
   updateTeamMember,
@@ -30,8 +31,11 @@ export default function DistributorTeamPage() {
   const [pendingInvitations, setPendingInvitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [creationMethod, setCreationMethod] = useState<'direct' | 'invite'>('direct');
   const [inviteForm, setInviteForm] = useState({
     email: '',
+    name: '',
+    password: '',
     teamRole: 'SALES',
   });
   const [sending, setSending] = useState(false);
@@ -65,27 +69,55 @@ export default function DistributorTeamPage() {
       return;
     }
 
+    if (creationMethod === 'direct') {
+      if (!inviteForm.name || !inviteForm.password) {
+        toast.error('Please provide name and password');
+        return;
+      }
+    }
+
     setSending(true);
     try {
-      const result = await inviteTeamMember({
-        organizationId: user.organizationId,
-        email: inviteForm.email,
-        role: user.role,
-        teamRole: inviteForm.teamRole,
-        invitedBy: user.id,
-      });
+      let result;
+      
+      if (creationMethod === 'direct') {
+        result = await createTeamMemberDirect({
+          organizationId: user.organizationId,
+          email: inviteForm.email,
+          name: inviteForm.name,
+          password: inviteForm.password,
+          role: user.role,
+          teamRole: inviteForm.teamRole,
+          createdBy: user.id,
+        });
+        
+        if (result.success) {
+          toast.success(`Team member created! They can login with: ${inviteForm.email}`);
+        }
+      } else {
+        result = await inviteTeamMember({
+          organizationId: user.organizationId,
+          email: inviteForm.email,
+          role: user.role,
+          teamRole: inviteForm.teamRole,
+          invitedBy: user.id,
+        });
+        
+        if (result.success) {
+          toast.success('Invitation link sent to email!');
+        }
+      }
 
       if (result.success) {
-        toast.success('Invitation sent successfully!');
         setShowInviteModal(false);
-        setInviteForm({ email: '', teamRole: 'SALES' });
+        setInviteForm({ email: '', name: '', password: '', teamRole: 'SALES' });
         loadTeamData();
       } else {
-        toast.error('Failed to send invitation');
+        toast.error('Failed to add team member');
       }
     } catch (error) {
-      console.error('Error sending invitation:', error);
-      toast.error('Failed to send invitation');
+      console.error('Error adding team member:', error);
+      toast.error('Failed to add team member');
     } finally {
       setSending(false);
     }
@@ -294,6 +326,37 @@ export default function DistributorTeamPage() {
                 </div>
 
                 <div className="space-y-4">
+                  {/* Creation Method Toggle */}
+                  <div>
+                    <label className="block text-sm font-medium mb-3">How would you like to add this member?</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCreationMethod('direct')}
+                        className={`p-3 border-2 rounded-lg text-sm font-medium transition-colors ${
+                          creationMethod === 'direct'
+                            ? 'border-blue-600 bg-blue-50 text-blue-900'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="font-semibold mb-1">Create Account</div>
+                        <div className="text-xs opacity-75">Set password for them</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCreationMethod('invite')}
+                        className={`p-3 border-2 rounded-lg text-sm font-medium transition-colors ${
+                          creationMethod === 'invite'
+                            ? 'border-blue-600 bg-blue-50 text-blue-900'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="font-semibold mb-1">Send Invite</div>
+                        <div className="text-xs opacity-75">They set password</div>
+                      </button>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium mb-2">Email Address *</label>
                     <Input
@@ -303,6 +366,34 @@ export default function DistributorTeamPage() {
                       placeholder="colleague@example.com"
                     />
                   </div>
+
+                  {/* Show name and password fields only for direct creation */}
+                  {creationMethod === 'direct' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Full Name *</label>
+                        <Input
+                          type="text"
+                          value={inviteForm.name}
+                          onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
+                          placeholder="John Doe"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Password *</label>
+                        <Input
+                          type="password"
+                          value={inviteForm.password}
+                          onChange={(e) => setInviteForm({ ...inviteForm, password: e.target.value })}
+                          placeholder="Enter secure password"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Make sure to share this password securely with the team member
+                        </p>
+                      </div>
+                    </>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium mb-2">Team Role *</label>
@@ -318,15 +409,25 @@ export default function DistributorTeamPage() {
                     </Select>
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-900">
-                      <strong>What happens next:</strong>
+                  <div className={`border-2 rounded-lg p-4 ${
+                    creationMethod === 'direct' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'
+                  }`}>
+                    <p className={`text-sm font-semibold mb-2 ${creationMethod === 'direct' ? 'text-green-900' : 'text-blue-900'}`}>
+                      What happens next:
                     </p>
-                    <ul className="text-sm text-blue-800 mt-2 space-y-1 ml-4">
-                      <li>• Invitation email will be sent</li>
-                      <li>• They'll create an account and join your team</li>
-                      <li>• Access based on assigned role</li>
-                    </ul>
+                    {creationMethod === 'direct' ? (
+                      <ul className="text-sm text-green-800 space-y-1">
+                        <li>✓ Account created instantly</li>
+                        <li>✓ They can login immediately with email & password</li>
+                        <li>✓ Share the password securely with them</li>
+                      </ul>
+                    ) : (
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        <li>✓ Invitation link sent to their email</li>
+                        <li>✓ They click link and set their own password</li>
+                        <li>✓ Account created after they accept</li>
+                      </ul>
+                    )}
                   </div>
                 </div>
 
@@ -336,7 +437,7 @@ export default function DistributorTeamPage() {
                     disabled={sending || !inviteForm.email}
                     className="flex-1"
                   >
-                    {sending ? 'Sending...' : 'Send Invitation'}
+                    {sending ? (creationMethod === 'direct' ? 'Creating...' : 'Sending...') : (creationMethod === 'direct' ? 'Create Account' : 'Send Invitation')}
                   </Button>
                   <Button
                     variant="outline"

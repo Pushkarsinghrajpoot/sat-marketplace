@@ -137,16 +137,16 @@ export default function DealDetailPage() {
       // Upload file to storage
       const fileExt = boqFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `boqs/${fileName}`;
+      const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('documents')
+        .from('boqs')
         .upload(filePath, boqFile);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('documents')
+        .from('boqs')
         .getPublicUrl(filePath);
 
       // Create BOQ entry
