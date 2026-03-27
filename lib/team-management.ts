@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, supabaseAdmin } from './supabase';
 import { sendNotification } from './notification-client';
 
 export async function createTeamMemberDirect(data: {
@@ -12,16 +12,20 @@ export async function createTeamMemberDirect(data: {
   createdBy: string;
 }) {
   try {
-    // Create auth account with admin-set password
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Create auth account with admin API - email confirmed by default, no verification email
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
+      email_confirm: true,
+      user_metadata: {
+        name: data.name,
+      }
     });
 
     if (authError) throw authError;
 
     // Create user record
-    const { error: userError } = await supabase
+    const { error: userError } = await supabaseAdmin
       .from('users')
       .insert({
         id: authData.user!.id,
