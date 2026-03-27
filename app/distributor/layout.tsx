@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, TrendingUp, FileSpreadsheet, Activity, ChevronLeft, ChevronRight, HelpCircle, Target, Handshake, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, TrendingUp, FileSpreadsheet, Activity, ChevronLeft, ChevronRight, HelpCircle, Target, Handshake, DollarSign, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
@@ -17,6 +17,8 @@ const navigation = [
   { name: 'Campaigns', href: '/distributor/campaigns', icon: Target },
   { name: 'Engagements', href: '/distributor/engagements', icon: Handshake },
   { name: 'Credit Requests', href: '/distributor/credit', icon: DollarSign },
+  { name: 'Team', href: '/distributor/team', icon: Users },
+  { name: 'Ratings', href: '/distributor/ratings', icon: Star },
   { name: 'Analytics', href: '/distributor/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/distributor/settings', icon: Settings },
 ];

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
@@ -18,6 +18,8 @@ const navigation = [
   { name: 'Quotes', href: '/reseller/quotes', icon: FileText },
   { name: 'Upload BOQ', href: '/reseller/boq/upload', icon: Upload },
   { name: 'Services', href: '/reseller/services', icon: Briefcase },
+  { name: 'Team', href: '/reseller/team', icon: Users },
+  { name: 'Ratings', href: '/reseller/ratings', icon: Star },
   { name: 'Analytics', href: '/reseller/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/reseller/settings', icon: Settings },
 ];

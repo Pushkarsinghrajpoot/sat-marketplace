@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,20 +9,24 @@ import { Select } from '@/components/ui/select';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createMeeting } from '@/lib/meeting-helpers';
+import { supabase } from '@/lib/supabase';
 
 interface CreateMeetingModalProps {
   dealId: string;
   resellerId: string;
+  organizationId?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function CreateMeetingModal({ dealId, resellerId, onClose, onSuccess }: CreateMeetingModalProps) {
+export default function CreateMeetingModal({ dealId, resellerId, organizationId, onClose, onSuccess }: CreateMeetingModalProps) {
   const [activityType, setActivityType] = useState<'MEETING' | 'DEMO' | 'BOQ_REVISION'>('MEETING');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [assignedUserId, setAssignedUserId] = useState(resellerId);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
   
   // Attendees
   const [attendees, setAttendees] = useState([{ name: '', email: '', role: '' }]);
@@ -36,6 +40,27 @@ export default function CreateMeetingModal({ dealId, resellerId, onClose, onSucc
   ]);
 
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    loadTeamMembers();
+  }, [organizationId]);
+
+  const loadTeamMembers = async () => {
+    if (!organizationId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, role')
+        .eq('organization_id', organizationId)
+        .order('name');
+      
+      if (error) throw error;
+      setTeamMembers(data || []);
+    } catch (error) {
+      console.error('Error loading team members:', error);
+    }
+  };
 
   const addAttendee = () => {
     setAttendees([...attendees, { name: '', email: '', role: '' }]);
@@ -90,7 +115,7 @@ export default function CreateMeetingModal({ dealId, resellerId, onClose, onSucc
     try {
       const meetingData = {
         deal_id: dealId,
-        reseller_id: resellerId,
+        reseller_id: assignedUserId || resellerId,
         activity_type: activityType,
         title,
         description,
@@ -135,6 +160,23 @@ export default function CreateMeetingModal({ dealId, resellerId, onClose, onSucc
               <option value="BOQ_REVISION">BOQ Revision (+10 points)</option>
             </Select>
           </div>
+
+          {/* Assign to Team Member */}
+          {teamMembers.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Assign to Team Member</label>
+              <Select value={assignedUserId} onChange={(e) => setAssignedUserId(e.target.value)}>
+                {teamMembers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} ({member.email})
+                  </option>
+                ))}
+              </Select>
+              <p className="text-xs text-gray-600 mt-1">
+                This activity will be assigned to the selected team member
+              </p>
+            </div>
+          )}
 
           {/* Title */}
           <div>

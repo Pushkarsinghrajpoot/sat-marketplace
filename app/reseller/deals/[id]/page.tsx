@@ -383,7 +383,7 @@ export default function DealDetailPage() {
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Upload BOQ
               </Button>
-              <Link href={`/reseller/chat?dealId=${deal.id}`}>
+              <Link href={`/reseller/messages?dealId=${deal.id}`}>
                 <Button variant="outline">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message Distributor
@@ -980,6 +980,7 @@ export default function DealDetailPage() {
           <CreateMeetingModal
             dealId={deal.id}
             resellerId={user.id}
+            organizationId={user.organizationId}
             onClose={() => setShowMeetingModal(false)}
             onSuccess={() => {
               setShowMeetingModal(false);

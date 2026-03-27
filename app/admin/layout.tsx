@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Building, Settings as SettingsIcon, LogOut, Bell, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Building, Settings as SettingsIcon, LogOut, Bell, Menu, X, Shield, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
@@ -10,6 +10,8 @@ import { useState, useEffect } from 'react';
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Organizations', href: '/admin/organizations', icon: Building },
+  { name: 'Qualifications', href: '/admin/qualifications', icon: Shield },
+  { name: 'Badges', href: '/admin/badges', icon: Award },
   { name: 'Configuration', href: '/admin/config', icon: SettingsIcon },
 ];
 
