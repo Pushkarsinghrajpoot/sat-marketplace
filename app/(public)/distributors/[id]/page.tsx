@@ -58,7 +58,6 @@ export default function DistributorDetailPage() {
         .from('products')
         .select('*')
         .eq('organization_id', params.id)
-        .eq('status', 'ACTIVE')
         .limit(6);
 
       if (error) throw error;

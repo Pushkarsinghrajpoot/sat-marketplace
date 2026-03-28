@@ -24,9 +24,25 @@ export default function HomePage() {
   const [trendingProducts, setTrendingProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    // Close suggestions when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.search-container')) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchData = async () => {
@@ -67,7 +83,85 @@ export default function HomePage() {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
+      setShowSuggestions(false);
       window.location.href = `/categories?search=${encodeURIComponent(searchQuery)}`;
+    }
+  };
+
+  const fetchSearchSuggestions = async (query: string) => {
+    if (!query || query.length < 2) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      // Search products
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('id, name, brand, price, sku')
+        .or(`name.ilike.%${query}%,brand.ilike.%${query}%,sku.ilike.%${query}%`)
+        .limit(5);
+
+      if (productsError) {
+        console.error('Products search error:', productsError);
+      }
+
+      // Search organizations (distributors and resellers)
+      const { data: organizations, error: orgsError } = await supabase
+        .from('organizations')
+        .select('id, name, type, verified')
+        .ilike('name', `%${query}%`)
+        .in('type', ['DISTRIBUTOR', 'RESELLER'])
+        .limit(5);
+
+      if (orgsError) {
+        console.error('Organizations search error:', orgsError);
+      }
+
+      // Get product count for each organization
+      const orgsWithProducts = await Promise.all(
+        (organizations || []).map(async (org: any) => {
+          const { count } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('organization_id', org.id);
+          
+          return { 
+            ...org, 
+            orgType: org.type, 
+            type: 'organization',
+            product_count: count || 0 
+          };
+        })
+      );
+
+      const suggestions = [
+        ...(products || []).map((p: any) => ({ ...p, type: 'product' })),
+        ...orgsWithProducts
+      ];
+
+      setSearchSuggestions(suggestions);
+      setShowSuggestions(suggestions.length > 0);
+    } catch (error) {
+      console.error('Error fetching search suggestions:', error);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSearchInput = (value: string) => {
+    setSearchQuery(value);
+    fetchSearchSuggestions(value);
+  };
+
+  const handleSuggestionClick = (suggestion: any) => {
+    setShowSuggestions(false);
+    if (suggestion.type === 'product') {
+      window.location.href = `/products/${suggestion.id}`;
+    } else if (suggestion.type === 'organization') {
+      window.location.href = `/distributors/${suggestion.id}`;
     }
   };
 
@@ -84,20 +178,90 @@ export default function HomePage() {
               <p className="text-xl mb-8 text-blue-100">
                 The trusted B2B marketplace connecting distributors and resellers
               </p>
-              <div className="bg-white rounded-xl p-2 shadow-2xl">
+              <div className="bg-white rounded-xl p-2 shadow-2xl relative search-container">
                 <div className="flex gap-2">
                   <Input
                     type="search"
                     placeholder="Search products, services, or distributors..."
                     className="flex-1 border-0 focus-visible:ring-0"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    onFocus={() => searchSuggestions.length > 0 && setShowSuggestions(true)}
                   />
                   <Button size="lg" className="bg-blue-600 hover:bg-blue-700" onClick={handleSearch}>
                     <Search className="h-5 w-5" />
                   </Button>
                 </div>
+                
+                {/* Search Suggestions Dropdown */}
+                {showSuggestions && searchSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                    {searchLoading && (
+                      <div className="p-4 text-center text-gray-500">
+                        <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+                      </div>
+                    )}
+                    {!searchLoading && searchSuggestions.map((suggestion, idx) => (
+                      <div
+                        key={`${suggestion.type}-${suggestion.id}`}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors"
+                      >
+                        {suggestion.type === 'product' ? (
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Package className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{suggestion.name}</p>
+                              <p className="text-sm text-gray-500">{suggestion.brand} • SKU: {suggestion.sku}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="font-bold text-blue-600">{formatCurrency(suggestion.price)}</p>
+                              <Badge variant="default" className="text-xs">Product</Badge>
+                            </div>
+                          </div>
+                        ) : suggestion.type === 'organization' ? (
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              suggestion.orgType === 'DISTRIBUTOR' ? 'bg-purple-100' : 'bg-orange-100'
+                            }`}>
+                              <Briefcase className={`h-5 w-5 ${
+                                suggestion.orgType === 'DISTRIBUTOR' ? 'text-purple-600' : 'text-orange-600'
+                              }`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-gray-900 truncate">{suggestion.name}</p>
+                                {suggestion.verified && (
+                                  <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">
+                                {suggestion.product_count} {suggestion.product_count === 1 ? 'product' : 'products'}
+                              </p>
+                            </div>
+                            <Badge 
+                              variant={suggestion.orgType === 'DISTRIBUTOR' ? 'default' : 'warning'} 
+                              className="text-xs flex-shrink-0"
+                            >
+                              {suggestion.orgType === 'DISTRIBUTOR' ? 'Distributor' : 'Reseller'}
+                            </Badge>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                    <div className="p-3 bg-gray-50 border-t border-gray-200">
+                      <button
+                        onClick={handleSearch}
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium w-full text-left"
+                      >
+                        See all results for "{searchQuery}" →
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               <p className="mt-4 text-sm text-blue-100">
                 Popular: Network Equipment, Cloud Services, Security Solutions

@@ -44,26 +44,47 @@ export default function RatingsList({ type, targetId, canRespond = false }: Rati
 
   const loadRatings = async () => {
     try {
-      let query = supabase
-        .from(type === 'product' ? 'product_reviews' : 'public_ratings')
-        .select(`
-          *,
-          rater:rater_id(name, organization:organization_id(name))
-        `)
-        .order('created_at', { ascending: false });
+      let query;
+      
+      if (type === 'product') {
+        // product_reviews table uses user_id, not rater_id
+        query = supabase
+          .from('product_reviews')
+          .select(`
+            *,
+            rater:user_id(name, organization:organization_id(name))
+          `)
+          .eq('product_id', targetId)
+          .order('created_at', { ascending: false });
+      } else {
+        // public_ratings table uses rater_id
+        query = supabase
+          .from('public_ratings')
+          .select(`
+            *,
+            rater:rater_id(name, organization:organization_id(name))
+          `)
+          .order('created_at', { ascending: false });
 
-      if (type === 'user') {
-        query = query.eq('rated_user_id', targetId);
-      } else if (type === 'organization') {
-        query = query.eq('rated_organization_id', targetId);
-      } else if (type === 'product') {
-        query = query.eq('product_id', targetId);
+        if (type === 'user') {
+          query = query.eq('rated_user_id', targetId);
+        } else if (type === 'organization') {
+          query = query.eq('rated_organization_id', targetId);
+        }
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
-      setRatings(data || []);
+      
+      // Map product_reviews fields to match expected interface
+      const mappedData = data?.map((item: any) => ({
+        ...item,
+        review_title: type === 'product' ? item.title : item.review_title,
+        review_text: type === 'product' ? item.review_text : item.review_text,
+      })) || [];
+      
+      setRatings(mappedData);
     } catch (error) {
       console.error('Error loading ratings:', error);
       toast.error('Failed to load ratings');

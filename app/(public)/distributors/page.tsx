@@ -8,27 +8,60 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Star, CheckCircle, MapPin, Package } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import type { Organization } from '@/lib/types';
 
 export default function DistributorsPage() {
-  const [distributors, setDistributors] = useState<Organization[]>([]);
+  const [distributors, setDistributors] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    const orgs = JSON.parse(localStorage.getItem('organizations') || '[]');
-    const dists = orgs.filter((o: Organization) => o.type === 'DISTRIBUTOR');
-    setDistributors(dists);
+    loadDistributors();
   }, []);
+
+  const loadDistributors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('type', 'DISTRIBUTOR');
+
+      if (error) throw error;
+      
+      setDistributors(data || []);
+      
+      // Load product counts for each distributor
+      if (data) {
+        const counts: Record<string, number> = {};
+        await Promise.all(
+          data.map(async (dist) => {
+            const { count } = await supabase
+              .from('products')
+              .select('*', { count: 'exact', head: true })
+              .eq('organization_id', dist.id);
+            counts[dist.id] = count || 0;
+          })
+        );
+        setProductCounts(counts);
+      }
+    } catch (error) {
+      console.error('Error loading distributors:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredDistributors = distributors.filter(d => {
     const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLocation = locationFilter === 'all' || d.address.country === locationFilter;
+      (d.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLocation = locationFilter === 'all' || d.address_country === locationFilter;
     return matchesSearch && matchesLocation;
   });
 
-  const countries = Array.from(new Set(distributors.map(d => d.address.country)));
+  const countries = Array.from(new Set(distributors.map(d => d.address_country).filter(Boolean)));
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -60,10 +93,14 @@ export default function DistributorsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDistributors.map((distributor) => {
-          const products = JSON.parse(localStorage.getItem('products') || '[]');
-          const distributorProducts = products.filter((p: any) => p.organizationId === distributor.id);
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDistributors.map((distributor) => {
+            const productCount = productCounts[distributor.id] || 0;
           
           return (
             <Link key={distributor.id} href={`/distributors/${distributor.id}`}>
@@ -94,17 +131,23 @@ export default function DistributorsPage() {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Package className="h-4 w-4" />
-                      <span>{distributorProducts.length} products</span>
+                      <span>{productCount} products</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="h-4 w-4" />
-                      <span>{distributor.address.city}, {distributor.address.country}</span>
-                    </div>
+                    {distributor.address_city && distributor.address_country && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="h-4 w-4" />
+                        <span>{distributor.address_city}, {distributor.address_country}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-2 mb-4">
-                    <Badge variant="info">Enterprise</Badge>
-                    <Badge variant="default">Verified</Badge>
+                    {distributor.industry && (
+                      <Badge variant="default">{distributor.industry}</Badge>
+                    )}
+                    {distributor.verified && (
+                      <Badge variant="success">Verified</Badge>
+                    )}
                   </div>
 
                   <Button variant="outline" className="w-full">
@@ -114,8 +157,9 @@ export default function DistributorsPage() {
               </Card>
             </Link>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       {filteredDistributors.length === 0 && (
         <Card>

@@ -29,10 +29,12 @@ export default function ProductDetailPage() {
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [existingRating, setExistingRating] = useState<any>(null);
+  const [productRatings, setProductRatings] = useState({ average: 0, count: 0 });
 
   useEffect(() => {
     fetchProductData();
-  }, [params.id]);
+  }, [params.id, user?.id]);
 
   const fetchProductData = async () => {
     setLoading(true);
@@ -53,6 +55,14 @@ export default function ProductDetailPage() {
           setOrganization(orgData);
         }
 
+        // Fetch real product ratings
+        await fetchProductRatings(productData.id);
+
+        // Check if user has already rated this product
+        if (user?.id) {
+          await checkExistingRating(productData.id);
+        }
+
         // Fetch related products from same category
         const relatedData = await getEnhancedProducts({
           categoryId: productData.category_id
@@ -66,6 +76,41 @@ export default function ProductDetailPage() {
       console.error('Error fetching product:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProductRatings = async (productId: string) => {
+    try {
+      const { data: reviews, error } = await supabase
+        .from('product_reviews')
+        .select('rating')
+        .eq('product_id', productId);
+
+      if (reviews && reviews.length > 0) {
+        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+        setProductRatings({ average: avgRating, count: reviews.length });
+      }
+    } catch (error) {
+      console.error('Error fetching product ratings:', error);
+    }
+  };
+
+  const checkExistingRating = async (productId: string) => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('*')
+        .eq('product_id', productId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (data && !error) {
+        setExistingRating(data);
+      }
+    } catch (error) {
+      // No existing rating found
     }
   };
 
@@ -124,20 +169,33 @@ export default function ProductDetailPage() {
           
           <div className="flex items-center gap-4 mb-4">
             <StarRating 
-              rating={product.rating || 4.8} 
+              rating={productRatings.average} 
               readonly 
               showCount 
-              count={product.review_count || 145}
+              count={productRatings.count}
             />
             {user && (
-              <RatingButton
-                type="product"
-                targetId={product.id}
-                targetName={product.name}
-                variant="ghost"
-                size="sm"
-                className="ml-auto"
-              />
+              existingRating ? (
+                <div className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-md">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-900">
+                    You rated ({existingRating.rating}/5 ⭐)
+                  </span>
+                </div>
+              ) : (
+                <RatingButton
+                  type="product"
+                  targetId={product.id}
+                  targetName={product.name}
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto"
+                  onRatingSubmitted={() => {
+                    fetchProductRatings(product.id);
+                    checkExistingRating(product.id);
+                  }}
+                />
+              )
             )}
           </div>
 
@@ -318,54 +376,26 @@ export default function ProductDetailPage() {
 
         {activeTab === 'support' && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">Support & Documentation</h2>
-            <div className="grid md:grid-cols-3 gap-4">
+            <h2 className="text-2xl font-bold mb-4">Support & Services</h2>
+            <div className="grid md:grid-cols-2 gap-6">
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">Warranty</h3>
-                  <p className="text-sm text-gray-600">{product.warranty_info || 'Manufacturer warranty included'}</p>
+                  <h3 className="font-semibold text-lg mb-3">Technical Support</h3>
+                  <p className="text-gray-600 mb-4">
+                    Get expert technical support for product setup, configuration, and troubleshooting.
+                  </p>
+                  <Button>Contact Support</Button>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">Support</h3>
-                  <p className="text-sm text-gray-600">24/7 technical support available</p>
+                  <h3 className="font-semibold text-lg mb-3">Documentation</h3>
+                  <p className="text-gray-600 mb-4">
+                    Access comprehensive documentation, guides, and tutorials.
+                  </p>
+                  <Button variant="outline">View Docs</Button>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">Documentation</h3>
-                  <p className="text-sm text-gray-600">Full user manuals available</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'reviews' && (
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Customer Reviews</h2>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="font-semibold">Great product!</p>
-                        <div className="flex text-yellow-400 text-sm my-1">
-                          {[...Array(5)].map((_, idx) => (
-                            <Star key={idx} className="h-4 w-4 fill-current" />
-                          ))}
-                        </div>
-                      </div>
-                      <span className="text-sm text-gray-500">2 weeks ago</span>
-                    </div>
-                    <p className="text-gray-700 text-sm">
-                      Excellent quality and performance. Highly recommended for enterprise deployments.
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
             </div>
           </div>
         )}

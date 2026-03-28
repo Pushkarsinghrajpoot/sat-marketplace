@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Award, X, DollarSign, Calendar, Building, Users, Plus, Lock, CheckCircle, Upload, MessageCircle, FileSpreadsheet } from 'lucide-react';
+import { Award, X, DollarSign, Calendar, Building, Users, Plus, Lock, CheckCircle, Upload, MessageCircle, FileSpreadsheet, Star } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -17,7 +17,6 @@ import MeetingActivityList from '@/components/meetings/MeetingActivityList';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { mapDeal } from '@/lib/data-mappers';
 import Link from 'next/link';
-import RatingButton from '@/components/ratings/RatingButton';
 import RatingModal from '@/components/ratings/RatingModal';
 
 export default function DealDetailPage() {
@@ -28,6 +27,8 @@ export default function DealDetailPage() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingDistributorId, setRatingDistributorId] = useState<string>('');
   const [ratingDistributorName, setRatingDistributorName] = useState<string>('');
+  const [existingRating, setExistingRating] = useState<any>(null);
+  const [loadingRating, setLoadingRating] = useState(false);
   const [wonAmount, setWonAmount] = useState('');
   const [closeReason, setCloseReason] = useState('');
 
@@ -87,6 +88,11 @@ export default function DealDetailPage() {
           .eq('deal_id', params.id);
         
         setDealProducts(productsData || []);
+
+        // Check if user has already rated this deal
+        if (user?.id && (mappedDeal.status === 'WON' || mappedDeal.status === 'LOST')) {
+          await checkExistingRating();
+        }
       } catch (error) {
         console.error('Error fetching deal:', error);
         toast.error('Failed to load deal');
@@ -95,7 +101,7 @@ export default function DealDetailPage() {
       }
     }
     fetchDeal();
-  }, [params.id]);
+  }, [params.id, user?.id]);
 
   useEffect(() => {
     async function loadDistributors() {
@@ -215,21 +221,90 @@ export default function DealDetailPage() {
       setShowCloseModal(false);
       
       if (closeStatus === 'WON') {
-        // Fetch distributor info for rating
-        const { data: distData } = await supabase
-          .from('users')
-          .select('id, name')
-          .eq('id', deal.distributorId)
-          .single();
+        console.log('Deal closed as WON, fetching distributor for rating...');
         
-        if (distData) {
-          setRatingDistributorId(distData.id);
-          setRatingDistributorName(distData.name || 'Distributor');
-          setTimeout(() => setShowRatingModal(true), 500);
+        let orgId: string | null = null;
+        let orgName = 'Distributor';
+
+        // Try Method 1: Get distributor from deal products
+        const { data: dealProductsList } = await supabase
+          .from('deal_products')
+          .select('product_id')
+          .eq('deal_id', deal.id)
+          .limit(1);
+
+        if (dealProductsList && dealProductsList.length > 0) {
+          const productId = dealProductsList[0].product_id;
+          const { data: product } = await supabase
+            .from('products')
+            .select(`
+              organization_id,
+              organizations:organization_id (id, name)
+            `)
+            .eq('id', productId)
+            .single();
+          
+          if (product?.organization_id) {
+            orgId = product.organization_id;
+            const orgData = product.organizations as any;
+            orgName = orgData?.name || 'Distributor';
+            console.log('✓ Found distributor from products:', orgId);
+          }
+        }
+
+        // Try Method 2: Get from deal_engaged_distributors
+        if (!orgId) {
+          const { data: engagedDist } = await supabase
+            .from('deal_engaged_distributors')
+            .select(`
+              distributor_id,
+              organizations:distributor_id (id, name)
+            `)
+            .eq('deal_id', deal.id)
+            .limit(1)
+            .single();
+
+          if (engagedDist?.distributor_id) {
+            orgId = engagedDist.distributor_id;
+            const orgData = engagedDist.organizations as any;
+            orgName = orgData?.name || 'Distributor';
+            console.log('✓ Found distributor from engaged_distributors:', orgId);
+          }
+        }
+
+        if (orgId) {
+          // Get admin user from distributor org
+          const { data: distUser } = await supabase
+            .from('users')
+            .select('id, name')
+            .eq('organization_id', orgId)
+            .eq('role', 'ADMIN')
+            .limit(1)
+            .single();
+          
+          if (distUser) {
+            console.log('Setting rating distributor:', distUser.name);
+            setRatingDistributorId(distUser.id);
+            setRatingDistributorName(orgName);
+            
+            // Update deal state to reflect closure
+            setDeal({ ...deal, status: 'WON' });
+            
+            // Show rating modal immediately
+            console.log('Showing rating modal...');
+            setShowRatingModal(true);
+          } else {
+            console.warn('No admin user found, redirecting without rating');
+            router.push('/reseller/deals');
+          }
         } else {
+          console.warn('No distributor found through any method, redirecting without rating');
           router.push('/reseller/deals');
         }
       } else {
+        console.log('Deal closed as', closeStatus, '- redirecting without rating');
+        // Update deal state
+        setDeal({ ...deal, status: closeStatus });
         router.push('/reseller/deals');
       }
     } catch (error) {
@@ -238,9 +313,154 @@ export default function DealDetailPage() {
     }
   };
 
-  const handleRatingSuccess = () => {
+  const checkExistingRating = async () => {
+    if (!user?.id) return;
+    
+    setLoadingRating(true);
+    try {
+      const { data, error } = await supabase
+        .from('public_ratings')
+        .select('*')
+        .eq('deal_id', params.id)
+        .eq('rater_id', user.id)
+        .single();
+
+      if (data && !error) {
+        setExistingRating(data);
+        console.log('Found existing rating:', data);
+      }
+    } catch (error) {
+      console.log('No existing rating found');
+    } finally {
+      setLoadingRating(false);
+    }
+  };
+
+  const handleRatingSuccess = async () => {
     setShowRatingModal(false);
-    router.push('/reseller/deals');
+    toast.success('Thank you for your rating!');
+    // Reload the rating to display it
+    await checkExistingRating();
+  };
+
+  const handleOpenRatingModal = async () => {
+    try {
+      let orgId: string | null = null;
+      let orgName = 'Distributor';
+
+      // Try Method 1: Get distributor from deal products
+      console.log('Method 1: Checking deal_products...');
+      const { data: dealProductsList } = await supabase
+        .from('deal_products')
+        .select('product_id')
+        .eq('deal_id', deal.id)
+        .limit(1);
+
+      if (dealProductsList && dealProductsList.length > 0) {
+        const productId = dealProductsList[0].product_id;
+        const { data: product } = await supabase
+          .from('products')
+          .select(`
+            organization_id,
+            organizations:organization_id (id, name)
+          `)
+          .eq('id', productId)
+          .single();
+        
+        if (product?.organization_id) {
+          orgId = product.organization_id;
+          const orgData = product.organizations as any;
+          orgName = orgData?.name || 'Distributor';
+          console.log('✓ Found distributor from products:', orgId, orgName);
+        }
+      }
+
+      // Try Method 2: Get from deal_engaged_distributors
+      if (!orgId) {
+        console.log('Method 2: Checking engaged_distributors...');
+        const { data: engagedDist } = await supabase
+          .from('deal_engaged_distributors')
+          .select(`
+            distributor_id,
+            organizations:distributor_id (id, name)
+          `)
+          .eq('deal_id', deal.id)
+          .limit(1)
+          .single();
+
+        if (engagedDist?.distributor_id) {
+          orgId = engagedDist.distributor_id;
+          const orgData = engagedDist.organizations as any;
+          orgName = orgData?.name || 'Distributor';
+          console.log('✓ Found distributor from engaged_distributors:', orgId, orgName);
+        }
+      }
+
+      // Try Method 3: Get from won_quote_id if deal is WON
+      if (!orgId && deal.status === 'WON' && deal.wonQuoteId) {
+        console.log('Method 3: Checking won_quote...');
+        const { data: quote } = await supabase
+          .from('quotes')
+          .select(`
+            distributor_id,
+            organizations:distributor_id (id, name)
+          `)
+          .eq('id', deal.wonQuoteId)
+          .single();
+
+        if (quote?.distributor_id) {
+          orgId = quote.distributor_id;
+          const orgData = quote.organizations as any;
+          orgName = orgData?.name || 'Distributor';
+          console.log('✓ Found distributor from won_quote:', orgId, orgName);
+        }
+      }
+
+      // If still no distributor found, show helpful error
+      if (!orgId) {
+        console.error('Could not find distributor through any method');
+        toast.error('Cannot find distributor to rate. Please contact support.');
+        return;
+      }
+
+      console.log('Final distributor:', orgId, orgName);
+
+      // Get an admin user from the distributor organization to rate
+      const { data: adminUser } = await supabase
+        .from('users')
+        .select('id, name')
+        .eq('organization_id', orgId)
+        .eq('role', 'ADMIN')
+        .limit(1)
+        .single();
+
+      console.log('Admin user:', adminUser);
+
+      if (adminUser) {
+        setRatingDistributorId(adminUser.id);
+        setRatingDistributorName(orgName);
+        setShowRatingModal(true);
+      } else {
+        // If no admin, try to get any user from that organization
+        const { data: anyUser } = await supabase
+          .from('users')
+          .select('id, name')
+          .eq('organization_id', orgId)
+          .limit(1)
+          .single();
+        
+        if (anyUser) {
+          setRatingDistributorId(anyUser.id);
+          setRatingDistributorName(orgName);
+          setShowRatingModal(true);
+        } else {
+          toast.error('Could not find distributor contact to rate');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading distributor:', error);
+      toast.error('Failed to load distributor information');
+    }
   };
 
 
@@ -294,9 +514,30 @@ export default function DealDetailPage() {
                 </Button>
               </Link>
             )}
-            <Button variant="outline" onClick={() => setShowCloseModal(true)}>
-              Close Deal
-            </Button>
+            {(deal.status === 'WON' || deal.status === 'LOST') ? (
+              existingRating ? (
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-md">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-900">
+                    You rated this deal ({existingRating.rating}/5 ⭐)
+                  </span>
+                </div>
+              ) : loadingRating ? (
+                <Button variant="outline" disabled>
+                  <Star className="h-4 w-4 mr-2" />
+                  Loading...
+                </Button>
+              ) : (
+                <Button onClick={handleOpenRatingModal}>
+                  <Star className="h-4 w-4 mr-2" />
+                  Rate This Deal
+                </Button>
+              )
+            ) : (
+              <Button variant="outline" onClick={() => setShowCloseModal(true)}>
+                Close Deal
+              </Button>
+            )}
           </div>
         </div>
 
@@ -375,15 +616,6 @@ export default function DealDetailPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 Add Meeting/Activity
               </Button>
-              {deal.status === 'WON' && deal.distributorId && (
-                <RatingButton
-                  type="organization"
-                  targetId={deal.distributorOrganizationId || deal.distributorId}
-                  targetName={deal.distributorName || 'Distributor'}
-                  dealId={deal.id}
-                  variant="outline"
-                />
-              )}
             </div>
           </CardContent>
         </Card>
@@ -469,6 +701,60 @@ export default function DealDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Rating Display */}
+        {existingRating && (deal.status === 'WON' || deal.status === 'LOST') && (
+          <Card className="mb-6 bg-gradient-to-r from-yellow-50 to-orange-50 border-orange-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-orange-500 fill-orange-500" />
+                Your Rating for This Deal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Overall Rating</p>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-6 w-6 ${
+                          star <= existingRating.rating
+                            ? 'text-orange-500 fill-orange-500'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-2 text-lg font-bold text-gray-900">
+                      {existingRating.rating}/5
+                    </span>
+                  </div>
+                </div>
+
+                {existingRating.review_title && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Review Title</p>
+                    <p className="font-semibold text-gray-900">{existingRating.review_title}</p>
+                  </div>
+                )}
+
+                {existingRating.review_text && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Review</p>
+                    <p className="text-gray-900">{existingRating.review_text}</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm text-gray-600">
+                    Submitted on {new Date(existingRating.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Verification & Lock Status */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">

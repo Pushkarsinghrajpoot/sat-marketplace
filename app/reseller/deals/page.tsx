@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Calendar, DollarSign, Users, FileText } from 'lucide-react';
+import { Search, Plus, Calendar, DollarSign, Users, FileText, Star, CheckCircle, XCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Lock, TrendingUp } from 'lucide-react';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
@@ -65,7 +65,7 @@ export default function DealsPage() {
     bidding: filteredDeals.filter(d => d.dealType === 'BIDDING' && d.status === 'ACTIVE'),
     directQueries: filteredQueries, // Use actual direct queries from direct_queries table
     quoted: filteredDeals.filter(d => d.status === 'QUOTED'),
-    won: filteredDeals.filter(d => d.status === 'WON'),
+    closed: filteredDeals.filter(d => d.status === 'WON' || d.status === 'LOST'),
   };
 
   if (loading) {
@@ -106,7 +106,7 @@ export default function DealsPage() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-6">
+      <div className="grid lg:grid-cols-5 gap-6">
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-medium text-[14px] text-[#09090B]">Prospecting</h2>
@@ -257,6 +257,59 @@ export default function DealsPage() {
           </div>
         </div>
 
+        {/* Closed Deals Column */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-medium text-[14px] text-[#09090B]">Closed</h2>
+            <Badge variant="default">{dealsByStage.closed.length}</Badge>
+          </div>
+          <div className="space-y-3">
+            {dealsByStage.closed.map((deal) => (
+              <Link key={deal.id} href={`/reseller/deals/${deal.id}`}>
+                <Card className={`hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow cursor-pointer ${
+                  deal.status === 'WON' 
+                    ? 'bg-[#F0FDF4] border-[#BBF7D0]' 
+                    : 'bg-[#FEF2F2] border-[#FECACA]'
+                }`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-[14px] text-[#09090B] line-clamp-2 flex-1">{deal.opportunityName}</h3>
+                      {deal.status === 'WON' ? (
+                        <CheckCircle className="h-4 w-4 text-[#22C55E] ml-2 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-[#EF4444] ml-2 flex-shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-[12px] text-[#71717A] mb-2">{deal.customerName}</p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <DollarSign className="h-3 w-3 text-[#A1A1AA]" />
+                        <span className="font-semibold text-[#09090B]">{formatCurrency(Number(deal.estimatedValue) || 0)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <Badge variant={deal.status === 'WON' ? 'success' : 'error'}>
+                          {deal.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="w-full mt-3"
+                    >
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+            {dealsByStage.closed.length === 0 && (
+              <p className="text-[13px] text-[#A1A1AA] text-center py-4">No closed deals</p>
+            )}
+          </div>
+        </div>
 
       </div>
     </div>
