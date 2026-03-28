@@ -6,6 +6,7 @@ import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings,
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 
 const iconMap: Record<string, any> = {
@@ -32,15 +33,54 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   const { user, organization, logout, accessibleRoutes, isTeamMember, teamRole } = useSimpleAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [pageAssignments, setPageAssignments] = useState<string[]>([]);
 
-  // Convert accessible routes to navigation format
+  // Load PAGE assignments for team members
+  useEffect(() => {
+    if (user?.id && isTeamMember && teamRole !== 'ADMIN') {
+      loadPageAssignments();
+    }
+  }, [user?.id, isTeamMember, teamRole]);
+
+  const loadPageAssignments = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_assignments')
+        .select('reference_id')
+        .eq('user_id', user.id)
+        .eq('assignment_type', 'PAGE');
+      
+      if (error) {
+        console.error('Error loading page assignments:', error);
+        return;
+      }
+      
+      const assignedPages = data?.map(a => a.reference_id) || [];
+      console.log('Loaded page assignments:', assignedPages);
+      setPageAssignments(assignedPages);
+    } catch (error) {
+      console.error('Error in loadPageAssignments:', error);
+    }
+  };
+
+  // Convert accessible routes to navigation format, filtered by PAGE assignments
   const navigation = useMemo(() => {
-    return accessibleRoutes.map(route => ({
+    let routes = accessibleRoutes;
+    
+    // Filter routes for non-admin team members based on PAGE assignments
+    if (isTeamMember && teamRole !== 'ADMIN' && pageAssignments.length > 0) {
+      routes = routes.filter(route => pageAssignments.includes(route.path));
+      console.log('Filtered navigation for team member:', routes.length, 'routes');
+    }
+    
+    return routes.map(route => ({
       name: route.label,
       href: route.path,
       icon: (route.icon && iconMap[route.icon]) ? iconMap[route.icon] : LayoutDashboard,
     }));
-  }, [accessibleRoutes]);
+  }, [accessibleRoutes, isTeamMember, teamRole, pageAssignments]);
 
   useEffect(() => {
     if (!user || organization?.type !== 'DISTRIBUTOR') {

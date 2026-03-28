@@ -29,8 +29,12 @@ export default function StarRating({
   };
 
   const handleClick = (value: number) => {
+    console.log('StarRating clicked:', { value, readonly, hasCallback: !!onRatingChange });
     if (!readonly && onRatingChange) {
+      console.log('Calling onRatingChange with value:', value);
       onRatingChange(value);
+    } else {
+      console.warn('Click blocked:', { readonly, hasCallback: !!onRatingChange });
     }
   };
 

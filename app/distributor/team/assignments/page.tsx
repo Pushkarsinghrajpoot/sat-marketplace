@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
-import { Target, Package, Folder, User, X, Plus } from 'lucide-react';
+import { Target, Package, Folder, User, X, Plus, Menu } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import {
@@ -15,12 +15,14 @@ import {
   getTeamMembers,
 } from '@/lib/team-management';
 import { supabase } from '@/lib/supabase';
+import { DISTRIBUTOR_ROUTES } from '@/lib/rbac/permissions';
 
 const ASSIGNMENT_TYPES = [
   { value: 'PRODUCT', label: 'Product', icon: Package, color: 'blue' },
   { value: 'CATEGORY', label: 'Category', icon: Folder, color: 'purple' },
   { value: 'SUPPORT', label: 'Support', icon: User, color: 'green' },
   { value: 'SALES', label: 'Sales', icon: Target, color: 'orange' },
+  { value: 'PAGE', label: 'Page Access', icon: Menu, color: 'indigo' },
 ];
 
 export default function AssignmentsPage() {
@@ -34,6 +36,7 @@ export default function AssignmentsPage() {
     userId: '',
     assignmentType: 'PRODUCT',
     referenceId: '',
+    selectedRoutes: [] as string[],
   });
   const [saving, setSaving] = useState(false);
 
@@ -112,22 +115,52 @@ export default function AssignmentsPage() {
       return;
     }
 
+    // For PAGE type, require at least one route
+    if (assignForm.assignmentType === 'PAGE' && assignForm.selectedRoutes.length === 0) {
+      toast.error('Please select at least one page');
+      return;
+    }
+
     setSaving(true);
     try {
-      const result = await createUserAssignment({
-        userId: assignForm.userId,
-        assignmentType: assignForm.assignmentType,
-        referenceId: assignForm.referenceId || undefined,
-        createdBy: user.id,
-      });
-
-      if (result.success) {
-        toast.success('Assignment created successfully');
-        setShowAssignModal(false);
-        setAssignForm({ userId: '', assignmentType: 'PRODUCT', referenceId: '' });
-        loadData();
+      // For PAGE assignments, create multiple assignments (one per route)
+      if (assignForm.assignmentType === 'PAGE') {
+        const results = await Promise.all(
+          assignForm.selectedRoutes.map(route =>
+            createUserAssignment({
+              userId: assignForm.userId,
+              assignmentType: 'PAGE',
+              referenceId: route,
+              createdBy: user.id,
+            })
+          )
+        );
+        
+        const allSuccess = results.every(r => r.success);
+        if (allSuccess) {
+          toast.success('Page access assignments created successfully');
+          setShowAssignModal(false);
+          setAssignForm({ userId: '', assignmentType: 'PRODUCT', referenceId: '', selectedRoutes: [] });
+          loadData();
+        } else {
+          toast.error('Failed to create some assignments');
+        }
       } else {
-        toast.error('Failed to create assignment');
+        const result = await createUserAssignment({
+          userId: assignForm.userId,
+          assignmentType: assignForm.assignmentType,
+          referenceId: assignForm.referenceId || undefined,
+          createdBy: user.id,
+        });
+
+        if (result.success) {
+          toast.success('Assignment created successfully');
+          setShowAssignModal(false);
+          setAssignForm({ userId: '', assignmentType: 'PRODUCT', referenceId: '', selectedRoutes: [] });
+          loadData();
+        } else {
+          toast.error('Failed to create assignment');
+        }
       }
     } catch (error) {
       console.error('Error creating assignment:', error);
@@ -163,7 +196,20 @@ export default function AssignmentsPage() {
     if (assignment.assignment_type === 'PRODUCT' && assignment.reference_id) {
       return getProductName(assignment.reference_id);
     }
+    if (assignment.assignment_type === 'PAGE' && assignment.reference_id) {
+      const route = DISTRIBUTOR_ROUTES.find(r => r.path === assignment.reference_id);
+      return route?.label || assignment.reference_id;
+    }
     return assignment.assignment_type;
+  };
+
+  const toggleRouteSelection = (routePath: string) => {
+    setAssignForm(prev => ({
+      ...prev,
+      selectedRoutes: prev.selectedRoutes.includes(routePath)
+        ? prev.selectedRoutes.filter(r => r !== routePath)
+        : [...prev.selectedRoutes, routePath]
+    }));
   };
 
   if (loading) {
@@ -364,10 +410,44 @@ export default function AssignmentsPage() {
                     </div>
                   )}
 
+                  {assignForm.assignmentType === 'PAGE' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Select Pages * ({assignForm.selectedRoutes.length} selected)
+                      </label>
+                      <div className="border border-gray-300 rounded-lg max-h-64 overflow-y-auto">
+                        {DISTRIBUTOR_ROUTES.map((route) => (
+                          <label
+                            key={route.path}
+                            className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={assignForm.selectedRoutes.includes(route.path)}
+                              onChange={() => toggleRouteSelection(route.path)}
+                              className="w-4 h-4 text-blue-600 rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{route.label}</p>
+                              <p className="text-xs text-gray-500">{route.path}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-sm text-blue-900">
-                      <strong>Auto-Routing:</strong> Messages and inquiries will be automatically
-                      assigned to this team member based on this assignment.
+                      {assignForm.assignmentType === 'PAGE' ? (
+                        <>
+                          <strong>Sidebar Control:</strong> Only the selected pages will appear in this team member's sidebar navigation.
+                        </>
+                      ) : (
+                        <>
+                          <strong>Auto-Routing:</strong> Messages and inquiries will be automatically assigned to this team member based on this assignment.
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>

@@ -59,10 +59,16 @@ export default function RatingModal({
   };
 
   const handleSubmit = async () => {
-    console.log('Submit clicked, overallRating:', overallRating);
+    console.log('=== SUBMIT RATING DEBUG ===');
+    console.log('overallRating state:', overallRating);
+    console.log('reviewTitle:', reviewTitle);
+    console.log('reviewText:', reviewText);
+    console.log('categoryRatings:', categoryRatings);
+    console.log('=========================');
     
     if (!overallRating || overallRating === 0) {
-      console.error('Rating validation failed:', overallRating);
+      console.error('Rating validation failed! overallRating is:', overallRating);
+      console.error('Type:', typeof overallRating);
       toast.error('Please provide an overall rating');
       return;
     }
@@ -202,10 +208,18 @@ export default function RatingModal({
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button variant="outline" onClick={onClose} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting || overallRating === 0}>
+            <Button 
+              type="button" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSubmit();
+              }} 
+              disabled={submitting || overallRating === 0}
+            >
               {submitting ? 'Submitting...' : 'Submit Rating'}
             </Button>
           </div>
