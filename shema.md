@@ -11,6 +11,19 @@ CREATE TABLE public.activity_log (
   CONSTRAINT activity_log_pkey PRIMARY KEY (id),
   CONSTRAINT activity_log_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.admin_activity_log (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  admin_id uuid,
+  activity_type character varying NOT NULL,
+  target_type character varying,
+  target_id uuid,
+  action character varying NOT NULL,
+  description text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT admin_activity_log_pkey PRIMARY KEY (id),
+  CONSTRAINT admin_activity_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.boq_invited_distributors (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   boq_id uuid,
@@ -120,6 +133,7 @@ CREATE TABLE public.chat_conversations (
   last_message_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  assigned_to uuid,
   CONSTRAINT chat_conversations_pkey PRIMARY KEY (id),
   CONSTRAINT chat_conversations_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
   CONSTRAINT chat_conversations_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id),
@@ -128,7 +142,8 @@ CREATE TABLE public.chat_conversations (
   CONSTRAINT chat_conversations_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id),
   CONSTRAINT chat_conversations_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.users(id),
   CONSTRAINT chat_conversations_reseller_id_fkey FOREIGN KEY (reseller_id) REFERENCES public.users(id),
-  CONSTRAINT chat_conversations_distributor_id_fkey FOREIGN KEY (distributor_id) REFERENCES public.organizations(id)
+  CONSTRAINT chat_conversations_distributor_id_fkey FOREIGN KEY (distributor_id) REFERENCES public.organizations(id),
+  CONSTRAINT chat_conversations_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id)
 );
 CREATE TABLE public.chat_messages (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -293,6 +308,9 @@ CREATE TABLE public.deals (
   notes text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  visibility character varying DEFAULT 'PRIVATE'::character varying,
+  converted_to_query boolean DEFAULT false,
+  converted_to_query_at timestamp with time zone,
   CONSTRAINT deals_pkey PRIMARY KEY (id),
   CONSTRAINT deals_reseller_id_fkey FOREIGN KEY (reseller_id) REFERENCES public.users(id),
   CONSTRAINT deals_reseller_organization_id_fkey FOREIGN KEY (reseller_organization_id) REFERENCES public.organizations(id),
@@ -337,10 +355,15 @@ CREATE TABLE public.direct_queries (
   response_date timestamp with time zone,
   estimated_cost numeric,
   delivery_timeline character varying,
+  source_deal_id uuid,
+  visibility character varying DEFAULT 'PUBLIC'::character varying,
+  assigned_to uuid,
   CONSTRAINT direct_queries_pkey PRIMARY KEY (id),
   CONSTRAINT direct_queries_reseller_id_fkey FOREIGN KEY (reseller_id) REFERENCES public.users(id),
   CONSTRAINT direct_queries_reseller_organization_id_fkey FOREIGN KEY (reseller_organization_id) REFERENCES public.organizations(id),
-  CONSTRAINT direct_queries_distributor_id_fkey FOREIGN KEY (distributor_id) REFERENCES public.organizations(id)
+  CONSTRAINT direct_queries_distributor_id_fkey FOREIGN KEY (distributor_id) REFERENCES public.organizations(id),
+  CONSTRAINT direct_queries_source_deal_id_fkey FOREIGN KEY (source_deal_id) REFERENCES public.deals(id),
+  CONSTRAINT direct_queries_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id)
 );
 CREATE TABLE public.direct_query_products (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -439,6 +462,23 @@ CREATE TABLE public.notifications (
   CONSTRAINT notifications_pkey PRIMARY KEY (id),
   CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.organization_documents (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  organization_id uuid,
+  document_type character varying NOT NULL,
+  file_url text NOT NULL,
+  file_name character varying,
+  file_size bigint,
+  status character varying DEFAULT 'PENDING'::character varying,
+  uploaded_at timestamp with time zone DEFAULT now(),
+  reviewed_at timestamp with time zone,
+  reviewed_by uuid,
+  review_notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_documents_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_documents_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT organization_documents_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.organizations (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   name character varying NOT NULL,
@@ -467,7 +507,15 @@ CREATE TABLE public.organizations (
   social_facebook text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT organizations_pkey PRIMARY KEY (id)
+  qualification_status character varying DEFAULT 'PENDING'::character varying,
+  qualification_submitted_at timestamp with time zone,
+  qualification_reviewed_at timestamp with time zone,
+  qualification_reviewed_by uuid,
+  qualification_notes text,
+  badge character varying,
+  is_verified boolean DEFAULT false,
+  CONSTRAINT organizations_pkey PRIMARY KEY (id),
+  CONSTRAINT organizations_qualification_reviewed_by_fkey FOREIGN KEY (qualification_reviewed_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.otp_verifications (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -525,10 +573,12 @@ CREATE TABLE public.product_inquiries (
   responded_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  assigned_to uuid,
   CONSTRAINT product_inquiries_pkey PRIMARY KEY (id),
   CONSTRAINT product_inquiries_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
   CONSTRAINT product_inquiries_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT product_inquiries_responded_by_fkey FOREIGN KEY (responded_by) REFERENCES public.users(id)
+  CONSTRAINT product_inquiries_responded_by_fkey FOREIGN KEY (responded_by) REFERENCES public.users(id),
+  CONSTRAINT product_inquiries_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id)
 );
 CREATE TABLE public.product_reviews (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -635,6 +685,49 @@ CREATE TABLE public.products (
   CONSTRAINT products_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
   CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
+CREATE TABLE public.public_ratings (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  deal_id uuid,
+  rater_id uuid,
+  rater_organization_id uuid,
+  rated_user_id uuid,
+  rated_organization_id uuid,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  review_title character varying,
+  review_text text,
+  rating_categories jsonb DEFAULT '{}'::jsonb,
+  visibility character varying DEFAULT 'PUBLIC'::character varying,
+  is_verified boolean DEFAULT true,
+  helpful_count integer DEFAULT 0,
+  response_text text,
+  response_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT public_ratings_pkey PRIMARY KEY (id),
+  CONSTRAINT public_ratings_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id),
+  CONSTRAINT public_ratings_rater_id_fkey FOREIGN KEY (rater_id) REFERENCES public.users(id),
+  CONSTRAINT public_ratings_rater_organization_id_fkey FOREIGN KEY (rater_organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT public_ratings_rated_user_id_fkey FOREIGN KEY (rated_user_id) REFERENCES public.users(id),
+  CONSTRAINT public_ratings_rated_organization_id_fkey FOREIGN KEY (rated_organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.qualification_requests (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  organization_id uuid,
+  status character varying DEFAULT 'PENDING'::character varying,
+  submitted_at timestamp with time zone DEFAULT now(),
+  reviewed_at timestamp with time zone,
+  reviewed_by uuid,
+  review_notes text,
+  additional_info_requested text,
+  resubmission_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT qualification_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT qualification_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT qualification_requests_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT qualification_requests_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.quote_line_items (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   quote_id uuid,
@@ -708,6 +801,30 @@ CREATE TABLE public.quotes (
   CONSTRAINT quotes_reseller_id_fkey FOREIGN KEY (reseller_id) REFERENCES public.users(id),
   CONSTRAINT quotes_recipient_user_id_fkey FOREIGN KEY (recipient_user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.rating_aggregates (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid UNIQUE,
+  organization_id uuid UNIQUE,
+  total_ratings integer DEFAULT 0,
+  average_rating numeric DEFAULT 0,
+  rating_distribution jsonb DEFAULT '{"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}'::jsonb,
+  category_averages jsonb DEFAULT '{}'::jsonb,
+  last_30_days_count integer DEFAULT 0,
+  last_30_days_average numeric DEFAULT 0,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT rating_aggregates_pkey PRIMARY KEY (id),
+  CONSTRAINT rating_aggregates_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT rating_aggregates_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.rating_helpful_votes (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  rating_id uuid,
+  user_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT rating_helpful_votes_pkey PRIMARY KEY (id),
+  CONSTRAINT rating_helpful_votes_rating_id_fkey FOREIGN KEY (rating_id) REFERENCES public.public_ratings(id),
+  CONSTRAINT rating_helpful_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.rating_tags (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   rating_id uuid,
@@ -734,6 +851,36 @@ CREATE TABLE public.ratings (
   CONSTRAINT ratings_to_org_id_fkey FOREIGN KEY (to_org_id) REFERENCES public.organizations(id),
   CONSTRAINT ratings_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id)
 );
+CREATE TABLE public.team_invitations (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  organization_id uuid,
+  email character varying NOT NULL,
+  role character varying NOT NULL,
+  team_role character varying,
+  permissions jsonb DEFAULT '{}'::jsonb,
+  invited_by uuid,
+  status character varying DEFAULT 'PENDING'::character varying,
+  token character varying NOT NULL UNIQUE,
+  expires_at timestamp with time zone,
+  accepted_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_invitations_pkey PRIMARY KEY (id),
+  CONSTRAINT team_invitations_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT team_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_assignments (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  assignment_type character varying NOT NULL,
+  reference_id uuid,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT user_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT user_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_assignments_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   email character varying NOT NULL UNIQUE,
@@ -747,8 +894,16 @@ CREATE TABLE public.users (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   total_activity_score integer DEFAULT 0,
+  team_role character varying,
+  permissions jsonb DEFAULT '{}'::jsonb,
+  invited_by uuid,
+  invitation_status character varying DEFAULT 'ACTIVE'::character varying,
+  qualification_status character varying DEFAULT 'INCOMPLETE'::character varying,
+  qualification_submitted_at timestamp with time zone,
+  can_access_marketplace boolean DEFAULT false,
   CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+  CONSTRAINT users_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT users_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.volume_pricing (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

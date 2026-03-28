@@ -2,34 +2,44 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star, Package, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 
-const navigation = [
-  { name: 'Dashboard', href: '/reseller/dashboard', icon: LayoutDashboard },
-  { name: 'My Deals', href: '/reseller/deals', icon: Briefcase },
-  { name: 'Register Deal', href: '/reseller/deals/register', icon: PlusCircle },
-  { name: 'Credit Limit', href: '/reseller/credit', icon: CreditCard },
-  { name: 'Messages', href: '/reseller/messages', icon: MessageCircle },
-  { name: 'Inquiries', href: '/reseller/inquiries', icon: HelpCircle },
-  { name: 'Quotes', href: '/reseller/quotes', icon: FileText },
-  { name: 'Upload BOQ', href: '/reseller/boq/upload', icon: Upload },
-  { name: 'Services', href: '/reseller/services', icon: Briefcase },
-  { name: 'Team', href: '/reseller/team', icon: Users },
-  { name: 'Ratings', href: '/reseller/ratings', icon: Star },
-  { name: 'Analytics', href: '/reseller/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/reseller/settings', icon: Settings },
-];
+const iconMap: Record<string, any> = {
+  LayoutDashboard,
+  Briefcase,
+  PlusCircle,
+  Upload,
+  BarChart3,
+  Settings,
+  MessageCircle,
+  FileText,
+  HelpCircle,
+  CreditCard,
+  Users,
+  Star,
+  Package,
+  Wrench,
+};
 
 export default function ResellerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, organization, logout } = useSimpleAuth();
+  const { user, organization, logout, accessibleRoutes, isTeamMember, teamRole } = useSimpleAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Convert accessible routes to navigation format
+  const navigation = useMemo(() => {
+    return accessibleRoutes.map(route => ({
+      name: route.label,
+      href: route.path,
+      icon: route.icon ? iconMap[route.icon] : LayoutDashboard,
+    }));
+  }, [accessibleRoutes]);
 
   useEffect(() => {
     if (!user || organization?.type !== 'RESELLER') {
@@ -64,27 +74,43 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
             <div className="flex-1 overflow-y-auto px-3 py-6">
               {!sidebarCollapsed && (
                 <div className="mb-6 px-3 hidden lg:block">
-                  <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">Organization</p>
+                  <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">
+                    {isTeamMember ? 'Profile' : 'Organization'}
+                  </p>
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-[#1E293B] rounded-md flex items-center justify-center border border-[#334155]">
-                      <span className="text-sm font-semibold text-white">{organization?.name.charAt(0)}</span>
+                      <span className="text-sm font-semibold text-white">
+                        {isTeamMember ? user?.name.charAt(0) : organization?.name.charAt(0)}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-medium text-white truncate">{organization?.name}</p>
-                      <p className="text-[12px] text-[#64748B]">Reseller</p>
+                      <p className="text-[14px] font-medium text-white truncate">
+                        {isTeamMember ? user?.name : organization?.name}
+                      </p>
+                      <p className="text-[12px] text-[#64748B]">
+                        {isTeamMember ? teamRole : 'Reseller'}
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
               <div className="mb-6 px-3 lg:hidden">
-                <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">Organization</p>
+                <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">
+                  {isTeamMember ? 'Profile' : 'Organization'}
+                </p>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-[#1E293B] rounded-md flex items-center justify-center border border-[#334155]">
-                    <span className="text-sm font-semibold text-white">{organization?.name.charAt(0)}</span>
+                    <span className="text-sm font-semibold text-white">
+                      {isTeamMember ? user?.name.charAt(0) : organization?.name.charAt(0)}
+                    </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-white truncate">{organization?.name}</p>
-                    <p className="text-[12px] text-[#64748B]">Reseller</p>
+                    <p className="text-[14px] font-medium text-white truncate">
+                      {isTeamMember ? user?.name : organization?.name}
+                    </p>
+                    <p className="text-[12px] text-[#64748B]">
+                      {isTeamMember ? teamRole : 'Reseller'}
+                    </p>
                   </div>
                 </div>
               </div>

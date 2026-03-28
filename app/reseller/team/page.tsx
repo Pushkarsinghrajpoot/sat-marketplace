@@ -17,12 +17,14 @@ import {
   updateTeamMember,
   removeTeamMember 
 } from '@/lib/team-management';
+import RolePermissionsManager from '@/components/team/RolePermissionsManager';
 
 const TEAM_ROLES = [
   { value: 'ADMIN', label: 'Admin', description: 'Full access to all features' },
   { value: 'MANAGER', label: 'Manager', description: 'Manage deals and team members' },
-  { value: 'MEMBER', label: 'Member', description: 'Basic access to deals and products' },
+  { value: 'SALES', label: 'Sales', description: 'Handle deals and quotes' },
   { value: 'SUPPORT', label: 'Support', description: 'Handle inquiries and messages' },
+  { value: 'MEMBER', label: 'Member', description: 'Basic access to deals and products' },
 ];
 
 export default function TeamManagementPage() {
@@ -39,6 +41,7 @@ export default function TeamManagementPage() {
     teamRole: 'MEMBER',
   });
   const [sending, setSending] = useState(false);
+  const [editingMember, setEditingMember] = useState<any | null>(null);
 
   useEffect(() => {
     loadTeamData();
@@ -247,31 +250,29 @@ export default function TeamManagementPage() {
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      <Select
-                        value={member.team_role || 'MEMBER'}
-                        onChange={(e) => handleUpdateRole(member.id, e.target.value)}
-                        className="w-32"
-                        disabled={member.id === user?.id}
-                      >
-                        {TEAM_ROLES.map((role) => (
-                          <option key={role.value} value={role.value}>
-                            {role.label}
-                          </option>
-                        ))}
-                      </Select>
+                      <Badge variant="secondary">{member.team_role || 'MEMBER'}</Badge>
                       
                       <Badge variant={member.invitation_status === 'ACTIVE' ? 'success' : 'warning'}>
                         {member.invitation_status || 'ACTIVE'}
                       </Badge>
                       
                       {member.id !== user?.id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingMember(member)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveMember(member.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -455,6 +456,19 @@ export default function TeamManagementPage() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Role Permissions Manager Modal */}
+        {editingMember && (
+          <RolePermissionsManager
+            userId={editingMember.id}
+            userName={editingMember.name}
+            userRole={user.role}
+            currentTeamRole={editingMember.team_role || 'MEMBER'}
+            currentPermissions={editingMember.permissions || []}
+            onClose={() => setEditingMember(null)}
+            onUpdate={loadTeamData}
+          />
         )}
       </div>
     </div>

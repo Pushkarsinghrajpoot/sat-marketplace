@@ -2,33 +2,44 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, TrendingUp, FileSpreadsheet, Activity, ChevronLeft, ChevronRight, HelpCircle, Target, Handshake, DollarSign, Star } from 'lucide-react';
+import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, TrendingUp, FileSpreadsheet, Activity, ChevronLeft, ChevronRight, HelpCircle, Target, Handshake, DollarSign, Star, Megaphone, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 
-const navigation = [
-  { name: 'Dashboard', href: '/distributor/dashboard', icon: LayoutDashboard },
-  { name: 'Products', href: '/distributor/products', icon: Package },
-  { name: 'Inquiries', href: '/distributor/inquiries', icon: HelpCircle },
-  { name: 'Messages', href: '/distributor/messages', icon: MessageCircle },
-  { name: 'Quotes', href: '/distributor/quotes', icon: FileText },
-  { name: 'Campaigns', href: '/distributor/campaigns', icon: Target },
-  { name: 'Engagements', href: '/distributor/engagements', icon: Handshake },
-  { name: 'Credit Requests', href: '/distributor/credit', icon: DollarSign },
-  { name: 'Team', href: '/distributor/team', icon: Users },
-  { name: 'Ratings', href: '/distributor/ratings', icon: Star },
-  { name: 'Analytics', href: '/distributor/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/distributor/settings', icon: Settings },
-];
+const iconMap: Record<string, any> = {
+  LayoutDashboard,
+  Package,
+  FileText,
+  MessageCircle,
+  BarChart3,
+  Settings,
+  Users,
+  HelpCircle,
+  Target,
+  Handshake,
+  DollarSign,
+  Star,
+  Megaphone,
+  Briefcase,
+};
 
 export default function DistributorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, organization, logout } = useSimpleAuth();
+  const { user, organization, logout, accessibleRoutes, isTeamMember, teamRole } = useSimpleAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Convert accessible routes to navigation format
+  const navigation = useMemo(() => {
+    return accessibleRoutes.map(route => ({
+      name: route.label,
+      href: route.path,
+      icon: route.icon ? iconMap[route.icon] : LayoutDashboard,
+    }));
+  }, [accessibleRoutes]);
 
   useEffect(() => {
     if (!user || organization?.type !== 'DISTRIBUTOR') {
@@ -63,27 +74,43 @@ export default function DistributorLayout({ children }: { children: React.ReactN
             <div className="flex-1 overflow-y-auto px-3 py-6">
               {!sidebarCollapsed && (
                 <div className="mb-6 px-3 hidden lg:block">
-                  <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">Organization</p>
+                  <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">
+                    {isTeamMember ? 'Profile' : 'Organization'}
+                  </p>
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-[#1E293B] rounded-md flex items-center justify-center border border-[#334155]">
-                      <span className="text-sm font-semibold text-white">{organization?.name.charAt(0)}</span>
+                      <span className="text-sm font-semibold text-white">
+                        {isTeamMember ? user?.name.charAt(0) : organization?.name.charAt(0)}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-medium text-white truncate">{organization?.name}</p>
-                      <p className="text-[12px] text-[#64748B]">Distributor</p>
+                      <p className="text-[14px] font-medium text-white truncate">
+                        {isTeamMember ? user?.name : organization?.name}
+                      </p>
+                      <p className="text-[12px] text-[#64748B]">
+                        {isTeamMember ? teamRole : 'Distributor'}
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
               <div className="mb-6 px-3 lg:hidden">
-                <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">Organization</p>
+                <p className="text-[11px] font-medium text-[#475569] uppercase tracking-wider mb-3">
+                  {isTeamMember ? 'Profile' : 'Organization'}
+                </p>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-[#1E293B] rounded-md flex items-center justify-center border border-[#334155]">
-                    <span className="text-sm font-semibold text-white">{organization?.name.charAt(0)}</span>
+                    <span className="text-sm font-semibold text-white">
+                      {isTeamMember ? user?.name.charAt(0) : organization?.name.charAt(0)}
+                    </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-white truncate">{organization?.name}</p>
-                    <p className="text-[12px] text-[#64748B]">Distributor</p>
+                    <p className="text-[14px] font-medium text-white truncate">
+                      {isTeamMember ? user?.name : organization?.name}
+                    </p>
+                    <p className="text-[12px] text-[#64748B]">
+                      {isTeamMember ? teamRole : 'Distributor'}
+                    </p>
                   </div>
                 </div>
               </div>

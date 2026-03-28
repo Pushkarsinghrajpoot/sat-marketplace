@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
 import type { User, Organization } from './types';
+import { Permission, TeamRole, getAccessibleRoutes, RoutePermission } from './rbac/permissions';
 
 interface SimpleAuthContextType {
   user: User | null;
@@ -11,6 +12,11 @@ interface SimpleAuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
+  teamRole: TeamRole | null;
+  permissions: Permission[];
+  accessibleRoutes: RoutePermission[];
+  hasPermission: (module: string, action: string) => boolean;
+  isTeamMember: boolean; // true if user has a team_role (not the owner)
 }
 
 const SimpleAuthContext = createContext<SimpleAuthContextType | undefined>(undefined);
@@ -19,6 +25,9 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const [user, setUser] = useState<User | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  const [teamRole, setTeamRole] = useState<TeamRole | null>(null);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [accessibleRoutes, setAccessibleRoutes] = useState<RoutePermission[]>([]);
 
   // Check auth status on mount
   useEffect(() => {
@@ -53,6 +62,21 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
           };
 
           setUser(mappedUser);
+
+          // Set team role and permissions
+          const userTeamRole = (userData.team_role as TeamRole) || null;
+          const userPermissions = userData.permissions || [];
+          
+          setTeamRole(userTeamRole);
+          setPermissions(userPermissions);
+          
+          // Calculate accessible routes
+          const routes = getAccessibleRoutes(
+            userData.role,
+            userTeamRole,
+            userPermissions.length > 0 ? userPermissions : null
+          );
+          setAccessibleRoutes(routes);
 
           // Get organization if user has one
           if (userData.organization_id) {
@@ -109,6 +133,21 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
           setUser(mappedUser);
 
+          // Set team role and permissions
+          const userTeamRole = (userData.team_role as TeamRole) || null;
+          const userPermissions = userData.permissions || [];
+          
+          setTeamRole(userTeamRole);
+          setPermissions(userPermissions);
+          
+          // Calculate accessible routes
+          const routes = getAccessibleRoutes(
+            userData.role,
+            userTeamRole,
+            userPermissions.length > 0 ? userPermissions : null
+          );
+          setAccessibleRoutes(routes);
+
           // Get organization if user has one
           if (userData.organization_id) {
             const { data: orgData } = await supabase
@@ -134,9 +173,26 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       await supabase.auth.signOut();
       setUser(null);
       setOrganization(null);
+      setTeamRole(null);
+      setPermissions([]);
+      setAccessibleRoutes([]);
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const hasPermission = (module: string, action: string): boolean => {
+    // Check for wildcard admin access
+    if (permissions.some(p => p.module === '*' && p.action === 'manage')) {
+      return true;
+    }
+
+    return permissions.some(p => {
+      if (p.module !== module) return false;
+      if (p.action === 'manage') return true;
+      if (p.action === action) return true;
+      return false;
+    });
   };
 
   const value = {
@@ -146,6 +202,11 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     login,
     logout,
     loading,
+    teamRole,
+    permissions,
+    accessibleRoutes,
+    hasPermission,
+    isTeamMember: !!teamRole,
   };
 
   return (
