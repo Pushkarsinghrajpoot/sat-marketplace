@@ -41,6 +41,31 @@ export default function ResellerMessagesPage() {
   const loadConversations = async () => {
     setLoading(true);
     try {
+      // First get conversations where user is a participant or assigned
+      const { data: participantConvs } = await supabase
+        .from('chat_participants')
+        .select('conversation_id')
+        .eq('user_id', user?.id);
+
+      const participantConvIds = participantConvs?.map(p => p.conversation_id) || [];
+
+      // Also get conversations assigned to this user
+      const { data: assignedConvs } = await supabase
+        .from('chat_conversations')
+        .select('id')
+        .eq('assigned_to', user?.id);
+
+      const assignedConvIds = assignedConvs?.map(c => c.id) || [];
+
+      // Combine both lists
+      const allConvIds = [...new Set([...participantConvIds, ...assignedConvIds])];
+
+      if (allConvIds.length === 0) {
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
+
       let query = supabase
         .from('chat_conversations')
         .select(`
@@ -54,9 +79,14 @@ export default function ResellerMessagesPage() {
             id,
             name,
             logo
+          ),
+          users!chat_conversations_customer_id_fkey (
+            id,
+            name,
+            email
           )
         `)
-        .eq('customer_organization_id', user?.organizationId)
+        .in('id', allConvIds)
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {

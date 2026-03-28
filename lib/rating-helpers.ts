@@ -6,28 +6,38 @@ export async function createRating(data: {
   raterId: string;
   raterOrganizationId: string;
   ratedUserId: string;
-  ratedOrganizationId: string;
+  ratedOrganizationId?: string | null;
   rating: number;
   reviewTitle?: string;
   reviewText?: string;
   ratingCategories?: any;
 }) {
   try {
+    console.log('createRating called with data:', data);
+    
+    const insertData: any = {
+      deal_id: data.dealId,
+      rater_id: data.raterId,
+      rater_organization_id: data.raterOrganizationId,
+      rated_user_id: data.ratedUserId,
+      rating: data.rating,
+      review_title: data.reviewTitle,
+      review_text: data.reviewText,
+      rating_categories: data.ratingCategories || {},
+      visibility: 'PUBLIC',
+      is_verified: true,
+    };
+    
+    // Only add rated_organization_id if it's a valid value
+    if (data.ratedOrganizationId) {
+      insertData.rated_organization_id = data.ratedOrganizationId;
+    }
+    
+    console.log('Inserting to public_ratings:', insertData);
+    
     const { data: rating, error } = await supabase
       .from('public_ratings')
-      .insert({
-        deal_id: data.dealId,
-        rater_id: data.raterId,
-        rater_organization_id: data.raterOrganizationId,
-        rated_user_id: data.ratedUserId,
-        rated_organization_id: data.ratedOrganizationId,
-        rating: data.rating,
-        review_title: data.reviewTitle,
-        review_text: data.reviewText,
-        rating_categories: data.ratingCategories || {},
-        visibility: 'PUBLIC',
-        is_verified: true,
-      })
+      .insert(insertData)
       .select()
       .single();
 

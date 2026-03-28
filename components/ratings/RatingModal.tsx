@@ -64,14 +64,19 @@ export default function RatingModal({
     console.log('reviewTitle:', reviewTitle);
     console.log('reviewText:', reviewText);
     console.log('categoryRatings:', categoryRatings);
+    console.log('type:', type);
+    console.log('targetId:', targetId);
     console.log('=========================');
     
-    if (!overallRating || overallRating === 0) {
-      console.error('Rating validation failed! overallRating is:', overallRating);
-      console.error('Type:', typeof overallRating);
-      toast.error('Please provide an overall rating');
+    // Validate rating
+    const ratingValue = Number(overallRating);
+    if (!ratingValue || ratingValue === 0 || ratingValue < 1 || ratingValue > 5) {
+      console.error('Rating validation failed! overallRating is:', overallRating, 'parsed:', ratingValue);
+      toast.error('Please select a star rating (1-5 stars)');
       return;
     }
+    
+    console.log('Validation passed, proceeding with submission...');
 
     setSubmitting(true);
     try {
@@ -156,8 +161,13 @@ export default function RatingModal({
             <StarRating
               rating={overallRating}
               onRatingChange={(rating) => {
-                console.log('Rating changed to:', rating);
+                console.log('=== RATING CHANGE CALLBACK ===');
+                console.log('New rating value:', rating);
+                console.log('Type:', typeof rating);
+                console.log('Before setState, current overallRating:', overallRating);
                 setOverallRating(rating);
+                console.log('setState called with:', rating);
+                console.log('==============================');
               }}
               size="lg"
             />
@@ -216,9 +226,11 @@ export default function RatingModal({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('Submit button clicked! Current rating:', overallRating);
                 handleSubmit();
               }} 
-              disabled={submitting || overallRating === 0}
+              disabled={submitting}
+              className={overallRating > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'}
             >
               {submitting ? 'Submitting...' : 'Submit Rating'}
             </Button>

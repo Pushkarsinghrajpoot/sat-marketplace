@@ -41,6 +41,31 @@ export default function DistributorMessagesPage() {
   const loadConversations = async () => {
     setLoading(true);
     try {
+      // Get conversations where user is a participant
+      const { data: participantConvs } = await supabase
+        .from('chat_participants')
+        .select('conversation_id')
+        .eq('user_id', user?.id);
+
+      const participantConvIds = participantConvs?.map(p => p.conversation_id) || [];
+
+      // Get all conversations for this distributor organization
+      const { data: orgConvs } = await supabase
+        .from('chat_conversations')
+        .select('id')
+        .eq('distributor_id', organization?.id);
+
+      const orgConvIds = orgConvs?.map(c => c.id) || [];
+
+      // Combine: user's participant conversations + all org conversations
+      const allConvIds = [...new Set([...participantConvIds, ...orgConvIds])];
+
+      if (allConvIds.length === 0) {
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
+
       let query = supabase
         .from('chat_conversations')
         .select(`
@@ -61,7 +86,7 @@ export default function DistributorMessagesPage() {
             email
           )
         `)
-        .eq('distributor_id', organization?.id)
+        .in('id', allConvIds)
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {

@@ -226,18 +226,49 @@ export default function DealDetailPage() {
   };
 
   const handleSubmitRating = async () => {
+    console.log('=== DEAL RATING SUBMISSION ===');
+    console.log('user.id:', user?.id);
+    console.log('user.organizationId:', user?.organizationId);
+    console.log('deal.distributorId:', deal?.distributorId);
+    console.log('rating:', rating);
+    console.log('deal object:', deal);
+    
     if (!user?.id || !user?.organizationId || !deal.distributorId || rating === 0) {
       toast.error('Please provide a rating');
       return;
     }
 
     try {
+      // Get distributor organization ID from deal
+      let distributorOrgId = deal.distributorOrganizationId;
+      
+      // If not in deal, fetch from distributor user
+      if (!distributorOrgId && deal.distributorId) {
+        const { data: distUser } = await supabase
+          .from('users')
+          .select('organization_id')
+          .eq('id', deal.distributorId)
+          .single();
+        
+        distributorOrgId = distUser?.organization_id;
+        console.log('Fetched distributor org from user:', distributorOrgId);
+      }
+
+      console.log('Submitting rating with:', {
+        dealId: deal.id,
+        raterId: user.id,
+        raterOrganizationId: user.organizationId,
+        ratedUserId: deal.distributorId,
+        ratedOrganizationId: distributorOrgId,
+        rating
+      });
+
       const result = await createRating({
         dealId: deal.id,
         raterId: user.id,
         raterOrganizationId: user.organizationId,
         ratedUserId: deal.distributorId,
-        ratedOrganizationId: deal.distributorOrganizationId || '',
+        ratedOrganizationId: distributorOrgId || null as any,
         rating,
         reviewTitle: `Deal: ${deal.opportunityName}`,
         reviewText: ratingComment,
