@@ -195,54 +195,62 @@ export default function AssignmentsPage() {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {assignmentsByType.map((type) => {
-            const Icon = type.icon;
-            return (
-              <Card key={type.value}>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <Icon className={`h-5 w-5 text-${type.color}-600`} />
-                    <CardTitle>{type.label} Assignments</CardTitle>
-                    <Badge variant="default" className="ml-auto">
-                      {type.assignments.length}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {type.assignments.length === 0 ? (
-                    <p className="text-center text-gray-500 py-4 text-sm">
-                      No {type.label.toLowerCase()} assignments
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {type.assignments.map((assignment: any) => (
-                        <div
-                          key={assignment.id}
-                          className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                        >
-                          <div>
-                            <p className="font-semibold text-sm">{assignment.user?.name}</p>
-                            <p className="text-xs text-gray-600">
-                              {getAssignmentLabel(assignment)}
-                            </p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteAssignment(assignment.id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+        {teamMembers.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <p className="text-gray-500">No team members found. Add team members first.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {assignmentsByType.map((type) => {
+              const Icon = type.icon;
+              return (
+                <Card key={type.value}>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <Icon className={`h-5 w-5 text-${type.color}-600`} />
+                      <CardTitle>{type.label} Assignments</CardTitle>
+                      <Badge variant="default" className="ml-auto">
+                        {type.assignments.length}
+                      </Badge>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardHeader>
+                  <CardContent>
+                    {type.assignments.length === 0 ? (
+                      <p className="text-center text-gray-500 py-4 text-sm">
+                        No {type.label.toLowerCase()} assignments
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {type.assignments.map((assignment: any) => (
+                          <div
+                            key={assignment.id}
+                            className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                          >
+                            <div>
+                              <p className="font-semibold text-sm">{assignment.user?.name}</p>
+                              <p className="text-xs text-gray-600">
+                                {getAssignmentLabel(assignment)}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteAssignment(assignment.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
         <Card className="mt-6">
           <CardHeader>
@@ -298,7 +306,9 @@ export default function AssignmentsPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Team Member *</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Team Member * <span className="text-xs text-gray-500">(from your organization)</span>
+                    </label>
                     <Select
                       value={assignForm.userId}
                       onChange={(e) => setAssignForm({ ...assignForm, userId: e.target.value })}
@@ -306,10 +316,13 @@ export default function AssignmentsPage() {
                       <option value="">Select team member</option>
                       {teamMembers.map((member) => (
                         <option key={member.id} value={member.id}>
-                          {member.name} - {member.team_role}
+                          {member.name} - {member.team_role || member.role}
                         </option>
                       ))}
                     </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Showing {teamMembers.length} team member(s) from your organization
+                    </p>
                   </div>
 
                   <div>

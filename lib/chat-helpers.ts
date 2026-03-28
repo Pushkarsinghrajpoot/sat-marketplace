@@ -1,6 +1,52 @@
 import { supabase } from './supabase';
 import type { ChatConversation, ChatMessage, ChatParticipant } from './types';
 
+// Find assigned user for a product
+async function findAssignedUserForProduct(productId: string, organizationId: string): Promise<string | null> {
+  try {
+    // First, try to find a user specifically assigned to this product
+    const { data: assignment } = await supabase
+      .from('user_assignments')
+      .select(`
+        user_id,
+        users!inner (
+          id,
+          organization_id
+        )
+      `)
+      .eq('assignment_type', 'PRODUCT')
+      .eq('reference_id', productId)
+      .eq('users.organization_id', organizationId)
+      .limit(1)
+      .single();
+
+    if (assignment?.user_id) {
+      console.log('Found assigned user for product:', assignment.user_id);
+      return assignment.user_id;
+    }
+
+    // If no specific assignment, find an admin from the organization
+    const { data: admin } = await supabase
+      .from('users')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('team_role', 'ADMIN')
+      .limit(1)
+      .single();
+
+    if (admin?.id) {
+      console.log('No product assignment, using admin:', admin.id);
+      return admin.id;
+    }
+
+    console.log('No assigned user or admin found for organization:', organizationId);
+    return null;
+  } catch (error) {
+    console.error('Error finding assigned user:', error);
+    return null;
+  }
+}
+
 // Create new chat conversation
 export async function createChatConversation(conversation: {
   conversationType: string;
@@ -16,6 +62,18 @@ export async function createChatConversation(conversation: {
   priority?: string;
 }) {
   try {
+    // Auto-assign to the right team member if it's a product inquiry
+    let assignedTo = conversation.agentId;
+    
+    if (!assignedTo && conversation.productId && conversation.distributorId) {
+      const foundUser = await findAssignedUserForProduct(conversation.productId, conversation.distributorId);
+      if (foundUser) {
+        assignedTo = foundUser;
+      }
+    }
+
+    console.log('Creating chat conversation, assigned_to:', assignedTo);
+
     // Convert camelCase to snake_case for database
     const { data, error } = await supabase
       .from('chat_conversations')
@@ -30,6 +88,7 @@ export async function createChatConversation(conversation: {
         agent_id: conversation.agentId,
         reseller_id: conversation.resellerId,
         distributor_id: conversation.distributorId,
+        assigned_to: assignedTo,
         status: 'ACTIVE',
         priority: conversation.priority || 'NORMAL'
       }])
@@ -54,6 +113,12 @@ export async function createChatConversation(conversation: {
       }
       if (conversation.resellerId && !participantsToAdd.has(conversation.resellerId)) {
         participantsToAdd.set(conversation.resellerId, 'RESELLER');
+      }
+      
+      // Add assigned user if set
+      if (assignedTo && !participantsToAdd.has(assignedTo)) {
+        participantsToAdd.set(assignedTo, 'AGENT');
+        console.log('Adding assigned user as participant:', assignedTo);
       }
       
       // Add all unique participants

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, TrendingUp, FileSpreadsheet, Activity, ChevronLeft, ChevronRight, HelpCircle, Target, Handshake, DollarSign, Star, Megaphone, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, HelpCircle, Target, Handshake, DollarSign, Star, Megaphone, Briefcase, UserCog, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect, useMemo } from 'react';
@@ -23,6 +23,7 @@ const iconMap: Record<string, any> = {
   Star,
   Megaphone,
   Briefcase,
+  UserCog,
 };
 
 export default function DistributorLayout({ children }: { children: React.ReactNode }) {
@@ -148,7 +149,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
-                    <p className="text-[11px] text-[#64748B]">{user?.role}</p>
+                    <p className="text-[11px] text-[#64748B]">{organization?.name}</p>
                   </div>
                 </div>
               )}
@@ -158,7 +159,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
-                  <p className="text-[11px] text-[#64748B]">{user?.role}</p>
+                  <p className="text-[11px] text-[#64748B]">{organization?.name}</p>
                 </div>
               </div>
               <button onClick={handleLogout} className={`w-full flex items-center gap-3 py-2 text-[14px] font-medium text-[#EF4444] hover:bg-[#1E293B] rounded transition-colors ${

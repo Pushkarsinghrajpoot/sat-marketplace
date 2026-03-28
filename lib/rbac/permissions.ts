@@ -151,6 +151,13 @@ export const RESELLER_ROUTES: RoutePermission[] = [
     requiredPermissions: [{ module: 'team', action: 'view' }]
   },
   { 
+    path: '/reseller/team/assignments', 
+    label: 'Team Assignments', 
+    icon: 'UserCog',
+    teamRoles: ['ADMIN'],
+    requiredPermissions: [{ module: 'team', action: 'manage' }]
+  },
+  { 
     path: '/reseller/settings', 
     label: 'Settings', 
     icon: 'Settings',
@@ -220,6 +227,13 @@ export const DISTRIBUTOR_ROUTES: RoutePermission[] = [
     label: 'Team', 
     icon: 'Users',
     requiredPermissions: [{ module: 'team', action: 'view' }]
+  },
+  { 
+    path: '/distributor/team/assignments', 
+    label: 'Team Assignments', 
+    icon: 'UserCog',
+    teamRoles: ['ADMIN'],
+    requiredPermissions: [{ module: 'team', action: 'manage' }]
   },
   { 
     path: '/distributor/settings', 

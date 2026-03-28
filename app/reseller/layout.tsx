@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star, Package, Wrench } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star, Package, Wrench, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect, useMemo } from 'react';
@@ -23,6 +23,7 @@ const iconMap: Record<string, any> = {
   Star,
   Package,
   Wrench,
+  UserCog,
 };
 
 export default function ResellerLayout({ children }: { children: React.ReactNode }) {
@@ -143,22 +144,22 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
             <div className="border-t border-[#1E293B] p-4">
               {!sidebarCollapsed && (
                 <div className="flex items-center gap-3 px-3 py-2 mb-2 hidden lg:flex">
-                  <div className="w-8 h-8 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
-                    {user?.name.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
-                    <p className="text-[11px] text-[#64748B]">{user?.role}</p>
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center gap-3 px-3 py-2 mb-2 lg:hidden">
                 <div className="w-8 h-8 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
                   {user?.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
-                  <p className="text-[11px] text-[#64748B]">{user?.role}</p>
+                  <p className="text-[11px] text-[#64748B]">{organization?.name}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-3 px-3 py-2 mb-2 lg:hidden">
+              <div className="w-8 h-8 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
+                {user?.name.charAt(0)}
+              </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-white truncate">{user?.name}</p>
+                  <p className="text-[11px] text-[#64748B]">{organization?.name}</p>
                 </div>
               </div>
               <button onClick={handleLogout} className={`w-full flex items-center gap-3 py-2 text-[14px] font-medium text-[#EF4444] hover:bg-[#1E293B] rounded transition-colors ${
