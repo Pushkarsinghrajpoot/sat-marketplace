@@ -9,9 +9,14 @@ import { Star, Calendar, Users, Award, CheckCircle, MessageCircle } from 'lucide
 import { formatCurrency } from '@/lib/utils';
 import type { Service, Organization } from '@/lib/types';
 import Link from 'next/link';
+import StarRating from '@/components/ratings/StarRating';
+import RatingButton from '@/components/ratings/RatingButton';
+import RatingsList from '@/components/ratings/RatingsList';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 export default function ServiceDetailPage() {
   const params = useParams();
+  const { user } = useSimpleAuth();
   const [service, setService] = useState<Service | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -56,14 +61,21 @@ export default function ServiceDetailPage() {
               <Badge variant="info" className="mb-2">Service</Badge>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{service.name}</h1>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-current" />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-600 ml-2">({service.rating}) {service.reviewCount} reviews</span>
-                </div>
+                <StarRating 
+                  rating={service.rating || 4.5} 
+                  readonly 
+                  showCount 
+                  count={service.reviewCount || 0}
+                />
+                {user && (
+                  <RatingButton
+                    type="service"
+                    targetId={service.id}
+                    targetName={service.name}
+                    variant="ghost"
+                    size="sm"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -217,29 +229,8 @@ export default function ServiceDetailPage() {
 
           {activeTab === 'reviews' && (
             <div>
-              <h2 className="text-2xl font-bold mb-4">Customer Reviews</h2>
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-semibold">Excellent Service!</p>
-                          <div className="flex text-yellow-400 text-sm my-1">
-                            {[...Array(5)].map((_, idx) => (
-                              <Star key={idx} className="h-4 w-4 fill-current" />
-                            ))}
-                          </div>
-                        </div>
-                        <span className="text-sm text-gray-500">2 weeks ago</span>
-                      </div>
-                      <p className="text-gray-700 text-sm">
-                        Outstanding quality and professionalism. The team exceeded our expectations.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
+              <RatingsList type="product" targetId={service.id} />
             </div>
           )}
         </div>

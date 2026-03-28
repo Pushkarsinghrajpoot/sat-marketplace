@@ -37,7 +37,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
     return accessibleRoutes.map(route => ({
       name: route.label,
       href: route.path,
-      icon: route.icon ? iconMap[route.icon] : LayoutDashboard,
+      icon: (route.icon && iconMap[route.icon]) ? iconMap[route.icon] : LayoutDashboard,
     }));
   }, [accessibleRoutes]);
 

@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import RatingButton from '@/components/ratings/RatingButton';
 
 const ACTIVITY_TYPES = [
   { 
@@ -418,6 +419,15 @@ export default function DistributorDealDetailPage() {
                   Submit Quote
                 </Button>
               </Link>
+              {deal.status === 'WON' && deal.reseller_id && (
+                <RatingButton
+                  type="organization"
+                  targetId={deal.users?.organizations?.id || deal.reseller_id}
+                  targetName={deal.users?.organizations?.name || deal.users?.name || 'Reseller'}
+                  dealId={deal.id}
+                  variant="outline"
+                />
+              )}
             </div>
           </CardContent>
         </Card>

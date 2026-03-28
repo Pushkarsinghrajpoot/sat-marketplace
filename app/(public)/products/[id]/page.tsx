@@ -14,6 +14,9 @@ import Link from 'next/link';
 import { RequestQuoteModal } from '@/components/request-quote-modal';
 import { ProductChatModal } from '@/components/product-chat-modal';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import StarRating from '@/components/ratings/StarRating';
+import RatingButton from '@/components/ratings/RatingButton';
+import RatingsList from '@/components/ratings/RatingsList';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -120,14 +123,22 @@ export default function ProductDetailPage() {
           <p className="text-gray-600 mb-4">SKU: {product.sku}</p>
           
           <div className="flex items-center gap-4 mb-4">
-            <div className="flex items-center gap-1">
-              <div className="flex text-yellow-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 fill-current" />
-                ))}
-              </div>
-              <span className="text-sm text-gray-600 ml-2">(4.8) 145 reviews</span>
-            </div>
+            <StarRating 
+              rating={product.rating || 4.8} 
+              readonly 
+              showCount 
+              count={product.review_count || 145}
+            />
+            {user && (
+              <RatingButton
+                type="product"
+                targetId={product.id}
+                targetName={product.name}
+                variant="ghost"
+                size="sm"
+                className="ml-auto"
+              />
+            )}
           </div>
 
           {organization && (
@@ -295,6 +306,13 @@ export default function ProductDetailPage() {
               <Download className="h-4 w-4 mr-2" />
               Download Datasheet (PDF)
             </Button>
+          </div>
+        )}
+
+        {activeTab === 'reviews' && (
+          <div>
+            <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
+            <RatingsList type="product" targetId={product.id} />
           </div>
         )}
 

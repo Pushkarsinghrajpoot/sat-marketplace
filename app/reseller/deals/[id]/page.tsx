@@ -18,6 +18,7 @@ import MeetingActivityList from '@/components/meetings/MeetingActivityList';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { mapDeal } from '@/lib/data-mappers';
 import Link from 'next/link';
+import RatingButton from '@/components/ratings/RatingButton';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -393,6 +394,15 @@ export default function DealDetailPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 Add Meeting/Activity
               </Button>
+              {deal.status === 'WON' && deal.distributorId && (
+                <RatingButton
+                  type="organization"
+                  targetId={deal.distributorOrganizationId || deal.distributorId}
+                  targetName={deal.distributorName || 'Distributor'}
+                  dealId={deal.id}
+                  variant="outline"
+                />
+              )}
             </div>
           </CardContent>
         </Card>
