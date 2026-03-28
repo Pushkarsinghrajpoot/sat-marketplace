@@ -59,7 +59,10 @@ export default function RatingModal({
   };
 
   const handleSubmit = async () => {
-    if (overallRating === 0) {
+    console.log('Submit clicked, overallRating:', overallRating);
+    
+    if (!overallRating || overallRating === 0) {
+      console.error('Rating validation failed:', overallRating);
       toast.error('Please provide an overall rating');
       return;
     }
@@ -146,9 +149,15 @@ export default function RatingModal({
             </label>
             <StarRating
               rating={overallRating}
-              onRatingChange={setOverallRating}
+              onRatingChange={(rating) => {
+                console.log('Rating changed to:', rating);
+                setOverallRating(rating);
+              }}
               size="lg"
             />
+            {overallRating > 0 && (
+              <p className="text-sm text-gray-600 mt-2">Selected: {overallRating} stars</p>
+            )}
           </div>
 
           {/* Category Ratings */}

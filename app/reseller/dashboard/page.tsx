@@ -32,12 +32,12 @@ export default function ResellerDashboard() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!user?.id) return;
+      if (!user?.id || !user?.organizationId) return;
 
       try {
         const [deals, queries] = await Promise.all([
-          getDeals({ userId: user.id }),
-          getDirectQueries({ userId: user.id }),
+          getDeals({ organizationId: user.organizationId }),
+          getDirectQueries({ organizationId: user.organizationId }),
         ]);
 
         const registrations = deals.filter((d: any) => d.dealType === 'DEAL_REGISTRATION');

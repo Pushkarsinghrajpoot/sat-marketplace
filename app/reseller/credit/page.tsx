@@ -26,7 +26,7 @@ export default function CreditRequestsPage() {
   }, [user]);
 
   const fetchCreditRequests = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !user?.organizationId) return;
     
     try {
       const { data, error } = await supabase
@@ -36,7 +36,7 @@ export default function CreditRequestsPage() {
           credit_request_documents(*),
           organizations:distributor_id(id, name, logo)
         `)
-        .eq('reseller_id', user.id)
+        .eq('reseller_organization_id', user.organizationId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -50,7 +50,7 @@ export default function CreditRequestsPage() {
   };
 
   const fetchApprovedCredit = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !user?.organizationId) return;
     
     try {
       const { data, error } = await supabase
@@ -59,7 +59,7 @@ export default function CreditRequestsPage() {
           *,
           organizations:distributor_id(id, name, logo)
         `)
-        .eq('reseller_id', user.id)
+        .eq('reseller_organization_id', user.organizationId)
         .eq('status', 'APPROVED')
         .order('created_at', { ascending: false })
         .limit(1)

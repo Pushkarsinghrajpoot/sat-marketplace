@@ -23,17 +23,17 @@ export default function DealsPage() {
     async function fetchDeals() {
       console.log('DealsPage: Fetching deals, user:', user);
       
-      if (!user?.id) {
-        console.log('DealsPage: No user ID, setting loading to false');
+      if (!user?.id || !user?.organizationId) {
+        console.log('DealsPage: No user ID or organizationId, setting loading to false');
         setLoading(false);
         return;
       }
       
       try {
-        console.log('DealsPage: Fetching deals for user:', user.id);
+        console.log('DealsPage: Fetching deals for organization:', user.organizationId);
         const [dealsData, queriesData] = await Promise.all([
-          getDeals({ userId: user.id }),
-          getDirectQueries({ userId: user.id })
+          getDeals({ organizationId: user.organizationId }),
+          getDirectQueries({ organizationId: user.organizationId })
         ]);
         console.log('DealsPage: Deals fetched:', dealsData.length, 'Direct queries:', queriesData.length);
         setDeals(dealsData);
@@ -47,7 +47,7 @@ export default function DealsPage() {
     }
 
     fetchDeals();
-  }, [user?.id]);
+  }, [user?.id, user?.organizationId]);
 
   const filteredDeals = deals.filter(deal =>
     deal.opportunityName?.toLowerCase().includes(searchQuery.toLowerCase()) ||

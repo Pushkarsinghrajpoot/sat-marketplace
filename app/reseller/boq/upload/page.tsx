@@ -47,8 +47,8 @@ export default function BOQUploadPage() {
       
       try {
         // Fetch deals
-        console.log('BOQ: Fetching deals for user:', user.id);
-        const dealsData = await getDeals({ userId: user.id });
+        console.log('BOQ: Fetching deals for organization:', user.organizationId);
+        const dealsData = await getDeals({ organizationId: user.organizationId });
         console.log('BOQ: Fetched deals:', dealsData.length, dealsData);
         
         // Show ALL deals - user can select any deal for BOQ upload

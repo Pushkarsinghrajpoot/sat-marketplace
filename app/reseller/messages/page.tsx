@@ -56,7 +56,7 @@ export default function ResellerMessagesPage() {
             logo
           )
         `)
-        .eq('customer_id', user?.id)
+        .eq('customer_organization_id', user?.organizationId)
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
