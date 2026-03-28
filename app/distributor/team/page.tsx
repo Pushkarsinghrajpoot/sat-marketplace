@@ -247,7 +247,7 @@ export default function DistributorTeamPage() {
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      <Badge variant="secondary">{member.team_role || 'SALES'}</Badge>
+                      <Badge variant="default">{member.team_role || 'SALES'}</Badge>
                       
                       <Badge variant={member.invitation_status === 'ACTIVE' ? 'success' : 'warning'}>
                         {member.invitation_status || 'ACTIVE'}
@@ -454,7 +454,7 @@ export default function DistributorTeamPage() {
         )}
 
         {/* Role Permissions Manager Modal */}
-        {editingMember && (
+        {editingMember && user && (
           <RolePermissionsManager
             userId={editingMember.id}
             userName={editingMember.name}

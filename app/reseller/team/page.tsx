@@ -250,7 +250,7 @@ export default function TeamManagementPage() {
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      <Badge variant="secondary">{member.team_role || 'MEMBER'}</Badge>
+                      <Badge variant="default">{member.team_role || 'MEMBER'}</Badge>
                       
                       <Badge variant={member.invitation_status === 'ACTIVE' ? 'success' : 'warning'}>
                         {member.invitation_status || 'ACTIVE'}
@@ -459,7 +459,7 @@ export default function TeamManagementPage() {
         )}
 
         {/* Role Permissions Manager Modal */}
-        {editingMember && (
+        {editingMember && user && (
           <RolePermissionsManager
             userId={editingMember.id}
             userName={editingMember.name}

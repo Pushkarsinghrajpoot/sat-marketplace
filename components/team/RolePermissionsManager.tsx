@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 interface RolePermissionsManagerProps {
   userId: string;
   userName: string;
-  userRole: 'RESELLER' | 'DISTRIBUTOR' | 'END_USER';
+  userRole: 'RESELLER' | 'DISTRIBUTOR' | 'END_USER' | 'PLATFORM_ADMIN';
   currentTeamRole: TeamRole;
   currentPermissions: Permission[];
   onClose: () => void;
@@ -227,7 +227,7 @@ export default function RolePermissionsManager({
               </h3>
               <div className="flex flex-wrap gap-2">
                 {defaultPermissions.map((perm, index) => (
-                  <Badge key={index} variant="secondary">
+                  <Badge key={index} variant="default">
                     {perm.module === '*' ? 'All Modules' : perm.module}: {perm.action}
                   </Badge>
                 ))}
