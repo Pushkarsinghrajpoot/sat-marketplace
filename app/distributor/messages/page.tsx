@@ -70,8 +70,7 @@ export default function DistributorMessagesPage() {
         .from('chat_conversations')
         .select(`
           *,
-          assigned_to,
-          users:assigned_to (
+          assigned_user:assigned_to (
             id,
             name
           ),
@@ -80,7 +79,7 @@ export default function DistributorMessagesPage() {
             name,
             sku
           ),
-          users!chat_conversations_customer_id_fkey (
+          customer:customer_id (
             id,
             name,
             email

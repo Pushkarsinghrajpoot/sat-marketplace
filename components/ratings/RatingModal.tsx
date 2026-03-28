@@ -8,12 +8,14 @@ import { X, Star } from 'lucide-react';
 import StarRating from './StarRating';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { useSimpleAuth } from '@/lib/simple-auth';
 
 interface RatingModalProps {
-  type: 'user' | 'organization' | 'product' | 'service';
+  type: 'user' | 'organization' | 'product' | 'service' | 'deal';
   targetId: string;
   targetName: string;
   dealId?: string;
+  ratedUserId?: string; // For deal ratings - the distributor user
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -32,9 +34,11 @@ export default function RatingModal({
   targetId,
   targetName,
   dealId,
+  ratedUserId,
   onClose,
   onSuccess,
 }: RatingModalProps) {
+  const { user } = useSimpleAuth();
   const [overallRating, setOverallRating] = useState(0);
   const [categoryRatings, setCategoryRatings] = useState<CategoryRatings>({});
   const [reviewTitle, setReviewTitle] = useState('');
@@ -80,14 +84,12 @@ export default function RatingModal({
 
     setSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user?.id) {
+        toast.error('You must be logged in to submit a rating');
+        return;
+      }
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
+      console.log('Submitting with user:', user);
 
       if (type === 'product') {
         // Submit product review
@@ -96,7 +98,7 @@ export default function RatingModal({
           .insert({
             product_id: targetId,
             user_id: user.id,
-            organization_id: userData?.organization_id,
+            organization_id: user.organizationId,
             rating: overallRating,
             title: reviewTitle,
             review_text: reviewText,
@@ -105,22 +107,43 @@ export default function RatingModal({
 
         if (error) throw error;
       } else {
-        // Submit public rating for user/organization
+        // Submit public rating for user/organization/deal
         const ratingData: any = {
           rater_id: user.id,
-          rater_organization_id: userData?.organization_id,
+          rater_organization_id: user.organizationId,
           rating: overallRating,
           review_title: reviewTitle,
           review_text: reviewText,
           rating_categories: categoryRatings,
-          deal_id: dealId,
         };
 
+        // Add deal_id if provided
+        if (dealId) {
+          ratingData.deal_id = dealId;
+        }
+
+        // Determine rated user and organization based on type
         if (type === 'user') {
           ratingData.rated_user_id = targetId;
         } else if (type === 'organization') {
           ratingData.rated_organization_id = targetId;
+        } else if (type === 'deal' && ratedUserId) {
+          // For deal ratings, rate the distributor user
+          ratingData.rated_user_id = ratedUserId;
+          
+          // Fetch rated user's organization
+          const { data: ratedUserData } = await supabase
+            .from('users')
+            .select('organization_id')
+            .eq('id', ratedUserId)
+            .single();
+          
+          if (ratedUserData?.organization_id) {
+            ratingData.rated_organization_id = ratedUserData.organization_id;
+          }
         }
+
+        console.log('Submitting public rating:', ratingData);
 
         const { error } = await supabase
           .from('public_ratings')

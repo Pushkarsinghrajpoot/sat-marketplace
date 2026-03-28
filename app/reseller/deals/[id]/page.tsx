@@ -6,19 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Award, X, Star, DollarSign, Calendar, Building, Users, Plus, Lock, CheckCircle, Upload, MessageCircle, FileSpreadsheet } from 'lucide-react';
+import { Award, X, DollarSign, Calendar, Building, Users, Plus, Lock, CheckCircle, Upload, MessageCircle, FileSpreadsheet } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { updateDeal, getQuotes, getDistributors } from '@/lib/data-helpers';
 import { convertDealToBidding, convertDealToDirectQuery } from '@/lib/deal-conversion';
-import { createRating } from '@/lib/rating-helpers';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import MeetingActivityList from '@/components/meetings/MeetingActivityList';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { mapDeal } from '@/lib/data-mappers';
 import Link from 'next/link';
 import RatingButton from '@/components/ratings/RatingButton';
+import RatingModal from '@/components/ratings/RatingModal';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -26,8 +26,8 @@ export default function DealDetailPage() {
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [closeStatus, setCloseStatus] = useState<'WON' | 'LOST'>('WON');
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [rating, setRating] = useState(5);
-  const [ratingComment, setRatingComment] = useState('');
+  const [ratingDistributorId, setRatingDistributorId] = useState<string>('');
+  const [ratingDistributorName, setRatingDistributorName] = useState<string>('');
   const [wonAmount, setWonAmount] = useState('');
   const [closeReason, setCloseReason] = useState('');
 
@@ -215,7 +215,20 @@ export default function DealDetailPage() {
       setShowCloseModal(false);
       
       if (closeStatus === 'WON') {
-        setTimeout(() => setShowRatingModal(true), 500);
+        // Fetch distributor info for rating
+        const { data: distData } = await supabase
+          .from('users')
+          .select('id, name')
+          .eq('id', deal.distributorId)
+          .single();
+        
+        if (distData) {
+          setRatingDistributorId(distData.id);
+          setRatingDistributorName(distData.name || 'Distributor');
+          setTimeout(() => setShowRatingModal(true), 500);
+        } else {
+          router.push('/reseller/deals');
+        }
       } else {
         router.push('/reseller/deals');
       }
@@ -225,72 +238,9 @@ export default function DealDetailPage() {
     }
   };
 
-  const handleSubmitRating = async () => {
-    console.log('=== DEAL RATING SUBMISSION ===');
-    console.log('user.id:', user?.id);
-    console.log('user.organizationId:', user?.organizationId);
-    console.log('deal.distributorId:', deal?.distributorId);
-    console.log('rating:', rating);
-    console.log('deal object:', deal);
-    
-    if (!user?.id || !user?.organizationId || !deal.distributorId || rating === 0) {
-      toast.error('Please provide a rating');
-      return;
-    }
-
-    try {
-      // Get distributor organization ID from deal
-      let distributorOrgId = deal.distributorOrganizationId;
-      
-      // If not in deal, fetch from distributor user
-      if (!distributorOrgId && deal.distributorId) {
-        const { data: distUser } = await supabase
-          .from('users')
-          .select('organization_id')
-          .eq('id', deal.distributorId)
-          .single();
-        
-        distributorOrgId = distUser?.organization_id;
-        console.log('Fetched distributor org from user:', distributorOrgId);
-      }
-
-      console.log('Submitting rating with:', {
-        dealId: deal.id,
-        raterId: user.id,
-        raterOrganizationId: user.organizationId,
-        ratedUserId: deal.distributorId,
-        ratedOrganizationId: distributorOrgId,
-        rating
-      });
-
-      const result = await createRating({
-        dealId: deal.id,
-        raterId: user.id,
-        raterOrganizationId: user.organizationId,
-        ratedUserId: deal.distributorId,
-        ratedOrganizationId: distributorOrgId || null as any,
-        rating,
-        reviewTitle: `Deal: ${deal.opportunityName}`,
-        reviewText: ratingComment,
-        ratingCategories: {
-          communication: rating,
-          pricing: rating,
-          delivery: rating,
-          quality: rating,
-        },
-      });
-
-      if (result.success) {
-        toast.success('Rating submitted successfully!');
-        setShowRatingModal(false);
-        router.push('/reseller/deals');
-      } else {
-        toast.error('Failed to submit rating');
-      }
-    } catch (error) {
-      console.error('Error submitting rating:', error);
-      toast.error('Failed to submit rating');
-    }
+  const handleRatingSuccess = () => {
+    setShowRatingModal(false);
+    router.push('/reseller/deals');
   };
 
 
@@ -775,61 +725,20 @@ export default function DealDetailPage() {
           </div>
         )}
 
-        {/* Rating Modal */}
-        {showRatingModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-2xl w-full">
-              <CardContent className="p-6">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold mb-2">Rate Your Experience</h2>
-                  <p className="text-gray-600">How was your experience with TechDist Global?</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-3">Rating *</label>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          onClick={() => setRating(star)}
-                          className="focus:outline-none"
-                        >
-                          <Star
-                            className={`h-10 w-10 ${
-                              star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Comments (Optional)</label>
-                    <Textarea
-                      value={ratingComment}
-                      onChange={(e) => setRatingComment(e.target.value)}
-                      rows={4}
-                      placeholder="Share your experience working with this distributor..."
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <Button onClick={handleSubmitRating} className="flex-1">
-                      Submit Rating
-                    </Button>
-                    <Button variant="outline" onClick={() => {
-                      setShowRatingModal(false);
-                      router.push('/reseller/deals');
-                    }}>
-                      Skip
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Rating Modal - Unified Component */}
+        {showRatingModal && ratingDistributorId && (
+          <RatingModal
+            type="deal"
+            targetId={deal.id}
+            targetName={ratingDistributorName}
+            dealId={deal.id}
+            ratedUserId={ratingDistributorId}
+            onClose={() => {
+              setShowRatingModal(false);
+              router.push('/reseller/deals');
+            }}
+            onSuccess={handleRatingSuccess}
+          />
         )}
 
         {/* Convert to Bidding Modal */}
