@@ -46,6 +46,8 @@ export const DEFAULT_TEAM_ROLE_PERMISSIONS: Record<TeamRole, Permission[]> = {
     { module: 'analytics', action: 'view' },
     // Ratings
     { module: 'ratings', action: 'view' },
+    // Credit
+    { module: 'credit', action: 'view' },
   ],
   SALES: [
     // Deals & Quotes
@@ -63,6 +65,8 @@ export const DEFAULT_TEAM_ROLE_PERMISSIONS: Record<TeamRole, Permission[]> = {
     // Queries
     { module: 'queries', action: 'view' },
     { module: 'queries', action: 'create' },
+    // Credit
+    { module: 'credit', action: 'view' },
   ],
   SUPPORT: [
     // Messages & Inquiries (full access)
@@ -113,6 +117,12 @@ export const RESELLER_ROUTES: RoutePermission[] = [
     label: 'Direct Queries', 
     icon: 'MessageSquare',
     requiredPermissions: [{ module: 'queries', action: 'view' }]
+  },
+  { 
+    path: '/reseller/credit', 
+    label: 'Credit', 
+    icon: 'CreditCard',
+    requiredPermissions: [{ module: 'credit', action: 'view' }]
   },
   { 
     path: '/reseller/products', 
@@ -184,6 +194,12 @@ export const DISTRIBUTOR_ROUTES: RoutePermission[] = [
     label: 'Queries', 
     icon: 'MessageSquare',
     requiredPermissions: [{ module: 'queries', action: 'view' }]
+  },
+  { 
+    path: '/distributor/credit', 
+    label: 'Credit', 
+    icon: 'CreditCard',
+    requiredPermissions: [{ module: 'credit', action: 'view' }]
   },
   { 
     path: '/distributor/inquiries', 

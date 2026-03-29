@@ -18,7 +18,8 @@ import {
   PlusCircle,
   HelpCircle,
   Megaphone,
-  LogOut
+  LogOut,
+  CreditCard
 } from 'lucide-react';
 
 const iconMap: Record<string, any> = {
@@ -36,7 +37,8 @@ const iconMap: Record<string, any> = {
   PlusCircle,
   HelpCircle,
   Megaphone,
-  LogOut
+  LogOut,
+  CreditCard
 };
 
 export default function DynamicSidebar() {

@@ -36,7 +36,7 @@ export default function CreditRequestsPage() {
           credit_request_documents(*),
           organizations:distributor_id(id, name, logo)
         `)
-        .eq('reseller_organization_id', user.organizationId)
+        .eq('reseller_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -59,7 +59,7 @@ export default function CreditRequestsPage() {
           *,
           organizations:distributor_id(id, name, logo)
         `)
-        .eq('reseller_organization_id', user.organizationId)
+        .eq('reseller_id', user.id)
         .eq('status', 'APPROVED')
         .order('created_at', { ascending: false })
         .limit(1)
