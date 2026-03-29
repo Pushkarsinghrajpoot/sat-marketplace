@@ -162,13 +162,9 @@ export default function DealDetailPage() {
         .insert({
           deal_id: params.id,
           reseller_id: user.id,
-          reseller_organization_id: user.organizationId,
-          title: boqTitle,
-          description: boqDescription,
           file_url: publicUrl,
           file_name: boqFile.name,
           visibility: 'BIDDING',
-          status: 'PENDING',
         });
 
       if (boqError) throw boqError;
