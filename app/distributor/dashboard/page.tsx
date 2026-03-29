@@ -9,6 +9,7 @@ import { Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock, Searc
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries, getQuotes, getBOQs } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { supabase } from '@/lib/supabase';
 
 export default function DistributorDashboard() {
   const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries' | 'quotes' | 'boqs'>('registrations');
@@ -60,8 +61,15 @@ export default function DistributorDashboard() {
           .filter((q: any) => q.status === 'WON')
           .reduce((sum, q) => sum + (q.total || 0), 0);
         
+        // Fetch product count
+        const { count: productCount } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('organization_id', user.organizationId)
+          .in('status', ['ACTIVE', 'DRAFT']);
+        
         setStats({
-          totalProducts: 0,
+          totalProducts: productCount || 0,
           activeQuotes: activeQuotes.length,
           monthlyRevenue,
           activeCustomers: new Set(deals.map((d: any) => d.resellerId)).size,

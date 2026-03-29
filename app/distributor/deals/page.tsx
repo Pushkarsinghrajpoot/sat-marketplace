@@ -5,83 +5,127 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, Calendar, DollarSign, FileText, Building } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, Calendar, DollarSign, FileText, Building, Lock, Gavel, MessageSquare, FileCheck } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
-import { supabase } from '@/lib/supabase';
+import { getDeals } from '@/lib/data-helpers';
 
 export default function DistributorDealsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [engagedDeals, setEngagedDeals] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('all');
+  const [allDeals, setAllDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, organization } = useSimpleAuth();
 
   useEffect(() => {
-    async function fetchEngagedDeals() {
-      if (!organization?.id) {
+    async function fetchAllDeals() {
+      if (!user?.organizationId) {
         setLoading(false);
         return;
       }
 
       try {
-        const { data, error } = await supabase
-          .from('deal_engaged_distributors')
-          .select(`
-            *,
-            deals (
-              id,
-              opportunity_name,
-              customer_name,
-              customer_company,
-              estimated_value,
-              close_date,
-              status,
-              deal_type,
-              created_at
-            )
-          `)
-          .eq('distributor_id', organization.id)
-          .order('engaged_at', { ascending: false });
+        const deals = await getDeals({ 
+          userRole: 'DISTRIBUTOR',
+          distributorId: user.organizationId 
+        });
 
-        if (error) throw error;
-
-        const dealsData = (data || [])
-          .filter(item => item.deals)
-          .map(item => ({
-            id: item.deals.id,
-            opportunityName: item.deals.opportunity_name,
-            customerName: item.deals.customer_name,
-            customerCompany: item.deals.customer_company,
-            estimatedValue: item.deals.estimated_value,
-            closeDate: item.deals.close_date,
-            status: item.deals.status,
-            dealType: item.deals.deal_type,
-            engagedAt: item.engaged_at,
-            createdAt: item.deals.created_at,
-          }));
-
-        setEngagedDeals(dealsData);
+        setAllDeals(deals);
       } catch (error) {
-        console.error('Error fetching engaged deals:', error);
+        console.error('Error fetching deals:', error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchEngagedDeals();
-  }, [organization?.id]);
+    fetchAllDeals();
+  }, [user?.organizationId]);
 
-  const filteredDeals = engagedDeals.filter(deal =>
+  const filteredDeals = allDeals.filter(deal =>
     deal.opportunityName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     deal.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     deal.customerCompany?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Group by deal type first
+  const dealsByType = {
+    DEAL_REGISTRATION: filteredDeals.filter(d => d.dealType === 'DEAL_REGISTRATION'),
+    BIDDING: filteredDeals.filter(d => d.dealType === 'BIDDING'),
+    DIRECT_QUERY: filteredDeals.filter(d => d.dealType === 'DIRECT_QUERY'),
+  };
+
+  // Get active tab deals
+  const currentDeals = activeTab === 'all' ? filteredDeals : dealsByType[activeTab as keyof typeof dealsByType] || [];
+
+  // Group current deals by status
   const dealsByStatus = {
-    active: filteredDeals.filter(d => d.status === 'ACTIVE'),
-    quoted: filteredDeals.filter(d => d.status === 'QUOTED'),
-    won: filteredDeals.filter(d => d.status === 'WON'),
-    lost: filteredDeals.filter(d => d.status === 'LOST'),
+    active: currentDeals.filter(d => d.status === 'ACTIVE' || d.status === 'REGISTERED'),
+    quoted: currentDeals.filter(d => d.status === 'QUOTED'),
+    won: currentDeals.filter(d => d.status === 'WON'),
+    lost: currentDeals.filter(d => d.status === 'LOST'),
+  };
+
+  const tabs = [
+    { id: 'all', label: 'All Deals', count: filteredDeals.length, icon: FileCheck },
+    { id: 'DEAL_REGISTRATION', label: 'Deal Registrations', count: dealsByType.DEAL_REGISTRATION.length, icon: Lock },
+    { id: 'BIDDING', label: 'Bidding Deals', count: dealsByType.BIDDING.length, icon: Gavel },
+    { id: 'DIRECT_QUERY', label: 'Direct Queries', count: dealsByType.DIRECT_QUERY.length, icon: MessageSquare },
+  ];
+
+  const renderDealCard = (deal: any) => {
+    const cardBgClass = 
+      deal.status === 'QUOTED' ? 'bg-amber-50 border-amber-200' :
+      deal.status === 'WON' ? 'bg-green-50 border-green-200' :
+      deal.status === 'LOST' ? 'bg-red-50 border-red-200' :
+      '';
+
+    return (
+      <Link key={deal.id} href={`/distributor/deals/${deal.id}`}>
+        <Card className={`hover:shadow-md transition-shadow cursor-pointer ${cardBgClass}`}>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="font-medium text-sm text-gray-900 line-clamp-2 flex-1">
+                {deal.opportunityName}
+              </h3>
+              {deal.isLocked && <Lock className="h-3 w-3 text-blue-600 ml-2 flex-shrink-0" />}
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Building className="h-3 w-3 text-gray-400" />
+              <p className="text-xs text-gray-600 truncate">
+                {deal.customerCompany || deal.customerName}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs">
+                <DollarSign className="h-3 w-3 text-gray-400" />
+                <span className="font-semibold text-gray-900">
+                  {formatCurrency(Number(deal.estimatedValue) || 0)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <Calendar className="h-3 w-3" />
+                <span>{deal.closeDate || 'No date'}</span>
+              </div>
+              <div className="flex gap-2">
+                <Badge variant="default" className="text-xs">
+                  {deal.dealType?.replace('_', ' ')}
+                </Badge>
+                {deal.status === 'QUOTED' && (
+                  <Badge variant="warning" className="text-xs">Quoted</Badge>
+                )}
+                {deal.status === 'WON' && (
+                  <Badge variant="success" className="text-xs">Won</Badge>
+                )}
+                {deal.status === 'LOST' && (
+                  <Badge variant="error" className="text-xs">Lost</Badge>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
   };
 
   if (loading) {
@@ -101,8 +145,8 @@ export default function DistributorDealsPage() {
         <p className="text-sm text-gray-600">Deals where you've been invited to participate</p>
       </div>
 
-      <div className="mb-6">
-        <div className="relative max-w-md">
+      <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="search"
@@ -112,48 +156,35 @@ export default function DistributorDealsPage() {
             className="pl-10"
           />
         </div>
+        <div className="flex gap-2 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <Button
+                key={tab.id}
+                variant={activeTab === tab.id ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab(tab.id)}
+                className="whitespace-nowrap"
+              >
+                <Icon className="h-4 w-4 mr-2" />
+                {tab.label}
+                <Badge variant="default" className="ml-2">{tab.count}</Badge>
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-6">
-        {/* Active Deals */}
+        {/* Active/Open Deals */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-medium text-sm text-gray-900">Active</h2>
+            <h2 className="font-medium text-sm text-gray-900">Active/Open</h2>
             <Badge variant="default">{dealsByStatus.active.length}</Badge>
           </div>
           <div className="space-y-3">
-            {dealsByStatus.active.map((deal) => (
-              <Link key={deal.id} href={`/distributor/deals/${deal.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <h3 className="font-medium text-sm text-gray-900 mb-2 line-clamp-2">
-                      {deal.opportunityName}
-                    </h3>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Building className="h-3 w-3 text-gray-400" />
-                      <p className="text-xs text-gray-600 truncate">
-                        {deal.customerCompany || deal.customerName}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-semibold text-gray-900">
-                          {formatCurrency(Number(deal.estimatedValue) || 0)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <Calendar className="h-3 w-3" />
-                        <span>{deal.closeDate || 'No date'}</span>
-                      </div>
-                      <Badge variant="info" className="text-xs">
-                        {deal.dealType?.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+            {dealsByStatus.active.map(renderDealCard)}
             {dealsByStatus.active.length === 0 && (
               <p className="text-xs text-gray-400 text-center py-4">No active deals</p>
             )}
@@ -167,35 +198,7 @@ export default function DistributorDealsPage() {
             <Badge variant="warning">{dealsByStatus.quoted.length}</Badge>
           </div>
           <div className="space-y-3">
-            {dealsByStatus.quoted.map((deal) => (
-              <Link key={deal.id} href={`/distributor/deals/${deal.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer bg-amber-50 border-amber-200">
-                  <CardContent className="p-4">
-                    <h3 className="font-medium text-sm text-gray-900 mb-2 line-clamp-2">
-                      {deal.opportunityName}
-                    </h3>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Building className="h-3 w-3 text-gray-400" />
-                      <p className="text-xs text-gray-600 truncate">
-                        {deal.customerCompany || deal.customerName}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-semibold text-gray-900">
-                          {formatCurrency(Number(deal.estimatedValue) || 0)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <FileText className="h-3 w-3 text-amber-600" />
-                        <span className="text-amber-600 font-medium">Quote submitted</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+            {dealsByStatus.quoted.map(renderDealCard)}
             {dealsByStatus.quoted.length === 0 && (
               <p className="text-xs text-gray-400 text-center py-4">No quoted deals</p>
             )}
@@ -209,34 +212,7 @@ export default function DistributorDealsPage() {
             <Badge variant="success">{dealsByStatus.won.length}</Badge>
           </div>
           <div className="space-y-3">
-            {dealsByStatus.won.map((deal) => (
-              <Link key={deal.id} href={`/distributor/deals/${deal.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer bg-green-50 border-green-200">
-                  <CardContent className="p-4">
-                    <h3 className="font-medium text-sm text-gray-900 mb-2 line-clamp-2">
-                      {deal.opportunityName}
-                    </h3>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Building className="h-3 w-3 text-gray-400" />
-                      <p className="text-xs text-gray-600 truncate">
-                        {deal.customerCompany || deal.customerName}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-semibold text-gray-900">
-                          {formatCurrency(Number(deal.estimatedValue) || 0)}
-                        </span>
-                      </div>
-                      <Badge variant="success" className="text-xs">
-                        WON
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+            {dealsByStatus.won.map(renderDealCard)}
             {dealsByStatus.won.length === 0 && (
               <p className="text-xs text-gray-400 text-center py-4">No won deals</p>
             )}
@@ -246,38 +222,11 @@ export default function DistributorDealsPage() {
         {/* Lost Deals */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-medium text-sm text-gray-900">Lost</h2>
+            <h2 className="font-medium text-sm text-gray-900">Lost/Closed</h2>
             <Badge variant="error">{dealsByStatus.lost.length}</Badge>
           </div>
           <div className="space-y-3">
-            {dealsByStatus.lost.map((deal) => (
-              <Link key={deal.id} href={`/distributor/deals/${deal.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer bg-red-50 border-red-200">
-                  <CardContent className="p-4">
-                    <h3 className="font-medium text-sm text-gray-900 mb-2 line-clamp-2">
-                      {deal.opportunityName}
-                    </h3>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Building className="h-3 w-3 text-gray-400" />
-                      <p className="text-xs text-gray-600 truncate">
-                        {deal.customerCompany || deal.customerName}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <DollarSign className="h-3 w-3 text-gray-400" />
-                        <span className="font-semibold text-gray-900">
-                          {formatCurrency(Number(deal.estimatedValue) || 0)}
-                        </span>
-                      </div>
-                      <Badge variant="error" className="text-xs">
-                        LOST
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+            {dealsByStatus.lost.map(renderDealCard)}
             {dealsByStatus.lost.length === 0 && (
               <p className="text-xs text-gray-400 text-center py-4">No lost deals</p>
             )}
@@ -285,10 +234,15 @@ export default function DistributorDealsPage() {
         </div>
       </div>
 
-      {filteredDeals.length === 0 && !loading && (
-        <Card className="mt-8">
+      {currentDeals.length === 0 && !loading && (
+        <Card className="mt-8 col-span-4">
           <CardContent className="p-12 text-center">
-            <p className="text-gray-500">No engaged deals found</p>
+            <p className="text-gray-500">
+              {activeTab === 'all' 
+                ? 'No engaged deals found'
+                : `No ${tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found`
+              }
+            </p>
             <p className="text-sm text-gray-400 mt-2">
               You'll see deals here when resellers invite you to participate
             </p>
