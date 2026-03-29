@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Building2, User, Calendar, DollarSign, Lock, FileText, TrendingUp, CheckCircle, XCircle, Clock, Video, Users, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Building2, User, Calendar, DollarSign, Lock, FileText, TrendingUp, CheckCircle, XCircle, Clock, Video, Users, MessageCircle, Star, X } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
@@ -57,10 +57,19 @@ export default function DistributorDealDetailPage() {
   const [notes, setNotes] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [existingRating, setExistingRating] = useState<any>(null);
+  const [loadingRating, setLoadingRating] = useState(false);
+  const [showRatingDetails, setShowRatingDetails] = useState(false);
 
   useEffect(() => {
     fetchDealDetails();
   }, [dealId]);
+
+  useEffect(() => {
+    if (user?.id && deal?.status === 'WON') {
+      checkExistingRating();
+    }
+  }, [user?.id, deal?.status]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -171,6 +180,29 @@ export default function DistributorDealDetailPage() {
   const totalScore = activities
     .filter(a => a.status === 'ACKNOWLEDGED')
     .reduce((sum, a) => sum + (a.points || 0), 0);
+
+  const checkExistingRating = async () => {
+    if (!user?.id || !dealId) return;
+    
+    setLoadingRating(true);
+    try {
+      const { data, error } = await supabase
+        .from('public_ratings')
+        .select('*')
+        .eq('deal_id', dealId)
+        .eq('rater_id', user.id)
+        .single();
+
+      if (data && !error) {
+        setExistingRating(data);
+        console.log('Found existing rating:', data);
+      }
+    } catch (error) {
+      console.log('No existing rating found');
+    } finally {
+      setLoadingRating(false);
+    }
+  };
 
   const checkDealAccess = async (deal: any, distributorOrgId: string) => {
     // Allow access if:
@@ -419,14 +451,27 @@ export default function DistributorDealDetailPage() {
                   Submit Quote
                 </Button>
               </Link>
-              {deal.status === 'WON' && deal.reseller_id && (
-                <RatingButton
-                  type="organization"
-                  targetId={deal.users?.organizations?.id || deal.reseller_id}
-                  targetName={deal.users?.organizations?.name || deal.users?.name || 'Reseller'}
-                  dealId={deal.id}
-                  variant="outline"
-                />
+              {deal.status === 'WON' && deal.reseller_organization_id && (
+                existingRating ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowRatingDetails(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <span className="font-semibold">{existingRating.rating}.0</span>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </Button>
+                ) : (
+                  <RatingButton
+                    type="organization"
+                    targetId={deal.users?.organizations?.id || deal.reseller_organization_id}
+                    targetName={deal.users?.organizations?.name || 'Reseller Organization'}
+                    dealId={deal.id}
+                    variant="outline"
+                    onRatingSubmitted={checkExistingRating}
+                  />
+                )
               )}
             </div>
           </CardContent>
@@ -892,6 +937,89 @@ export default function DistributorDealDetailPage() {
             </Card>
           </div>
         </div>
+
+        {/* Rating Details Modal */}
+        {showRatingDetails && existingRating && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+              <button
+                onClick={() => setShowRatingDetails(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Your Rating</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Overall Rating</p>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-6 w-6 ${
+                          star <= existingRating.rating
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                    <span className="text-2xl font-bold ml-2">{existingRating.rating}.0</span>
+                  </div>
+                </div>
+
+                {existingRating.review_title && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Title</p>
+                    <p className="font-medium text-gray-900">{existingRating.review_title}</p>
+                  </div>
+                )}
+
+                {existingRating.review_text && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Review</p>
+                    <p className="text-gray-700">{existingRating.review_text}</p>
+                  </div>
+                )}
+
+                {existingRating.rating_categories && Object.keys(existingRating.rating_categories).length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">Category Ratings</p>
+                    <div className="space-y-2">
+                      {Object.entries(existingRating.rating_categories).map(([key, value]: [string, any]) => (
+                        <div key={key} className="flex items-center justify-between">
+                          <span className="text-sm capitalize">{key.replace('_', ' ')}</span>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-4 w-4 ${
+                                  star <= value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                            <span className="text-sm font-medium ml-1">{value}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="border-t pt-4">
+                  <p className="text-xs text-gray-500">
+                    Submitted on {new Date(existingRating.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
