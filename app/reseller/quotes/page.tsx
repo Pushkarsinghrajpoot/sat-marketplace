@@ -48,7 +48,7 @@ export default function ResellerQuotesPage() {
             logo
           )
         `)
-        .eq('reseller_organization_id', user?.organizationId)
+        .eq('reseller_id', user?.id)
         .order('created_at', { ascending: false });
 
       // Apply status filter only for quote-related filters
@@ -94,7 +94,7 @@ export default function ResellerQuotesPage() {
             )
           )
         `)
-        .eq('reseller_organization_id', user?.organizationId)
+        .eq('reseller_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

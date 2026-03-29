@@ -64,11 +64,9 @@ export default function DealDetailPage() {
         const mappedDeal = mapDeal(data);
         setDeal(mappedDeal);
 
-        // Fetch quotes count for bidding deals
-        if (mappedDeal.dealType === 'BIDDING') {
-          const quotes = await getQuotes({ dealId: params.id as string });
-          setQuotesCount(quotes.length);
-        }
+        // Fetch quotes count for all deals
+        const quotes = await getQuotes({ dealId: params.id as string });
+        setQuotesCount(quotes.length);
 
         // Fetch deal products
         const { data: productsData } = await supabase
@@ -503,7 +501,7 @@ export default function DealDetailPage() {
                 </Button>
               </>
             )}
-            {deal.dealType === 'BIDDING' && (
+            {(deal.dealType === 'BIDDING' || deal.dealType === 'DEAL_REGISTRATION') && quotesCount > 0 && (
               <Link href={`/reseller/deals/${deal.id}/quotes`}>
                 <Button variant="outline">
                   View Quotes ({quotesCount})
