@@ -71,14 +71,15 @@ export async function POST(request: NextRequest) {
         rating: 0,
         review_count: 0,
       };
-      if (org_website) orgPayload.website = org_website;
-      if (org_country) orgPayload.country = org_country;
-      if (org_city) orgPayload.city = org_city;
-      if (org_state) orgPayload.state = org_state;
-      if (org_postal_code) orgPayload.postal_code = org_postal_code;
-      if (org_phone) orgPayload.phone = org_phone;
-      if (org_support_email) orgPayload.support_email = org_support_email;
-      if (org_sales_email) orgPayload.sales_email = org_sales_email;
+      // Optional fields — use correct schema column names
+      if (org_website)       orgPayload.website               = org_website;
+      if (org_country)       orgPayload.address_country       = org_country;
+      if (org_city)          orgPayload.address_city          = org_city;
+      if (org_state)         orgPayload.address_state         = org_state;
+      if (org_postal_code)   orgPayload.address_postal_code   = org_postal_code;
+      if (org_phone)         orgPayload.contact_phone         = org_phone;
+      if (org_support_email) orgPayload.contact_support_email = org_support_email;
+      if (org_sales_email)   orgPayload.contact_sales_email   = org_sales_email;
 
       const { data: createdOrg, error: orgError } = await supabaseAdmin
         .from('organizations')

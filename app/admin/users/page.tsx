@@ -6,8 +6,7 @@ import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 import {
   Users, Plus, X, Eye, EyeOff, Building2, User, Store,
-  Search, ChevronDown, CheckCircle, Loader2, Mail, Phone,
-  Globe, MapPin, Calendar, Briefcase,
+  Search, CheckCircle, Loader2, Mail, Phone, Calendar, Globe, MapPin,
 } from 'lucide-react';
 
 type UserRole = 'RESELLER' | 'DISTRIBUTOR' | 'END_USER';
@@ -435,6 +434,7 @@ export default function AdminUsersPage() {
                           className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#4648D4]" />
                       </div>
                     </div>
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Website</label>
                       <div className="relative">
@@ -453,7 +453,7 @@ export default function AdminUsersPage() {
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#4648D4] resize-none" />
                     </div>
 
-                    {/* Address */}
+                    {/* Address (stored as address_country, address_city, etc.) */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
                       <select value={form.org_country} onChange={e => set('org_country', e.target.value)}
@@ -483,7 +483,7 @@ export default function AdminUsersPage() {
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#4648D4]" />
                     </div>
 
-                    {/* Contact */}
+                    {/* Contact (stored as contact_phone, contact_support_email, etc.) */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Org Phone</label>
                       <div className="relative">
