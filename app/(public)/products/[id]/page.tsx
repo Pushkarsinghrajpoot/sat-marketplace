@@ -50,7 +50,7 @@ export default function ProductDetailPage() {
           .select('*')
           .eq('id', productData.organization_id)
           .single();
-        
+
         if (orgData) {
           setOrganization(orgData);
         }
@@ -67,7 +67,7 @@ export default function ProductDetailPage() {
         const relatedData = await getEnhancedProducts({
           categoryId: productData.category_id
         });
-        
+
         // Filter out current product and limit to 4
         const filtered = relatedData.filter((p: any) => p.id !== productData.id).slice(0, 4);
         setRelatedProducts(filtered);
@@ -97,7 +97,7 @@ export default function ProductDetailPage() {
 
   const checkExistingRating = async (productId: string) => {
     if (!user?.id) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('product_reviews')
@@ -150,8 +150,8 @@ export default function ProductDetailPage() {
         <div>
           {product.product_images && product.product_images.length > 0 ? (
             <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4">
-              <img 
-                src={product.product_images[0].url} 
+              <img
+                src={product.product_images[0].url}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -166,12 +166,12 @@ export default function ProductDetailPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
           <p className="text-gray-600 mb-4">SKU: {product.sku}</p>
-          
+
           <div className="flex items-center gap-4 mb-4">
-            <StarRating 
-              rating={productRatings.average} 
-              readonly 
-              showCount 
+            <StarRating
+              rating={productRatings.average}
+              readonly
+              showCount
               count={productRatings.count}
             />
             {user && (
@@ -231,7 +231,7 @@ export default function ProductDetailPage() {
               {formatCurrency(currentPrice)}
               <span className="text-lg font-normal text-gray-500">/unit</span>
             </div>
-            
+
             {product.min_order_quantity && product.min_order_quantity > 1 && (
               <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="p-4">
@@ -281,9 +281,9 @@ export default function ProductDetailPage() {
             <Link href={`/reseller/deals/register?product=${product.id}`} className="block">
               <Button size="lg" variant="secondary" className="w-full">Start Deal Registration</Button>
             </Link>
-            <Button 
-              size="lg" 
-              variant="outline" 
+            <Button
+              size="lg"
+              variant="outline"
               className="w-full"
               onClick={() => setShowChat(true)}
             >
@@ -326,11 +326,10 @@ export default function ProductDetailPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-4 px-1 border-b-2 font-medium transition-colors ${
-                  activeTab === tab
+                className={`pb-4 px-1 border-b-2 font-medium transition-colors ${activeTab === tab
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
@@ -445,7 +444,7 @@ export default function ProductDetailPage() {
           onClose={() => setShowQuoteModal(false)}
         />
       )}
-      
+
       {showChat && user && (
         <ProductChatModal
           productId={product.id}

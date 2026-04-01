@@ -1,128 +1,107 @@
 import Link from 'next/link';
-import { Facebook, Twitter, Linkedin, Mail, Phone } from 'lucide-react';
+import { Zap, Globe, Mail, Share2 } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-white font-semibold text-lg mb-4">Company</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/about" className="hover:text-white transition">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/careers" className="hover:text-white transition">
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="hover:text-white transition">
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link href="/press" className="hover:text-white transition">
-                  Press
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-semibold text-lg mb-4">Resources</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/help" className="hover:text-white transition">
-                  Help Center
-                </Link>
-              </li>
-              <li>
-                <Link href="/api" className="hover:text-white transition">
-                  API Docs
-                </Link>
-              </li>
-              <li>
-                <Link href="/partner-program" className="hover:text-white transition">
-                  Partner Program
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="hover:text-white transition">
-                  Terms of Service
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-semibold text-lg mb-4">Categories</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/categories/networking" className="hover:text-white transition">
-                  Networking
-                </Link>
-              </li>
-              <li>
-                <Link href="/categories/cloud" className="hover:text-white transition">
-                  Cloud Services
-                </Link>
-              </li>
-              <li>
-                <Link href="/categories/security" className="hover:text-white transition">
-                  Cybersecurity
-                </Link>
-              </li>
-              <li>
-                <Link href="/categories/storage" className="hover:text-white transition">
-                  Storage
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-semibold text-lg mb-4">Contact</h3>
-            <ul className="space-y-2">
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                <a href="mailto:support@marketplace.satmz.com" className="hover:text-white transition">
-                  support@marketplace.satmz.com
+    <footer style={{ background: '#161B2B' }} className="text-white w-full pt-20 pb-10 text-sm leading-relaxed">
+      <div className="max-w-7xl mx-auto px-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+          {/* Brand Column */}
+          <div className="col-span-1">
+            <Link href="/" className="flex items-center gap-2 mb-6">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #4648D4, #6063EE)' }}>
+                <Zap className="w-4 h-4 text-white" fill="white" />
+              </div>
+              <span className="text-xl font-black tracking-tight text-white">NexTrade <span style={{ color: '#818CF8' }}>Pro</span></span>
+            </Link>
+            <p className="text-[#64748B] mb-8 max-w-xs leading-relaxed">
+              The world's leading curated digital marketplace for premium B2B technology procurement.
+            </p>
+            <div className="flex gap-3">
+              {[
+                { icon: Globe, href: '#' },
+                { icon: Mail, href: 'mailto:support@marketplace.satmz.com' },
+                { icon: Share2, href: '#' },
+              ].map(({ icon: Icon, href }, i) => (
+                <a key={i} href={href}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:border-[#4648D4] hover:bg-[#4648D4]"
+                  style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <Icon className="h-4 w-4 text-[#94A3B8]" />
                 </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <a href="tel:+1-800-555-0100" className="hover:text-white transition">
-                  +1-800-555-0100
-                </a>
-              </li>
-            </ul>
-            <div className="flex gap-4 mt-4">
-              <a href="https://facebook.com/b2bmarketplace" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="https://twitter.com/b2bmarketplace" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="https://linkedin.com/company/b2bmarketplace" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
-                <Linkedin className="h-5 w-5" />
-              </a>
+              ))}
             </div>
+          </div>
+
+          {/* Solutions */}
+          <div>
+            <h4 className="text-white font-bold mb-6 text-[15px]">Solutions</h4>
+            <ul className="space-y-4">
+              {[
+                { label: 'Enterprise Networking', href: '/categories' },
+                { label: 'Cloud Infrastructure', href: '/categories' },
+                { label: 'Managed Security', href: '/categories' },
+                { label: 'Hardware Lifecycle', href: '/categories' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href}
+                    className="text-[#64748B] hover:text-[#818CF8] transition-all hover:translate-x-1 inline-block">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Platform */}
+          <div>
+            <h4 className="text-white font-bold mb-6 text-[15px]">Platform</h4>
+            <ul className="space-y-4">
+              {[
+                { label: 'Deal Registration', href: '/how-it-works' },
+                { label: 'Distributor Portal', href: '/distributors' },
+                { label: 'Partner Program', href: '/partner-program' },
+                { label: 'How It Works', href: '/how-it-works' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href}
+                    className="text-[#64748B] hover:text-[#818CF8] transition-all hover:translate-x-1 inline-block">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div>
+            <h4 className="text-white font-bold mb-6 text-[15px]">Resources</h4>
+            <ul className="space-y-4">
+              {[
+                { label: 'Help Center', href: '/help' },
+                { label: 'API Documentation', href: '/api' },
+                { label: 'Success Stories', href: '/blog' },
+                { label: 'Contact Support', href: 'mailto:support@marketplace.satmz.com' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href}
+                    className="text-[#64748B] hover:text-[#818CF8] transition-all hover:translate-x-1 inline-block">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm">© 2024 B2B Marketplace. All rights reserved.</p>
-          <div className="flex gap-6 mt-4 md:mt-0">
-            <Link href="/privacy" className="text-sm hover:text-white transition">
-              Privacy Policy
-            </Link>
-            <Link href="/cookies" className="text-sm hover:text-white transition">
-              Cookie Settings
-            </Link>
+        {/* Bottom Bar */}
+        <div className="border-t pt-10 flex flex-col md:flex-row justify-between items-center gap-6"
+          style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+          <p className="text-[#475569] text-xs">© 2024 NexTrade Pro. The Digital Curator for B2B Technology.</p>
+          <div className="flex gap-8 text-xs font-medium text-[#475569]">
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/cookies" className="hover:text-white transition-colors">Cookie Policy</Link>
           </div>
         </div>
       </div>

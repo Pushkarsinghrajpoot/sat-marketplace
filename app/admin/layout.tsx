@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Building, Settings as SettingsIcon, LogOut, Bell, Menu, X, Shield, Award } from 'lucide-react';
+import { LayoutDashboard, Building, Settings as SettingsIcon, LogOut, Bell, Menu, X, Shield, Award, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+  { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Organizations', href: '/admin/organizations', icon: Building },
   { name: 'Qualifications', href: '/admin/qualifications', icon: Shield },
   { name: 'Badges', href: '/admin/badges', icon: Award },

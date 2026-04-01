@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, HelpCircle, Target, Handshake, DollarSign, Star, Megaphone, Briefcase, UserCog, ChevronLeft, ChevronRight, ChevronDown, UserCircle, Building2 } from 'lucide-react';
+import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, HelpCircle, Target, Handshake, DollarSign, Star, Megaphone, Briefcase, UserCog, ChevronLeft, ChevronRight, ChevronDown, UserCircle, Building2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect, useMemo } from 'react';
@@ -95,123 +95,164 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
+    <div className="min-h-screen bg-[#F8FAFF]">
       <div className="flex h-screen overflow-hidden">
-        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 bg-[#0F172A] transition-all duration-300 lg:translate-x-0 lg:static lg:inset-0 ${
+        {/* ===== PREMIUM SIDEBAR ===== */}
+        <aside className={`${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } fixed inset-y-0 left-0 z-50 bg-[#0F172A] transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
           sidebarCollapsed ? 'lg:w-[72px]' : 'lg:w-[240px]'
-        } w-[240px]`}>
-          <div className="flex h-full flex-col">
-            <div className="flex h-16 items-center justify-between px-5 border-b border-[#1E293B]">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#1E293B] rounded-full flex items-center justify-center text-white text-sm font-semibold border border-[#334155]">
-                  {user?.name.charAt(0)}
-                </div>
-                <div className={`flex-1 min-w-0 transition-opacity ${sidebarCollapsed ? 'lg:opacity-0 lg:hidden' : ''}`}>
-                  <p className="text-[14px] font-medium text-white truncate">{user?.name}</p>
-                  <p className="text-[12px] text-[#64748B] uppercase">Admin</p>
+        } w-[240px] flex flex-col`}>
+          
+          {/* Sidebar Header / Logo */}
+          <div className="h-16 flex items-center justify-between px-4 border-b border-[#1E293B] flex-shrink-0">
+            <div className={`flex items-center gap-2.5 overflow-hidden ${sidebarCollapsed ? 'lg:justify-center' : ''}`}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #4648D4, #6063EE)' }}>
+                <Zap className="w-4 w-4 text-white" size={16} />
+              </div>
+              <div className={`transition-opacity duration-200 ${sidebarCollapsed ? 'lg:opacity-0 lg:w-0 lg:overflow-hidden' : ''}`}>
+                <span className="text-[15px] font-extrabold text-white tracking-tight">NexTrade</span>
+                <span className="text-[15px] font-extrabold tracking-tight" style={{ color: '#818CF8' }}> Pro</span>
+              </div>
+            </div>
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-[#94A3B8] hover:text-white transition-colors p-1">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* User Profile */}
+          <div className={`px-4 py-4 border-b border-[#1E293B] flex-shrink-0 ${sidebarCollapsed ? 'lg:px-2' : ''}`}>
+            <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'lg:justify-center' : ''}`}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0" style={{ background: 'linear-gradient(135deg, #4648D4, #6063EE)' }}>
+                {user?.name.charAt(0).toUpperCase()}
+              </div>
+              <div className={`min-w-0 flex-1 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
+                <p className="text-[13px] font-semibold text-white truncate">{user?.name}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-[#818CF8] bg-[rgba(129,140,248,0.15)]">
+                    {isTeamMember ? teamRole : 'DISTRIBUTOR'}
+                  </span>
                 </div>
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-[#94A3B8]">
-                <X className="h-5 w-5" />
-              </button>
             </div>
+          </div>
 
-            <div className="flex-1 overflow-y-auto px-3 py-6">
-              <nav className="space-y-1">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`flex items-center h-10 text-[14px] font-medium transition-colors relative ${
-                        sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'gap-3 px-3'
-                      } ${
-                        isActive
-                          ? 'bg-[#1E293B] text-white before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#6366F1]'
-                          : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-[#CBD5E1]'
-                      }`}
-                      title={sidebarCollapsed ? item.name : undefined}
-                    >
-                      <Icon className="h-[18px] w-[18px]" />
-                      <span className={`flex-1 transition-opacity ${sidebarCollapsed ? 'lg:hidden' : ''}`}>{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
+          {/* Navigation */}
+          <div className="flex-1 overflow-y-auto py-4 px-3">
+            <nav className="space-y-0.5">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    title={sidebarCollapsed ? item.name : undefined}
+                    className={`relative flex items-center rounded-lg text-[13.5px] font-medium transition-all duration-150 ${
+                      sidebarCollapsed ? 'lg:justify-center lg:px-0 lg:h-10 h-10 px-3 gap-3' : 'gap-3 px-3 h-10'
+                    } ${
+                      isActive
+                        ? 'bg-[#1E293B] text-white'
+                        : 'text-[#94A3B8] hover:bg-[rgba(30,41,59,0.7)] hover:text-[#CBD5E1]'
+                    }`}
+                  >
+                    {isActive && (
+                      <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-[#6366F1]" />
+                    )}
+                    <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                    <span className={`truncate ${sidebarCollapsed ? 'lg:hidden' : ''}`}>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
 
+          {/* Sidebar Footer */}
+          <div className="border-t border-[#1E293B] p-3 flex-shrink-0">
+            <button
+              onClick={handleLogout}
+              className={`w-full flex items-center rounded-lg text-[13.5px] font-medium text-[#94A3B8] hover:bg-[rgba(239,68,68,0.1)] hover:text-[#EF4444] transition-all duration-150 ${
+                sidebarCollapsed ? 'lg:justify-center lg:px-0 h-10 px-3 gap-3' : 'gap-3 px-3 h-10'
+              }`}
+              title={sidebarCollapsed ? 'Logout' : undefined}
+            >
+              <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
+              <span className={sidebarCollapsed ? 'lg:hidden' : ''}>Logout</span>
+            </button>
           </div>
         </aside>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-[60px] bg-white border-b border-[#E4E4E7] flex items-center justify-between px-8">
-            <div className="flex items-center gap-4">
-              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#71717A]">
+        {/* ===== MAIN CONTENT AREA ===== */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* Top Bar */}
+          <header className="h-[60px] bg-white border-b border-[rgba(199,198,205,0.3)] flex items-center justify-between px-6 gap-4 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-1.5 rounded-lg hover:bg-[#F2F3FF] text-[#76767D] transition-colors">
                 <Menu className="h-5 w-5" />
               </button>
-              <button 
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
-                className="hidden lg:flex items-center justify-center w-9 h-9 border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors text-[#71717A]"
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex items-center justify-center w-8 h-8 border border-[rgba(199,198,205,0.4)] rounded-lg hover:bg-[#F2F3FF] transition-colors text-[#76767D]"
                 title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                {sidebarCollapsed ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronLeft className="h-[18px] w-[18px]" />}
+                {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
               </button>
             </div>
+
             <div className="flex-1" />
-            <div className="flex items-center gap-4">
+
+            <div className="flex items-center gap-2">
               <NotificationBell />
+
+              {/* User Menu */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  className="flex items-center gap-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-[#F2F3FF] transition-colors"
                 >
-                  <div className="w-9 h-9 bg-[#6366F1] rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                    {user?.name.charAt(0)}
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-bold" style={{ background: 'linear-gradient(135deg, #4648D4, #6063EE)' }}>
+                    {user?.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-[14px] font-medium text-[#09090B]">{user?.name}</p>
-                    <p className="text-[12px] text-[#71717A]">{organization?.name || 'Organization'}</p>
+                    <p className="text-[13px] font-semibold text-[#161B2B] leading-none">{user?.name.split(' ')[0]}</p>
+                    <p className="text-[11px] text-[#76767D] mt-0.5">{organization?.name || 'Organization'}</p>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                  <ChevronDown className="h-3.5 w-3.5 text-[#76767D]" />
                 </button>
-                
+
                 {showUserDropdown && (
                   <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowUserDropdown(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">{user?.email}</p>
-                        {organization && (
-                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
-                            <Building2 className="h-4 w-4 text-gray-400" />
-                            <p className="text-xs font-medium text-gray-700">{organization.name}</p>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowUserDropdown(false)} />
+                    <div className="absolute right-0 top-full mt-2 w-[240px] bg-white rounded-2xl shadow-[0_20px_60px_rgba(22,27,43,0.15)] border border-[rgba(199,198,205,0.3)] overflow-hidden z-20">
+                      <div className="p-4 border-b border-[rgba(199,198,205,0.2)]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: 'linear-gradient(135deg, #4648D4, #6063EE)' }}>
+                            {user?.name.charAt(0).toUpperCase()}
                           </div>
-                        )}
+                          <div>
+                            <p className="text-[13px] font-semibold text-[#161B2B]">{user?.name}</p>
+                            <p className="text-[11px] text-[#76767D]">{user?.email}</p>
+                            {organization && <p className="text-[11px] font-semibold text-[#4648D4] mt-0.5">{organization.name}</p>}
+                          </div>
+                        </div>
                       </div>
-                      <Link
-                        href="/distributor/settings"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        onClick={() => setShowUserDropdown(false)}
-                      >
-                        <UserCircle className="h-4 w-4" />
-                        <span>Profile & Settings</span>
-                      </Link>
-                      <button
-                        onClick={() => {
-                          setShowUserDropdown(false);
-                          handleLogout();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Logout</span>
-                      </button>
+                      <div className="p-2">
+                        <Link
+                          href="/distributor/settings"
+                          className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-[#161B2B] hover:bg-[#F2F3FF] rounded-xl transition-colors"
+                          onClick={() => setShowUserDropdown(false)}
+                        >
+                          <UserCircle className="h-4 w-4 text-[#4648D4]" />
+                          Profile & Settings
+                        </Link>
+                        <button
+                          onClick={() => { setShowUserDropdown(false); handleLogout(); }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Logout
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -219,17 +260,15 @@ export default function DistributorLayout({ children }: { children: React.ReactN
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto bg-[#FAFAFA]">
+          <main className="flex-1 overflow-y-auto bg-[#F8FAFF]">
             {children}
           </main>
         </div>
       </div>
 
+      {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
       )}
     </div>
   );

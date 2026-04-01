@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NexTrade Pro | Reseller Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-bright": "#faf8ff",
+              "tertiary-container": "#2a1700",
+              "on-surface-variant": "#46464c",
+              "inverse-primary": "#c2c6db",
+              "surface-container-highest": "#dee1f7",
+              "secondary": "#4648d4",
+              "secondary-fixed-dim": "#c0c1ff",
+              "surface": "#faf8ff",
+              "on-primary-container": "#7f8397",
+              "on-secondary-fixed-variant": "#2f2ebe",
+              "secondary-fixed": "#e1e0ff",
+              "secondary-container": "#6063ee",
+              "tertiary-fixed-dim": "#ffb95f",
+              "surface-tint": "#595e70",
+              "surface-container-lowest": "#ffffff",
+              "inverse-on-surface": "#eef0ff",
+              "on-error": "#ffffff",
+              "error-container": "#ffdad6",
+              "inverse-surface": "#2b3040",
+              "primary": "#000000",
+              "on-secondary": "#ffffff",
+              "on-primary": "#ffffff",
+              "on-background": "#161b2b",
+              "tertiary": "#000000",
+              "surface-container-high": "#e3e7fd",
+              "on-tertiary-container": "#b87500",
+              "surface-dim": "#d5d9ef",
+              "on-tertiary": "#ffffff",
+              "on-secondary-fixed": "#07006c",
+              "surface-variant": "#dee1f7",
+              "on-tertiary-fixed-variant": "#653e00",
+              "on-surface": "#161b2b",
+              "surface-container": "#ebedff",
+              "surface-container-low": "#f2f3ff",
+              "on-error-container": "#93000a",
+              "on-primary-fixed-variant": "#414658",
+              "background": "#faf8ff",
+              "on-secondary-container": "#fffbff",
+              "on-primary-fixed": "#161b2b",
+              "tertiary-fixed": "#ffddb8",
+              "error": "#ba1a1a",
+              "outline-variant": "#c7c6cd",
+              "on-tertiary-fixed": "#2a1700",
+              "primary-fixed-dim": "#c2c6db",
+              "outline": "#76767d",
+              "primary-fixed": "#dee1f7",
+              "primary-container": "#161b2b"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-header {
+        backdrop-filter: blur(20px);
+        background: rgba(250, 248, 255, 0.8);
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(70, 72, 212, 0.2);
+        border-radius: 10px;
+      }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-secondary/30">
+<!-- SIDEBAR -->
+<aside class="fixed left-0 top-0 h-screen w-[240px] bg-[#161B2B] dark:bg-[#0A0F1E] border-r border-white/5 flex flex-col py-6 shadow-[20px_0_40px_rgba(22,27,43,0.05)] z-50">
+<!-- Brand Header -->
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 bg-secondary rounded-xl flex items-center justify-center shadow-lg shadow-secondary/20">
+<span class="material-symbols-outlined text-white text-2xl" style="font-variation-settings: 'FILL' 1;">hub</span>
+</div>
+<div>
+<h1 class="text-xl font-extrabold text-white tracking-tight leading-none">NexTrade Pro</h1>
+<span class="text-[10px] font-bold text-tertiary-fixed bg-tertiary-fixed/10 px-2 py-0.5 rounded-full mt-1 inline-block uppercase tracking-wider">RESELLER</span>
+</div>
+</div>
+<!-- User Profile Quick View -->
+<div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+<img alt="Marcus Sterling" class="w-8 h-8 rounded-full border border-white/20" data-alt="Professional headshot of a middle-aged businessman with a friendly expression in a corporate setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCywXjRpqmON5hHDUBWP3IPODOfw-SG-r0rC-J9OCHNMSG-YYQKx_8bPOqf2FCZg8rrFhcMoB-kzGaLkYJAamI1WiK1DED4HZjh0krASTPioS5W9bHqN9BeMWhVmpQ_lAAAcJmLCmVFUQMV10kA-Q1iCYrjqGVxsU-JkgFeBtIz7rJRjLgGO-QRxPE6M3d8X5gX6TiWVcbGJhzKE8ZYbJM7J67d8dbwahKtMpS4l7yiuahoh6u5Sb2dm9ZusVz5PI2KhBz05WYisOvZ"/>
+<div class="overflow-hidden">
+<p class="text-sm font-semibold text-white truncate">Marcus Sterling</p>
+<p class="text-[10px] text-slate-400 truncate">Premium Reseller</p>
+</div>
+</div>
+</div>
+<!-- Navigation Items -->
+<nav class="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-1">
+<!-- Dashboard (Active) -->
+<a class="bg-[#4648D4] text-white rounded-lg flex items-center px-4 py-3 shadow-lg scale-[1.02] transition-all group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">search</span>
+<span class="text-sm font-medium">Browse Products</span>
+</a>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">handshake</span>
+<span class="text-sm font-medium">My Deals</span>
+</a>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">app_registration</span>
+<span class="text-sm font-medium">Register Deal</span>
+</a>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">request_quote</span>
+<span class="text-sm font-medium">BOQ Requests</span>
+</a>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">description</span>
+<span class="text-sm font-medium">Quotes</span>
+</a>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">build</span>
+<span class="text-sm font-medium">Services</span>
+</a>
+<div class="h-px bg-white/5 my-4 mx-4"></div>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">analytics</span>
+<span class="text-sm font-medium">Analytics</span>
+</a>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">star</span>
+<span class="text-sm font-medium">Ratings</span>
+</a>
+<a class="text-slate-400 hover:text-white flex items-center px-4 py-3 transition-all hover:bg-white/10 rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+<!-- CTA in Sidebar -->
+<div class="px-4 mt-6">
+<button class="w-full bg-tertiary-fixed text-on-tertiary-fixed font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-tertiary-fixed/10">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+<span class="text-xs uppercase tracking-widest">Register Deal</span>
+</button>
+</div>
+</aside>
+<!-- TOP NAVIGATION -->
+<header class="fixed top-0 left-[240px] right-0 h-16 glass-header border-b border-white/10 z-40 flex items-center justify-between px-8">
+<div class="flex items-center flex-1 max-w-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-secondary/20 transition-all" placeholder="Search deals, quotes, or products..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-4 h-4 bg-error text-white text-[10px] flex items-center justify-center rounded-full font-bold">3</span>
+</div>
+<div class="flex items-center gap-3 border-l border-slate-200 pl-6">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold text-on-surface">Marcus Sterling</p>
+<p class="text-[10px] text-on-surface-variant font-medium">NexTrade ID: #8829</p>
+</div>
+<img alt="Marcus Sterling" class="w-9 h-9 rounded-full ring-2 ring-secondary/10" data-alt="Professional headshot of a middle-aged businessman with a friendly expression in a corporate setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1A0_iJYdb1HK6FS0Vg_m2wujQ4LSfOue_6jzsBMhuYvFrBFLrtZqUAB1PABU_fbVuyZyytA37ELk2MVeM-YPtueHJPysgzi0Cubtswc0-XC_7aRHH_7Ahk6CA-4bJuh-6HELq5Y8DzaXzGphgRBg-Cm7Gxnpz_o31rdcFjWvVyfzDs13H0eO3SnTsfDC7fidOnUUQVd1Gg6x0w0uo_y6Zy1pmZw4BqNWvDLsBEIDAt-1gLhVTDa3-jFytblXL_4j_wksb4-K-RXSC"/>
+</div>
+</div>
+</header>
+<!-- MAIN CONTENT -->
+<main class="ml-[240px] pt-24 px-8 pb-12">
+<!-- Hero Section -->
+<section class="mb-10">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight leading-none mb-2">Good Morning, Marcus! 👋</h2>
+<p class="text-on-surface-variant font-medium flex items-center gap-2">
+                        Friday, October 27, 2024 
+                        <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+<span class="text-secondary">Track your deals and opportunities</span>
+</p>
+</div>
+<div class="flex gap-3">
+<button class="px-5 py-2.5 bg-surface-container-highest text-secondary font-bold text-sm rounded-full flex items-center gap-2 hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined text-xl">download</span>
+                        Export Report
+                    </button>
+<button class="px-5 py-2.5 bg-secondary text-white font-bold text-sm rounded-full flex items-center gap-2 shadow-lg shadow-secondary/20 hover:scale-105 transition-all">
+<span class="material-symbols-outlined text-xl">add</span>
+                        New Opportunity
+                    </button>
+</div>
+</div>
+</section>
+<!-- KPI CARDS -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+<!-- Active Deals -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-transparent hover:border-secondary/20 transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-secondary rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">handshake</span>
+</div>
+<span class="text-error font-bold text-xs bg-error/10 px-2 py-1 rounded-lg">3 URGENT</span>
+</div>
+<h3 class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider mb-1">Active Deals</h3>
+<p class="text-4xl font-extrabold text-on-surface tracking-tighter">12</p>
+<div class="mt-4 flex items-center text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-green-500 mr-1">trending_up</span>
+<span class="text-green-500 font-bold mr-1">+2</span> since last week
+                </div>
+</div>
+<!-- Quotes Received -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-transparent hover:border-secondary/20 transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">description</span>
+</div>
+<span class="text-secondary font-bold text-xs bg-secondary/10 px-2 py-1 rounded-lg">8 PENDING</span>
+</div>
+<h3 class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider mb-1">Quotes Received</h3>
+<p class="text-4xl font-extrabold text-on-surface tracking-tighter">34</p>
+<div class="mt-4 flex items-center text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-green-500 mr-1">trending_up</span>
+<span class="text-green-500 font-bold mr-1">+12</span> new today
+                </div>
+</div>
+<!-- Deals Won -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-transparent hover:border-secondary/20 transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">trophy</span>
+</div>
+<span class="text-amber-700 font-bold text-xs bg-amber-100 px-2 py-1 rounded-lg">+3 THIS MONTH</span>
+</div>
+<h3 class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider mb-1">Deals Won</h3>
+<p class="text-4xl font-extrabold text-on-surface tracking-tighter">8</p>
+<div class="mt-4 flex items-center text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-secondary mr-1">history</span>
+                    Conversion rate: <span class="text-on-surface font-bold ml-1">68%</span>
+</div>
+</div>
+<!-- Pipeline Value -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-transparent hover:border-secondary/20 transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-500/20">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+</div>
+<span class="text-emerald-700 font-bold text-xs bg-emerald-100 px-2 py-1 rounded-lg">PROJECTED</span>
+</div>
+<h3 class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider mb-1">Pipeline Value</h3>
+<p class="text-4xl font-extrabold text-on-surface tracking-tighter">SAR 4.2M</p>
+<div class="mt-4 flex items-center text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-green-500 mr-1">bolt</span>
+                    Weighted: <span class="text-on-surface font-bold ml-1">SAR 2.8M</span>
+</div>
+</div>
+</div>
+<!-- DEAL PIPELINE KANBAN -->
+<section class="mb-12">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-extrabold text-on-surface">Deal Pipeline</h3>
+<div class="flex items-center gap-2">
+<button class="p-2 bg-white rounded-lg border border-slate-200 text-on-surface-variant hover:bg-slate-50">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+</button>
+<button class="p-2 bg-white rounded-lg border border-slate-200 text-on-surface-variant hover:bg-slate-50">
+<span class="material-symbols-outlined text-lg">view_kanban</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4 custom-scrollbar">
+<!-- Prospecting -->
+<div class="min-w-[240px] flex flex-col gap-4">
+<div class="flex items-center justify-between px-3 py-2 bg-slate-100 rounded-lg border-l-4 border-slate-400">
+<span class="text-xs font-bold text-slate-700 uppercase tracking-tighter">Prospecting</span>
+<span class="text-[10px] bg-white px-2 py-0.5 rounded-full text-slate-600 font-bold border border-slate-200">3</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border-l-2 border-slate-300 hover:shadow-md transition-all cursor-pointer">
+<h4 class="text-sm font-bold text-on-surface mb-1">Edge Retail Solutions</h4>
+<p class="text-xs text-on-surface-variant mb-3">SAR 85,000</p>
+<div class="flex items-center justify-between text-[10px] text-on-surface-variant font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">calendar_today</span> Nov 12</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">storefront</span> 1 Dist.</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border-l-2 border-slate-300 hover:shadow-md transition-all cursor-pointer">
+<h4 class="text-sm font-bold text-on-surface mb-1">Global Logistics HQ</h4>
+<p class="text-xs text-on-surface-variant mb-3">SAR 240,000</p>
+<div class="flex items-center justify-between text-[10px] text-on-surface-variant font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">calendar_today</span> Dec 05</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">storefront</span> 2 Dist.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Registered -->
+<div class="min-w-[240px] flex flex-col gap-4">
+<div class="flex items-center justify-between px-3 py-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+<span class="text-xs font-bold text-blue-700 uppercase tracking-tighter">Registered</span>
+<span class="text-[10px] bg-white px-2 py-0.5 rounded-full text-blue-600 font-bold border border-blue-100">2</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border-l-2 border-blue-400 hover:shadow-md transition-all cursor-pointer">
+<h4 class="text-sm font-bold text-on-surface mb-1">TechSons LLC</h4>
+<p class="text-xs text-on-surface-variant mb-3">SAR 150,000</p>
+<div class="flex items-center justify-between text-[10px] text-on-surface-variant font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">calendar_today</span> Nov 15</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">storefront</span> 3 Dist.</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border-l-2 border-blue-400 hover:shadow-md transition-all cursor-pointer">
+<h4 class="text-sm font-bold text-on-surface mb-1">Nexa Finance Tower</h4>
+<p class="text-xs text-on-surface-variant mb-3">SAR 410,000</p>
+<div class="flex items-center justify-between text-[10px] text-on-surface-variant font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">calendar_today</span> Nov 18</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">storefront</span> 4 Dist.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quoted -->
+<div class="min-w-[240px] flex flex-col gap-4">
+<div class="flex items-center justify-between px-3 py-2 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+<span class="text-xs font-bold text-purple-700 uppercase tracking-tighter">Quoted</span>
+<span class="text-[10px] bg-white px-2 py-0.5 rounded-full text-purple-600 font-bold border border-purple-100">4</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border-l-2 border-purple-400 hover:shadow-md transition-all cursor-pointer">
+<h4 class="text-sm font-bold text-on-surface mb-1">Riyadh Smart City</h4>
+<p class="text-xs text-on-surface-variant mb-3">SAR 1.2M</p>
+<div class="flex items-center justify-between text-[10px] text-on-surface-variant font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">calendar_today</span> Oct 30</span>
+<span class="flex items-center gap-1 text-purple-600 font-bold"><span class="material-symbols-outlined text-xs">history_edu</span> Reviewing</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Won -->
+<div class="min-w-[240px] flex flex-col gap-4">
+<div class="flex items-center justify-between px-3 py-2 bg-green-50 rounded-lg border-l-4 border-green-500">
+<span class="text-xs font-bold text-green-700 uppercase tracking-tighter">Won</span>
+<span class="text-[10px] bg-white px-2 py-0.5 rounded-full text-green-600 font-bold border border-green-100">8</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border-l-2 border-green-400 hover:shadow-md transition-all cursor-pointer">
+<h4 class="text-sm font-bold text-on-surface mb-1">Al-Fares Group</h4>
+<p class="text-xs text-on-surface-variant mb-3">SAR 320,000</p>
+<div class="flex items-center justify-between text-[10px] text-on-surface-variant font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">check_circle</span> Closed Oct 22</span>
+<span class="flex items-center gap-1 text-green-600"><span class="material-symbols-outlined text-xs">star</span> High Value</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Lost -->
+<div class="min-w-[240px] flex flex-col gap-4">
+<div class="flex items-center justify-between px-3 py-2 bg-red-50 rounded-lg border-l-4 border-red-500">
+<span class="text-xs font-bold text-red-700 uppercase tracking-tighter">Lost</span>
+<span class="text-[10px] bg-white px-2 py-0.5 rounded-full text-red-600 font-bold border border-red-100">5</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="opacity-60 grayscale hover:grayscale-0 transition-all">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border-l-2 border-red-300 cursor-pointer">
+<h4 class="text-sm font-bold text-on-surface mb-1">Dammam Hub</h4>
+<p class="text-xs text-on-surface-variant">SAR 45,000</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- BOTTOM GRID: RECENT ACTIVITY & QUICK ACTIONS -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+<!-- Recent Quote Activity Table -->
+<div class="xl:col-span-2 bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-slate-200">
+<div class="p-6 border-b border-slate-100 flex items-center justify-between">
+<h3 class="text-lg font-extrabold text-on-surface">Recent Quote Activity</h3>
+<button class="text-secondary text-xs font-bold hover:underline">View All Quotes</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container-low/50">
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">BOQ ID</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Product</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Distributor</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Quote Amount</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Status</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 text-xs font-bold text-secondary">#BQ-2024-092</td>
+<td class="px-6 py-4 text-xs font-medium">Enterprise Firewall Gen X</td>
+<td class="px-6 py-4 text-xs">Gulf Distribution</td>
+<td class="px-6 py-4 text-xs font-bold">SAR 42,500</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full bg-tertiary-fixed/20 text-on-tertiary-fixed text-[10px] font-bold uppercase">Pending Review</span>
+</td>
+<td class="px-6 py-4">
+<button class="text-secondary text-[10px] font-bold border border-secondary/20 px-3 py-1 rounded-lg hover:bg-secondary hover:text-white transition-all">Compare</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 text-xs font-bold text-secondary">#BQ-2024-088</td>
+<td class="px-6 py-4 text-xs font-medium">Storage Array 500TB</td>
+<td class="px-6 py-4 text-xs">DataTrust Middle East</td>
+<td class="px-6 py-4 text-xs font-bold">SAR 128,000</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase">Best Price</span>
+</td>
+<td class="px-6 py-4">
+<button class="bg-secondary text-white text-[10px] font-bold px-3 py-1 rounded-lg hover:opacity-90 transition-all">Accept</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 text-xs font-bold text-secondary">#BQ-2024-085</td>
+<td class="px-6 py-4 text-xs font-medium">Network Switches (32 units)</td>
+<td class="px-6 py-4 text-xs">Arabia Tech Distribution</td>
+<td class="px-6 py-4 text-xs font-bold">SAR 92,100</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase">Reviewing</span>
+</td>
+<td class="px-6 py-4">
+<button class="text-secondary text-[10px] font-bold border border-secondary/20 px-3 py-1 rounded-lg hover:bg-secondary hover:text-white transition-all">Manage</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 text-xs font-bold text-secondary">#BQ-2024-081</td>
+<td class="px-6 py-4 text-xs font-medium">Cloud Server Rack v4</td>
+<td class="px-6 py-4 text-xs">Intelli-Core Systems</td>
+<td class="px-6 py-4 text-xs font-bold">SAR 215,000</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full bg-tertiary-fixed/20 text-on-tertiary-fixed text-[10px] font-bold uppercase">Pending Review</span>
+</td>
+<td class="px-6 py-4">
+<button class="text-secondary text-[10px] font-bold border border-secondary/20 px-3 py-1 rounded-lg hover:bg-secondary hover:text-white transition-all">Compare</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 text-xs font-bold text-secondary">#BQ-2024-079</td>
+<td class="px-6 py-4 text-xs font-medium">Workspace AV Bundle</td>
+<td class="px-6 py-4 text-xs">AV Solutions Hub</td>
+<td class="px-6 py-4 text-xs font-bold">SAR 58,000</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase">Best Price</span>
+</td>
+<td class="px-6 py-4">
+<button class="bg-secondary text-white text-[10px] font-bold px-3 py-1 rounded-lg hover:opacity-90 transition-all">Accept</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Quick Actions Section -->
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-extrabold text-on-surface">Quick Actions</h3>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<!-- Register New Deal -->
+<button class="group relative w-full p-5 rounded-2xl bg-gradient-to-br from-secondary to-indigo-800 text-left transition-all hover:scale-[1.02] shadow-xl shadow-secondary/20">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white mb-4">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">assignment</span>
+</div>
+<span class="material-symbols-outlined text-white/50 group-hover:text-white transition-colors">arrow_forward</span>
+</div>
+<h4 class="text-white font-bold text-base mb-1">Register New Deal</h4>
+<p class="text-white/70 text-xs">Protect your customer opportunity and secure project pricing.</p>
+</button>
+<!-- Upload BOQ -->
+<button class="group relative w-full p-5 rounded-2xl bg-[#161B2B] text-left transition-all hover:scale-[1.02] shadow-xl shadow-primary-container/20">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 bg-secondary rounded-xl flex items-center justify-center text-white mb-4">
+<span class="material-symbols-outlined">upload_file</span>
+</div>
+<span class="material-symbols-outlined text-white/30 group-hover:text-white transition-colors">arrow_forward</span>
+</div>
+<h4 class="text-white font-bold text-base mb-1">Upload BOQ</h4>
+<p class="text-slate-400 text-xs">Upload your Bill of Quantities to get competitive multi-vendor quotes.</p>
+</button>
+<!-- Browse Products -->
+<button class="group w-full p-5 rounded-2xl bg-white border border-slate-200 text-left transition-all hover:border-secondary hover:bg-surface-container-low">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 bg-surface-container-low rounded-xl flex items-center justify-center text-on-surface-variant mb-4 group-hover:bg-secondary group-hover:text-white transition-all">
+<span class="material-symbols-outlined">search</span>
+</div>
+</div>
+<h4 class="text-on-surface font-bold text-base mb-1">Browse Products</h4>
+<p class="text-on-surface-variant text-xs">Explore the full catalog for new customer solutions.</p>
+</button>
+<!-- Message Distributor -->
+<button class="group w-full p-5 rounded-2xl bg-white border border-slate-200 text-left transition-all hover:border-secondary hover:bg-surface-container-low">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 bg-surface-container-low rounded-xl flex items-center justify-center text-on-surface-variant mb-4 group-hover:bg-secondary group-hover:text-white transition-all">
+<span class="material-symbols-outlined">forum</span>
+</div>
+</div>
+<h4 class="text-on-surface font-bold text-base mb-1">Message Distributor</h4>
+<p class="text-on-surface-variant text-xs">Direct communication with your distribution account managers.</p>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- FOOTER -->
+<footer class="ml-[240px] w-[calc(100%-240px)] bg-[#F2F3FF] dark:bg-[#0A0F1E] border-t border-slate-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center px-8 py-10 transition-all">
+<div class="flex flex-col md:flex-row items-center gap-8 mb-6 md:mb-0">
+<span class="font-bold text-[#161B2B] dark:text-white text-lg tracking-tight">NexTrade Pro</span>
+<p class="font-['Inter'] text-xs uppercase tracking-[0.1em] text-[#46464C] dark:text-slate-400">© 2024 NexTrade Pro. All rights reserved.</p>
+</div>
+<div class="flex items-center gap-8">
+<a class="font-['Inter'] text-xs uppercase tracking-[0.1em] text-[#46464C] hover:text-[#4648D4] transition-all" href="#">Privacy Policy</a>
+<a class="font-['Inter'] text-xs uppercase tracking-[0.1em] text-[#46464C] hover:text-[#4648D4] transition-all" href="#">Terms of Service</a>
+<a class="font-['Inter'] text-xs uppercase tracking-[0.1em] text-[#46464C] hover:text-[#4648D4] transition-all" href="#">Support</a>
+<a class="font-['Inter'] text-xs uppercase tracking-[0.1em] text-[#46464C] hover:text-[#4648D4] transition-all" href="#">Contact</a>
+</div>
+</footer>
+</body></html>
