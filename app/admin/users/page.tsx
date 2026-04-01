@@ -64,14 +64,27 @@ export default function AdminUsersPage() {
 
   async function fetchUsers() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, name, email, role, phone_number, is_active, created_at, organizations(name, type, verified)')
-      .in('role', ['RESELLER', 'DISTRIBUTOR', 'END_USER'])
-      .order('created_at', { ascending: false });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { setLoading(false); return; }
 
-    if (!error) setUsers(data || []);
-    setLoading(false);
+      const res = await fetch('/api/admin/users', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setUsers(json.users || []);
+      } else {
+        console.error('Failed to fetch users:', json.error);
+        toast.error('Failed to load users: ' + json.error);
+      }
+    } catch (err: any) {
+      console.error('fetchUsers error:', err);
+      toast.error('Failed to load users');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const set = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
