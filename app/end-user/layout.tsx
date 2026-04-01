@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { Button } from '@/components/ui/button';
-import { Eye, LogOut, Bell, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, LogOut, Bell, Menu, X, ChevronLeft, ChevronRight, FileText, LayoutDashboard, ShoppingBag } from 'lucide-react';
 
 export default function EndUserLayout({
   children,
@@ -13,6 +13,7 @@ export default function EndUserLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, organization, logout } = useSimpleAuth();
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -79,16 +80,19 @@ export default function EndUserLayout({
                 </div>
               </div>
               <nav className="space-y-1">
-                <Link
-                  href="/end-user/dashboard"
-                  className={`flex items-center h-10 text-[14px] font-medium transition-colors relative ${
-                    sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'gap-3 px-3'
-                  } text-white bg-[#1E293B] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#6366F1]`}
-                  title={sidebarCollapsed ? 'Dashboard' : undefined}
-                >
-                  <Eye className="h-[18px] w-[18px]" />
-                  <span className={`flex-1 transition-opacity ${sidebarCollapsed ? 'lg:hidden' : ''}`}>Dashboard</span>
-                </Link>
+                {[{ href: '/end-user/dashboard', label: 'Dashboard', icon: LayoutDashboard }, { href: '/end-user/my-leads', label: 'My Requests', icon: FileText }, { href: '/end-user/orders', label: 'My Orders', icon: ShoppingBag }].map(({ href, label, icon: Icon }) => {
+                  const isActive = pathname === href;
+                  return (
+                    <Link key={href} href={href}
+                      className={`flex items-center h-10 text-[14px] font-medium transition-colors relative ${
+                        sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'gap-3 px-3'
+                      } ${isActive ? 'text-white bg-[#1E293B] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#6366F1]' : 'text-[#94A3B8] hover:bg-[#1E293B]/70 hover:text-white'}`}
+                      title={sidebarCollapsed ? label : undefined}>
+                      <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                      <span className={`flex-1 transition-opacity ${sidebarCollapsed ? 'lg:hidden' : ''}`}>{label}</span>
+                    </Link>
+                  );
+                })}
               </nav>
             </div>
 

@@ -168,6 +168,24 @@ export const RESELLER_ROUTES: RoutePermission[] = [
     requiredPermissions: [{ module: 'team', action: 'manage' }]
   },
   { 
+    path: '/reseller/orders', 
+    label: 'Orders', 
+    icon: 'ShoppingBag',
+    requiredPermissions: [{ module: 'deals', action: 'view' }]
+  },
+  { 
+    path: '/reseller/customers', 
+    label: 'Customers', 
+    icon: 'Users',
+    requiredPermissions: [{ module: 'deals', action: 'view' }]
+  },
+  { 
+    path: '/reseller/inquiries', 
+    label: 'Inquiries', 
+    icon: 'HelpCircle',
+    requiredPermissions: [{ module: 'inquiries', action: 'view' }]
+  },
+  { 
     path: '/reseller/settings', 
     label: 'Settings', 
     icon: 'Settings',
@@ -261,6 +279,8 @@ export const DISTRIBUTOR_ROUTES: RoutePermission[] = [
 
 export const END_USER_ROUTES: RoutePermission[] = [
   { path: '/end-user/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+  { path: '/end-user/my-leads', label: 'My Requests', icon: 'FileText' },
+  { path: '/end-user/orders', label: 'My Orders', icon: 'ShoppingBag' },
 ];
 
 // Helper function to check if user has permission
