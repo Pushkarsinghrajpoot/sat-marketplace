@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star, Package, Wrench, UserCog, ChevronDown, UserCircle, Building2 } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star, Package, Wrench, UserCog, ChevronDown, UserCircle, Building2, ShoppingBag, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect, useMemo } from 'react';
@@ -25,6 +25,8 @@ const iconMap: Record<string, any> = {
   Package,
   Wrench,
   UserCog,
+  ShoppingBag,
+  Zap,
 };
 
 export default function ResellerLayout({ children }: { children: React.ReactNode }) {

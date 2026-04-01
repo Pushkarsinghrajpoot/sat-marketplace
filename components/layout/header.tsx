@@ -11,15 +11,21 @@ import { useRouter } from 'next/navigation';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
+import { useCart } from '@/lib/cart-context';
+import { CartSidebar } from '@/components/cart-sidebar';
 
 export function Header() {
   const { user, organization, isAuthenticated, logout, loading } = useSimpleAuth();
+  const { count: cartCount } = useCart();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showCart, setShowCart] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const router = useRouter();
+
+  const showCartIcon = !user || user.role === 'END_USER';
 
   const handleLogout = () => {
     logout();
@@ -232,9 +238,21 @@ export function Header() {
             </div>
           </div>
 
+          <CartSidebar open={showCart} onClose={() => setShowCart(false)} />
+
           <div className="flex items-center gap-3">
+            {showCartIcon && (
+              <button onClick={() => setShowCart(true)}
+                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <ShoppingCart className="h-5 w-5 text-gray-700" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#6366F1] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </span>
+                )}
+              </button>
+            )}
             {loading ? (
-              // Show loading skeleton to prevent flash
               <div className="flex items-center gap-3">
                 <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
                 <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Star, Heart, Share2, Minus, Plus, Download, CheckCircle, Package, MessageCircle } from 'lucide-react';
+import { Star, Heart, Share2, Minus, Plus, Download, CheckCircle, Package, MessageCircle, ShoppingCart, Zap } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getProductById, getEnhancedProducts } from '@/lib/product-helpers';
 import { supabase } from '@/lib/supabase';
@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { RequestQuoteModal } from '@/components/request-quote-modal';
 import { ProductChatModal } from '@/components/product-chat-modal';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { useCart } from '@/lib/cart-context';
 import StarRating from '@/components/ratings/StarRating';
 import RatingButton from '@/components/ratings/RatingButton';
 import RatingsList from '@/components/ratings/RatingsList';
@@ -29,6 +30,10 @@ export default function ProductDetailPage() {
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const { addToCart } = useCart();
+
+  const isBuyer = !user || user.role === 'END_USER';
   const [existingRating, setExistingRating] = useState<any>(null);
   const [productRatings, setProductRatings] = useState({ average: 0, count: 0 });
 
@@ -275,15 +280,49 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="space-y-3 mb-6">
-            <Button size="lg" className="w-full" onClick={() => setShowQuoteModal(true)}>
+            {/* Buyer flow: Add to Cart + Buy Now */}
+            {isBuyer && (
+              <>
+                <Button
+                  size="lg"
+                  className="w-full font-semibold"
+                  style={{ background: 'linear-gradient(135deg,#4648D4,#6063EE)' }}
+                  disabled={addingToCart}
+                  onClick={async () => {
+                    setAddingToCart(true);
+                    await addToCart(product.id, quantity);
+                    setAddingToCart(false);
+                  }}
+                >
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  {addingToCart ? 'Adding…' : 'Add to Cart'}
+                </Button>
+                <Link href={`/checkout`} className="block" onClick={async (e) => {
+                  e.preventDefault();
+                  setAddingToCart(true);
+                  await addToCart(product.id, quantity);
+                  setAddingToCart(false);
+                  window.location.href = '/checkout';
+                }}>
+                  <Button size="lg" variant="outline" className="w-full font-semibold border-[#6366F1] text-[#6366F1] hover:bg-[#F2F3FF]">
+                    <Zap className="h-5 w-5 mr-2" />
+                    Buy Now
+                  </Button>
+                </Link>
+              </>
+            )}
+            <Button size="lg" className={`w-full ${isBuyer ? 'mt-1' : ''}`} onClick={() => setShowQuoteModal(true)}
+              variant={isBuyer ? 'outline' : 'primary'}>
               Request Quote
             </Button>
-            <Link href={`/reseller/deals/register?product=${product.id}`} className="block">
-              <Button size="lg" variant="secondary" className="w-full">Start Deal Registration</Button>
-            </Link>
-            <Button 
-              size="lg" 
-              variant="outline" 
+            {!isBuyer && (
+              <Link href={`/reseller/deals/register?product=${product.id}`} className="block">
+                <Button size="lg" variant="secondary" className="w-full">Start Deal Registration</Button>
+              </Link>
+            )}
+            <Button
+              size="lg"
+              variant="outline"
               className="w-full"
               onClick={() => setShowChat(true)}
             >
@@ -293,7 +332,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1">
                 <Heart className="h-5 w-5 mr-2" />
-                Add to Wishlist
+                Save
               </Button>
               <Button variant="outline" className="flex-1">
                 <Share2 className="h-5 w-5 mr-2" />

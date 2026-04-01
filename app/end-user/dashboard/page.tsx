@@ -28,7 +28,7 @@ export default function EndUserDashboard() {
 
       try {
         const [deals, queries] = await Promise.all([
-          getDeals({ userId: user.id }),
+          getDeals({ customerEmail: user.email }),
           getDirectQueries({ userId: user.id }),
         ]);
 

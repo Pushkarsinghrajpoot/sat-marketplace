@@ -60,6 +60,7 @@ export async function getDeals(filters?: {
   dealType?: string;
   userRole?: string;
   distributorId?: string;
+  customerEmail?: string;
 }) {
   let query = supabase
     .from('deals')
@@ -68,6 +69,10 @@ export async function getDeals(filters?: {
 
   if (filters?.userId) {
     query = query.eq('reseller_id', filters.userId);
+  }
+
+  if (filters?.customerEmail) {
+    query = query.eq('customer_email', filters.customerEmail);
   }
 
   if (filters?.organizationId) {
