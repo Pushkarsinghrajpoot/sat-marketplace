@@ -65,7 +65,7 @@ export async function PATCH(
         notification_type: 'ORDER_UPDATE',
         title: `Order ${status.charAt(0) + status.slice(1).toLowerCase()}`,
         message: statusMessages[status],
-        link: '/end-user/orders',
+        link: `/end-user/orders/${id}`,
         read: false,
       });
     }

@@ -1,6 +1,15 @@
 import { supabase } from './supabase';
 import type { EnhancedProduct, ProductService, ProductTechSpec, ProductInquiry, DemoRequest } from './types';
 
+// Resolve org IDs for a given org type (DISTRIBUTOR | RESELLER | etc.)
+async function getOrgIdsByType(orgType: string): Promise<string[]> {
+  const { data } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('type', orgType);
+  return (data || []).map((o: any) => o.id);
+}
+
 // Get all products with enhanced details
 export async function getEnhancedProducts(filters?: {
   organizationId?: string;
@@ -9,6 +18,7 @@ export async function getEnhancedProducts(filters?: {
   featured?: boolean;
   trending?: boolean;
   searchQuery?: string;
+  orgType?: string; // 'DISTRIBUTOR' | 'RESELLER' — filter by the listing org's type
 }) {
   try {
     let query = supabase
@@ -22,6 +32,12 @@ export async function getEnhancedProducts(filters?: {
         product_documents (*)
       `)
       .order('created_at', { ascending: false });
+
+    if (filters?.orgType) {
+      const orgIds = await getOrgIdsByType(filters.orgType);
+      if (orgIds.length === 0) return [];
+      query = query.in('organization_id', orgIds);
+    }
 
     if (filters?.organizationId) {
       query = query.eq('organization_id', filters.organizationId);
@@ -249,39 +265,43 @@ export async function addProductReview(review: {
 }
 
 // Get trending products
-export async function getTrendingProducts(limit: number = 10) {
+export async function getTrendingProducts(limit: number = 10, orgType?: string) {
   try {
+    let orgIds: string[] | null = null;
+    if (orgType) {
+      orgIds = await getOrgIdsByType(orgType);
+      if (orgIds.length === 0) return [];
+    }
+
     // First try to get products marked as trending
-    const { data: trendingData, error: trendingError } = await supabase
+    let trendingQuery = supabase
       .from('products')
       .select('*, product_images(*)')
       .eq('is_trending', true)
       .eq('status', 'ACTIVE')
       .order('view_count', { ascending: false })
       .limit(limit);
+    if (orgIds) trendingQuery = trendingQuery.in('organization_id', orgIds);
 
-    if (trendingError) {
-      console.error('Error fetching trending products:', trendingError);
-    }
+    const { data: trendingData, error: trendingError } = await trendingQuery;
+    if (trendingError) console.error('Error fetching trending products:', trendingError);
 
-    // If we have trending products, return them
-    if (trendingData && trendingData.length > 0) {
-      return trendingData;
-    }
+    if (trendingData && trendingData.length > 0) return trendingData;
 
-    // Otherwise, return recent ACTIVE products
-    const { data: recentData, error: recentError } = await supabase
+    // Fallback: recent ACTIVE products
+    let recentQuery = supabase
       .from('products')
       .select('*, product_images(*)')
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
       .limit(limit);
+    if (orgIds) recentQuery = recentQuery.in('organization_id', orgIds);
 
+    const { data: recentData, error: recentError } = await recentQuery;
     if (recentError) {
       console.error('Error fetching recent products:', recentError);
       return [];
     }
-
     return recentData || [];
   } catch (error) {
     console.error('Error in getTrendingProducts:', error);
@@ -290,39 +310,43 @@ export async function getTrendingProducts(limit: number = 10) {
 }
 
 // Get featured products
-export async function getFeaturedProducts(limit: number = 10) {
+export async function getFeaturedProducts(limit: number = 10, orgType?: string) {
   try {
+    let orgIds: string[] | null = null;
+    if (orgType) {
+      orgIds = await getOrgIdsByType(orgType);
+      if (orgIds.length === 0) return [];
+    }
+
     // First try to get products marked as featured
-    const { data: featuredData, error: featuredError } = await supabase
+    let featuredQuery = supabase
       .from('products')
       .select('*, product_images(*)')
       .eq('is_featured', true)
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
       .limit(limit);
+    if (orgIds) featuredQuery = featuredQuery.in('organization_id', orgIds);
 
-    if (featuredError) {
-      console.error('Error fetching featured products:', featuredError);
-    }
+    const { data: featuredData, error: featuredError } = await featuredQuery;
+    if (featuredError) console.error('Error fetching featured products:', featuredError);
 
-    // If we have featured products, return them
-    if (featuredData && featuredData.length > 0) {
-      return featuredData;
-    }
+    if (featuredData && featuredData.length > 0) return featuredData;
 
-    // Otherwise, return recent ACTIVE products
-    const { data: recentData, error: recentError } = await supabase
+    // Fallback: recent ACTIVE products
+    let recentQuery = supabase
       .from('products')
       .select('*, product_images(*)')
-      .order('created_at', { ascending: false })
       .eq('status', 'ACTIVE')
+      .order('created_at', { ascending: false })
       .limit(limit);
+    if (orgIds) recentQuery = recentQuery.in('organization_id', orgIds);
 
+    const { data: recentData, error: recentError } = await recentQuery;
     if (recentError) {
       console.error('Error fetching recent products:', recentError);
       return [];
     }
-
     return recentData || [];
   } catch (error) {
     console.error('Error in getFeaturedProducts:', error);

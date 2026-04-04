@@ -15,7 +15,7 @@ export interface CartItem {
     price: number;
     currency: string;
     stock_status: string;
-    images: string[];
+    product_images: { url: string; display_order: number }[];
     organization_id: string;
     min_order_quantity: number;
   };
@@ -67,8 +67,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh();
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') refresh();
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'SIGNED_IN') {
+        // Consume any pending buy-now item saved before login
+        const pending = sessionStorage.getItem('pendingBuyNow');
+        if (pending) {
+          sessionStorage.removeItem('pendingBuyNow');
+          try {
+            const { productId, quantity } = JSON.parse(pending);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              await fetch('/api/cart', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ product_id: productId, quantity }),
+              });
+            }
+          } catch {}
+        }
+        refresh();
+      }
       if (event === 'SIGNED_OUT') setItems([]);
     });
     return () => sub.subscription.unsubscribe();

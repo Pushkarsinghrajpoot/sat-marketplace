@@ -580,7 +580,7 @@ export async function updateQuote(quoteId: string, updates: any) {
 export async function getProducts(filters?: { distributorId?: string; category?: string; status?: string }) {
   let query = supabase
     .from('products')
-    .select('*')
+    .select('*, product_images(*)')
     .order('created_at', { ascending: false });
 
   if (filters?.distributorId) {

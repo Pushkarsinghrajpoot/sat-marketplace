@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('cart_items')
-    .select('*, product:products(id, name, sku, price, currency, stock_status, images, organization_id, min_order_quantity)')
+    .select('*, product:products(id, name, sku, price, currency, stock_status, organization_id, min_order_quantity, product_images(url, display_order))')
     .eq('user_id', caller.id)
     .order('created_at', { ascending: true });
 
@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
       .from('cart_items')
       .update({ quantity: existing.quantity + quantity })
       .eq('id', existing.id)
-      .select('*, product:products(id, name, sku, price, currency, stock_status, images, organization_id, min_order_quantity)')
+      .select('*, product:products(id, name, sku, price, currency, stock_status, organization_id, min_order_quantity, product_images(url, display_order))')
       .single();
     item = data;
   } else {
     const { data } = await supabaseAdmin
       .from('cart_items')
       .insert({ user_id: caller.id, product_id, quantity })
-      .select('*, product:products(id, name, sku, price, currency, stock_status, images, organization_id, min_order_quantity)')
+      .select('*, product:products(id, name, sku, price, currency, stock_status, organization_id, min_order_quantity, product_images(url, display_order))')
       .single();
     item = data;
   }
@@ -110,7 +110,7 @@ export async function PATCH(request: NextRequest) {
     .update({ quantity })
     .eq('id', item_id)
     .eq('user_id', caller.id)
-    .select('*, product:products(id, name, sku, price, currency, stock_status, images, organization_id, min_order_quantity)')
+    .select('*, product:products(id, name, sku, price, currency, stock_status, organization_id, min_order_quantity, product_images(url, display_order))')
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

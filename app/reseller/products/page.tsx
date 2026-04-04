@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Star, ShoppingCart, MessageCircle, Eye, FileText, Package } from 'lucide-react';
+import { Search, Filter, Star, ShoppingCart, MessageCircle, Eye, FileText, Package, Store } from 'lucide-react';
 import { getEnhancedProducts, createProductInquiry, createDemoRequest } from '@/lib/product-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { formatCurrency } from '@/lib/utils';
@@ -35,7 +35,8 @@ export default function ResellerProductsPage() {
     setLoading(true);
     try {
       const data = await getEnhancedProducts({
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        orgType: 'DISTRIBUTOR',
       });
       setProducts(data);
       setFilteredProducts(data);
@@ -139,9 +140,15 @@ export default function ResellerProductsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Product Marketplace</h1>
-          <p className="text-gray-600 mt-1">Browse and request quotes for products</p>
+          <h1 className="text-3xl font-bold">Distributor Catalog</h1>
+          <p className="text-gray-600 mt-1">Browse distributor products, request quotes and register deals</p>
         </div>
+        <Link href="/reseller/my-products">
+          <Button variant="primary">
+            <Store className="h-4 w-4 mr-2" />
+            My Marketplace Products
+          </Button>
+        </Link>
         <div className="flex gap-2">
           <Button
             variant={viewMode === 'grid' ? 'primary' : 'outline'}

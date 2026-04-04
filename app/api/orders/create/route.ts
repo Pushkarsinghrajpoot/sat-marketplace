@@ -17,16 +17,52 @@ function generateOrderNumber(): string {
   return `ORD-${date}-${rand}`;
 }
 
-async function assignReseller(): Promise<{ id: string; organization_id: string | null } | null> {
-  const { data: resellers } = await supabaseAdmin
-    .from('users')
-    .select('id, organization_id')
-    .eq('role', 'RESELLER')
-    .eq('is_active', true)
-    .is('team_role', null);
+async function assignReseller(productIds: string[]): Promise<{ id: string; organization_id: string | null } | null> {
+  // Step 1: Find the organization that owns the most products in the cart
+  let orgId: string | null = null;
+
+  if (productIds.length > 0) {
+    const { data: products } = await supabaseAdmin
+      .from('products')
+      .select('organization_id')
+      .in('id', productIds);
+
+    if (products && products.length > 0) {
+      const tally: Record<string, number> = {};
+      for (const p of products) {
+        if (p.organization_id) tally[p.organization_id] = (tally[p.organization_id] || 0) + 1;
+      }
+      orgId = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    }
+  }
+
+  // Step 2: Find active resellers for that org (any team_role, including ADMIN)
+  let resellers: { id: string; organization_id: string | null }[] | null = null;
+
+  if (orgId) {
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('id, organization_id')
+      .eq('role', 'RESELLER')
+      .eq('is_active', true)
+      .eq('organization_id', orgId);
+    resellers = data;
+  }
+
+  // Step 3: Fallback to any reseller (org owners only) if none found for the org
+  if (!resellers || resellers.length === 0) {
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('id, organization_id')
+      .eq('role', 'RESELLER')
+      .eq('is_active', true)
+      .is('team_role', null);
+    resellers = data;
+  }
 
   if (!resellers || resellers.length === 0) return null;
 
+  // Step 4: Round-robin by active order load
   const counts = await Promise.all(
     resellers.map(async (r) => {
       const { count } = await supabaseAdmin
@@ -96,8 +132,8 @@ export async function POST(request: NextRequest) {
   const shipping = 0;
   const total = subtotal + tax + shipping;
 
-  // Auto-assign a reseller
-  const reseller = await assignReseller();
+  // Auto-assign a reseller based on product ownership
+  const reseller = await assignReseller(enrichedItems.map((i) => i.product_id));
 
   const { data: order, error } = await supabaseAdmin
     .from('orders')

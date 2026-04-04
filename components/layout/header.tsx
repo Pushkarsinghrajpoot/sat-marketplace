@@ -41,12 +41,26 @@ export function Header() {
 
     setSearchLoading(true);
     try {
-      // Search products
-      const { data: products, error: productsError } = await supabase
+      // Determine which org types to search based on viewer role
+      const orgType = user?.role === 'RESELLER' || user?.role === 'DISTRIBUTOR'
+        ? 'DISTRIBUTOR'
+        : 'RESELLER';
+
+      // Get org IDs for the target org type
+      const { data: orgTypeData } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('type', orgType);
+      const orgIds = (orgTypeData || []).map((o: any) => o.id);
+
+      // Search products filtered by org type
+      let productsQuery = supabase
         .from('products')
         .select('id, name, brand, price, sku')
         .or(`name.ilike.%${query}%,brand.ilike.%${query}%,sku.ilike.%${query}%`)
         .limit(5);
+      if (orgIds.length > 0) productsQuery = productsQuery.in('organization_id', orgIds);
+      const { data: products, error: productsError } = await productsQuery;
 
       if (productsError) {
         console.error('Products search error:', productsError);

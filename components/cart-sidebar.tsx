@@ -76,7 +76,7 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
           ) : (
             <div className="space-y-4">
               {items.map((item) => {
-                const img = item.product?.images?.[0];
+                const img = item.product?.product_images?.sort((a: any, b: any) => a.display_order - b.display_order)?.[0]?.url;
                 const lineTotal = (item.product?.price ?? 0) * item.quantity;
                 return (
                   <div key={item.id} className="flex gap-3 p-3 bg-[#F8F9FF] rounded-xl border border-[#EEF2FF]">

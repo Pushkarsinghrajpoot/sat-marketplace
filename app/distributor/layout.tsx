@@ -30,7 +30,7 @@ const iconMap: Record<string, any> = {
 export default function DistributorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, organization, logout, accessibleRoutes, isTeamMember, teamRole } = useSimpleAuth();
+  const { user, organization, logout, accessibleRoutes, isTeamMember, teamRole, loading } = useSimpleAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [pageAssignments, setPageAssignments] = useState<string[]>([]);
@@ -84,10 +84,11 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   }, [accessibleRoutes, isTeamMember, teamRole, pageAssignments]);
 
   useEffect(() => {
-    if (!user || organization?.type !== 'DISTRIBUTOR') {
+    if (loading) return;
+    if (!user || user.role !== 'DISTRIBUTOR') {
       router.push('/auth/login');
     }
-  }, [user, organization, router]);
+  }, [user, router, loading]);
 
   const handleLogout = () => {
     logout();

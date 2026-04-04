@@ -131,6 +131,12 @@ export const RESELLER_ROUTES: RoutePermission[] = [
     requiredPermissions: [{ module: 'products', action: 'view' }]
   },
   { 
+    path: '/reseller/my-products', 
+    label: 'My Products', 
+    icon: 'Store',
+    requiredPermissions: [{ module: 'products', action: 'create' }]
+  },
+  { 
     path: '/reseller/services', 
     label: 'Services', 
     icon: 'Wrench',

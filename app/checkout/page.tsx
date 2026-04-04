@@ -255,7 +255,7 @@ export default function CheckoutPage() {
                   </h2>
                   <div className="space-y-3 mb-4">
                     {items.map(item => {
-                      const img = item.product?.images?.[0];
+                      const img = item.product?.product_images?.sort((a: any, b: any) => a.display_order - b.display_order)?.[0]?.url;
                       return (
                         <div key={item.id} className="flex gap-3">
                           <div className="w-12 h-12 bg-[#F4F4F5] rounded-lg flex-shrink-0 overflow-hidden">

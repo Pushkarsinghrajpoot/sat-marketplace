@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { useCart } from '@/lib/cart-context';
+import { CartSidebar } from '@/components/cart-sidebar';
+import { NotificationBell } from '@/components/notification-bell';
 import { Button } from '@/components/ui/button';
-import { Eye, LogOut, Bell, Menu, X, ChevronLeft, ChevronRight, FileText, LayoutDashboard, ShoppingBag } from 'lucide-react';
+import { Eye, LogOut, Menu, X, ChevronLeft, ChevronRight, FileText, LayoutDashboard, ShoppingBag, ShoppingCart, Package } from 'lucide-react';
 
 export default function EndUserLayout({
   children,
@@ -14,26 +17,27 @@ export default function EndUserLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, organization, logout } = useSimpleAuth();
-  const [mounted, setMounted] = useState(false);
+  const { user, organization, logout, loading } = useSimpleAuth();
+  const { count: cartCount } = useCart();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    if (loading) return;
     if (!user) {
       router.push('/auth/login');
     } else if (user.role !== 'END_USER') {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, router, loading]);
 
   const handleLogout = () => {
     logout();
     router.push('/auth/login');
   };
 
-  if (!mounted || !user) {
+  if (loading || !user) {
     return null;
   }
 
@@ -80,7 +84,7 @@ export default function EndUserLayout({
                 </div>
               </div>
               <nav className="space-y-1">
-                {[{ href: '/end-user/dashboard', label: 'Dashboard', icon: LayoutDashboard }, { href: '/end-user/my-leads', label: 'My Requests', icon: FileText }, { href: '/end-user/orders', label: 'My Orders', icon: ShoppingBag }].map(({ href, label, icon: Icon }) => {
+                {[{ href: '/end-user/dashboard', label: 'Dashboard', icon: LayoutDashboard }, { href: '/end-user/my-leads', label: 'My Requests', icon: FileText }, { href: '/end-user/orders', label: 'My Orders', icon: ShoppingBag }, { href: '/checkout', label: 'Checkout', icon: Package }].map(({ href, label, icon: Icon }) => {
                   const isActive = pathname === href;
                   return (
                     <Link key={href} href={href}
@@ -93,6 +97,27 @@ export default function EndUserLayout({
                     </Link>
                   );
                 })}
+
+                {/* Cart button with badge */}
+                <button
+                  onClick={() => setCartOpen(true)}
+                  className={`w-full flex items-center h-10 text-[14px] font-medium transition-colors relative text-[#94A3B8] hover:bg-[#1E293B]/70 hover:text-white ${
+                    sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'gap-3 px-3'
+                  }`}
+                  title={sidebarCollapsed ? 'Cart' : undefined}
+                >
+                  <div className="relative flex-shrink-0">
+                    <ShoppingCart className="h-[18px] w-[18px]" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-[#6366F1] text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {cartCount > 9 ? '9+' : cartCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`flex-1 text-left transition-opacity ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
+                    Cart {cartCount > 0 && <span className="ml-1 bg-[#6366F1] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">{cartCount}</span>}
+                  </span>
+                </button>
               </nav>
             </div>
 
@@ -147,9 +172,18 @@ export default function EndUserLayout({
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-4">
-              <button className="relative w-9 h-9 flex items-center justify-center border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors">
-                <Bell className="h-[18px] w-[18px] text-[#71717A]" />
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative w-9 h-9 flex items-center justify-center border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors"
+              >
+                <ShoppingCart className="h-[18px] w-[18px] text-[#71717A]" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#6366F1] text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </span>
+                )}
               </button>
+              <NotificationBell />
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-[#6366F1] rounded-full flex items-center justify-center text-white text-sm font-semibold">
                   {user?.name.charAt(0)}
@@ -174,6 +208,8 @@ export default function EndUserLayout({
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      <CartSidebar open={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   );
 }

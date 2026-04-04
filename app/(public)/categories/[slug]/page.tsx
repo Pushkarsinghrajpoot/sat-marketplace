@@ -9,10 +9,12 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import type { Product, Category } from '@/lib/types';
 
 export default function CategoryPage() {
   const params = useParams();
+  const { user } = useSimpleAuth();
   const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -51,13 +53,28 @@ export default function CategoryPage() {
         };
         setCategory(cat);
 
-        // Fetch products for this category
-        const { data: productsData, error: productsError } = await supabase
+        // Determine which org types to show based on viewer role
+        const orgType = user?.role === 'RESELLER' || user?.role === 'DISTRIBUTOR'
+          ? 'DISTRIBUTOR'
+          : 'RESELLER';
+
+        // Get org IDs for the target org type
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('type', orgType);
+        const orgIds = (orgData || []).map((o: any) => o.id);
+
+        // Fetch products for this category filtered by org type
+        let productsQuery = supabase
           .from('products')
-          .select('*, product_images(*), organizations(id, name)')
+          .select('*, product_images(*), organizations(id, name, type)')
           .eq('category_id', categoryData.id)
           .eq('status', 'ACTIVE')
           .order('created_at', { ascending: false });
+        if (orgIds.length > 0) productsQuery = productsQuery.in('organization_id', orgIds);
+
+        const { data: productsData, error: productsError } = await productsQuery;
 
         if (productsError) {
           console.error('Error fetching products:', productsError);

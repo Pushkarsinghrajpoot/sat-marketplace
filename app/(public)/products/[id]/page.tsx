@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,7 @@ import RatingsList from '@/components/ratings/RatingsList';
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { user } = useSimpleAuth();
   const [product, setProduct] = useState<any>(null);
   const [organization, setOrganization] = useState<any>(null);
@@ -68,9 +70,13 @@ export default function ProductDetailPage() {
           await checkExistingRating(productData.id);
         }
 
-        // Fetch related products from same category
+        // Fetch related products — same category + same org-type tier as the current product
+        const relatedOrgType = user?.role === 'RESELLER' || user?.role === 'DISTRIBUTOR'
+          ? 'DISTRIBUTOR'
+          : 'RESELLER';
         const relatedData = await getEnhancedProducts({
-          categoryId: productData.category_id
+          categoryId: productData.category_id,
+          orgType: relatedOrgType,
         });
         
         // Filter out current product and limit to 4
@@ -212,7 +218,10 @@ export default function ProductDetailPage() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-gray-600">Sold by</p>
-                  <Link href={`/distributors/${organization.id}`} className="font-semibold text-blue-600 hover:underline">
+                  <Link
+                    href={organization.type === 'RESELLER' ? `/resellers/${organization.id}` : `/distributors/${organization.id}`}
+                    className="font-semibold text-blue-600 hover:underline"
+                  >
                     {organization.name}
                   </Link>
                   <div className="flex items-center gap-2 mt-1">
@@ -299,6 +308,11 @@ export default function ProductDetailPage() {
                 </Button>
                 <Link href={`/checkout`} className="block" onClick={async (e) => {
                   e.preventDefault();
+                  if (!user) {
+                    sessionStorage.setItem('pendingBuyNow', JSON.stringify({ productId: product.id, quantity }));
+                    router.push(`/auth/login?redirect=/checkout`);
+                    return;
+                  }
                   setAddingToCart(true);
                   await addToCart(product.id, quantity);
                   setAddingToCart(false);

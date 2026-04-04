@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star, Package, Wrench, UserCog, ChevronDown, UserCircle, Building2, ShoppingBag, Zap } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Upload, Briefcase, BarChart3, Settings, LogOut, Bell, Menu, X, MessageCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, CreditCard, Users, Star, Package, Wrench, UserCog, ChevronDown, UserCircle, Building2, ShoppingBag, Zap, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect, useMemo } from 'react';
@@ -27,12 +27,13 @@ const iconMap: Record<string, any> = {
   UserCog,
   ShoppingBag,
   Zap,
+  Store,
 };
 
 export default function ResellerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, organization, logout, accessibleRoutes, isTeamMember, teamRole } = useSimpleAuth();
+  const { user, organization, logout, accessibleRoutes, isTeamMember, teamRole, loading } = useSimpleAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [pageAssignments, setPageAssignments] = useState<string[]>([]);
@@ -86,10 +87,11 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
   }, [accessibleRoutes, isTeamMember, teamRole, pageAssignments]);
 
   useEffect(() => {
-    if (!user || organization?.type !== 'RESELLER') {
+    if (loading) return;
+    if (!user || user.role !== 'RESELLER') {
       router.push('/auth/login');
     }
-  }, [user, organization, router]);
+  }, [user, router, loading]);
 
   const handleLogout = () => {
     logout();

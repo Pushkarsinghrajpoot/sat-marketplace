@@ -68,9 +68,14 @@ export default function HomePage() {
         })));
       }
 
-      const featured = await getFeaturedProducts(6);
+      // Resellers see distributor products; everyone else sees reseller products
+      const orgType = user?.role === 'RESELLER' || user?.role === 'DISTRIBUTOR'
+        ? 'DISTRIBUTOR'
+        : 'RESELLER';
+
+      const featured = await getFeaturedProducts(6, orgType);
       setFeaturedProducts(featured);
-      const trending = await getTrendingProducts(6);
+      const trending = await getTrendingProducts(6, orgType);
       setTrendingProducts(trending);
     } catch (error) {
       console.error('Error fetching data:', error);
