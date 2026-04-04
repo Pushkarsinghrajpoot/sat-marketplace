@@ -112,7 +112,7 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
                 </div>
                 <div className={`flex-1 min-w-0 transition-opacity ${sidebarCollapsed ? 'lg:opacity-0 lg:hidden' : ''}`}>
                   <p className="text-[14px] font-medium text-white truncate">{user?.name}</p>
-                  <p className="text-[12px] text-[#64748B] uppercase">Admin</p>
+                  <p className="text-[12px] text-[#64748B] uppercase">{teamRole || 'Owner'}</p>
                 </div>
               </div>
               <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-[#94A3B8]">

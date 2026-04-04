@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Package, MapPin, CreditCard, Clock, CheckCircle,
   Truck, AlertCircle, RotateCcw, Mail, Phone, Building2,
-  User, FileText, ShoppingBag, Calendar
+  User, FileText, ShoppingBag, Calendar, Users
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -72,7 +72,7 @@ function StatusTimeline({ status }: { status: string }) {
 export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, loading: authLoading } = useSimpleAuth();
+  const { user, teamRole, loading: authLoading } = useSimpleAuth();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -129,6 +129,10 @@ export default function OrderDetailPage() {
   const addr = order.shipping_address;
   const hasAddr = addr && Object.values(addr).some((v: any) => v?.toString().trim());
 
+  // Determine if this is a team-placed order viewed by the admin
+  const isTeamOrder = teamRole === 'ADMIN' && order.buyer_email !== user?.email;
+  const placedBy = order.buyer; // joined from API
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {/* Back */}
@@ -136,6 +140,25 @@ export default function OrderDetailPage() {
         className="inline-flex items-center gap-1.5 text-[13px] text-[#71717A] hover:text-[#09090B] mb-5 transition-colors">
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Orders
       </Link>
+
+      {/* Team order banner */}
+      {isTeamOrder && placedBy && (
+        <div className="flex items-center gap-3 p-3 mb-5 bg-indigo-50 border border-indigo-100 rounded-xl">
+          <div className="w-8 h-8 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#6366F1] font-bold text-sm flex-shrink-0">
+            {placedBy.name?.charAt(0)?.toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <p className="text-[12px] font-bold text-[#6366F1] uppercase tracking-wide">Team Order</p>
+            <p className="text-[13px] text-[#52525B]">
+              Placed by <span className="font-semibold text-[#09090B]">{placedBy.name}</span>
+              <span className="text-[#A1A1AA] ml-1">({placedBy.email})</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-indigo-200 rounded-full text-[11px] font-bold text-[#6366F1]">
+            <Users className="h-3 w-3" /> Team Member
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6">
@@ -308,8 +331,20 @@ export default function OrderDetailPage() {
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-3">
                 <User className="h-4 w-4 text-[#6366F1]" />
-                <p className="text-[13px] font-bold text-[#09090B]">Your Details</p>
+                <p className="text-[13px] font-bold text-[#09090B]">
+                  {isTeamOrder ? 'Order Placed By' : 'Your Details'}
+                </p>
               </div>
+              {isTeamOrder && (
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#6366F1] font-bold text-xs flex-shrink-0">
+                    {order.buyer_name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <span className="text-[11px] font-bold text-[#6366F1] bg-[#EEF2FF] px-2 py-0.5 rounded-full uppercase tracking-wide">
+                    Team Member
+                  </span>
+                </div>
+              )}
               <div className="space-y-1 text-[13px] text-[#52525B]">
                 <p className="font-semibold text-[#09090B]">{order.buyer_name}</p>
                 <p className="text-[12px]">{order.buyer_email}</p>

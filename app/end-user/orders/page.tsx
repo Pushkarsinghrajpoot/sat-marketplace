@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import {
   Package, Clock, CheckCircle, Truck, AlertCircle,
-  Inbox, RotateCcw, ArrowRight, ShoppingBag, DollarSign
+  Inbox, RotateCcw, ArrowRight, ShoppingBag, DollarSign, Users
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; icon: any }> = {
@@ -25,6 +25,8 @@ export default function MyOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
+  const [isTeamAdmin, setIsTeamAdmin] = useState(false);
+  const [memberFilter, setMemberFilter] = useState('ALL');
 
   useEffect(() => {
     if (user?.id) loadOrders();
@@ -38,8 +40,10 @@ export default function MyOrdersPage() {
       if (!token) return;
       const res = await fetch('/api/orders/my', { headers: { Authorization: `Bearer ${token}` } });
       const json = await res.json();
-      if (res.ok) setOrders(json.orders || []);
-      else toast.error('Failed to load orders');
+      if (res.ok) {
+        setOrders(json.orders || []);
+        setIsTeamAdmin(json.isTeamAdmin || false);
+      } else toast.error('Failed to load orders');
     } catch {
       toast.error('Failed to load orders');
     } finally {
@@ -47,16 +51,37 @@ export default function MyOrdersPage() {
     }
   };
 
-  const filtered = filter === 'ALL' ? orders : orders.filter(o => o.status === filter);
+  // Unique team members who placed orders (for admin filter)
+  const teamMembers = isTeamAdmin
+    ? Array.from(
+        new Map(
+          orders
+            .filter(o => o.buyer?.id)
+            .map(o => [o.buyer.id, o.buyer] as [string, any])
+        ).values()
+      )
+    : [];
+
+  const memberFiltered = memberFilter === 'ALL' ? orders : orders.filter(o => o.buyer?.id === memberFilter);
+  const filtered = filter === 'ALL' ? memberFiltered : memberFiltered.filter(o => o.status === filter);
   const totalSpend = orders.filter(o => o.status !== 'CANCELLED').reduce((s, o) => s + Number(o.total), 0);
   const activeCount = orders.filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status)).length;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-[#09090B]">My Orders</h1>
-        <p className="text-[14px] text-[#71717A]">Track and manage all your placed orders</p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#09090B]">{isTeamAdmin ? 'Team Orders' : 'My Orders'}</h1>
+          <p className="text-[14px] text-[#71717A]">
+            {isTeamAdmin ? 'All orders placed by your company team members' : 'Track and manage all your placed orders'}
+          </p>
+        </div>
+        {isTeamAdmin && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#EEF2FF] text-[#6366F1] rounded-full text-[12px] font-bold">
+            <Users className="h-3.5 w-3.5" /> Team View
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -78,6 +103,30 @@ export default function MyOrdersPage() {
                 </div>
               </CardContent>
             </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Team member filter (admin only) */}
+      {isTeamAdmin && teamMembers.length > 1 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          <button onClick={() => setMemberFilter('ALL')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all ${
+              memberFilter === 'ALL'
+                ? 'bg-[#0F172A] text-white border-[#0F172A]'
+                : 'bg-white text-[#52525B] border-[#E4E4E7] hover:border-[#0F172A]'
+            }`}>
+            <Users className="h-3 w-3" /> All Members
+          </button>
+          {teamMembers.map((m: any) => (
+            <button key={m.id} onClick={() => setMemberFilter(m.id)}
+              className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all ${
+                memberFilter === m.id
+                  ? 'bg-[#0F172A] text-white border-[#0F172A]'
+                  : 'bg-white text-[#52525B] border-[#E4E4E7] hover:border-[#0F172A]'
+              }`}>
+              {m.name}
+            </button>
           ))}
         </div>
       )}
@@ -167,6 +216,18 @@ export default function MyOrdersPage() {
                           )}
                         </div>
                       </div>
+
+                      {/* Placed by (team admin view) */}
+                      {isTeamAdmin && order.buyer && order.buyer.id !== user?.id && (
+                        <div className="mt-2 flex items-center gap-1.5 text-[11px]">
+                          <div className="w-4 h-4 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#71717A] font-bold text-[8px] flex-shrink-0">
+                            {order.buyer.name?.charAt(0)?.toUpperCase()}
+                          </div>
+                          <span className="text-[#A1A1AA]">Placed by</span>
+                          <span className="font-semibold text-[#52525B]">{order.buyer.name}</span>
+                          <span className="text-[#D4D4D8]">{order.buyer.email}</span>
+                        </div>
+                      )}
 
                       {/* Reseller strip */}
                       {order.reseller && (

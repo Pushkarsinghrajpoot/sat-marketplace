@@ -8,7 +8,7 @@ import { useCart } from '@/lib/cart-context';
 import { CartSidebar } from '@/components/cart-sidebar';
 import { NotificationBell } from '@/components/notification-bell';
 import { Button } from '@/components/ui/button';
-import { Eye, LogOut, Menu, X, ChevronLeft, ChevronRight, FileText, LayoutDashboard, ShoppingBag, ShoppingCart, Package } from 'lucide-react';
+import { Eye, LogOut, Menu, X, ChevronLeft, ChevronRight, FileText, LayoutDashboard, ShoppingBag, ShoppingCart, Package, Users, ChevronDown, Building2, UserCircle } from 'lucide-react';
 
 export default function EndUserLayout({
   children,
@@ -17,11 +17,12 @@ export default function EndUserLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, organization, logout, loading } = useSimpleAuth();
+  const { user, organization, logout, loading, teamRole } = useSimpleAuth();
   const { count: cartCount } = useCart();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -84,7 +85,13 @@ export default function EndUserLayout({
                 </div>
               </div>
               <nav className="space-y-1">
-                {[{ href: '/end-user/dashboard', label: 'Dashboard', icon: LayoutDashboard }, { href: '/end-user/my-leads', label: 'My Requests', icon: FileText }, { href: '/end-user/orders', label: 'My Orders', icon: ShoppingBag }, { href: '/checkout', label: 'Checkout', icon: Package }].map(({ href, label, icon: Icon }) => {
+                {[
+                  { href: '/end-user/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+                  { href: '/end-user/my-leads', label: 'My Requests', icon: FileText },
+                  { href: '/end-user/orders', label: 'My Orders', icon: ShoppingBag },
+                  ...(!teamRole || teamRole === 'ADMIN' ? [{ href: '/end-user/team', label: 'My Team', icon: Users }] : []),
+                  { href: '/checkout', label: 'Checkout', icon: Package },
+                ].map(({ href, label, icon: Icon }) => {
                   const isActive = pathname === href;
                   return (
                     <Link key={href} href={href}
@@ -184,14 +191,84 @@ export default function EndUserLayout({
                 )}
               </button>
               <NotificationBell />
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-[#6366F1] rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                  {user?.name.charAt(0)}
-                </div>
-                <div className="hidden md:block">
-                  <p className="text-[14px] font-medium text-[#09090B]">{user?.name}</p>
-                  <p className="text-[12px] text-[#71717A]">{user?.role}</p>
-                </div>
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="flex items-center gap-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-[#6366F1] rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                    {user?.name.charAt(0)}
+                  </div>
+                  <div className="hidden md:block text-left">
+                    <p className="text-[14px] font-medium text-[#09090B]">{user?.name}</p>
+                    <p className="text-[12px] text-[#71717A]">{teamRole || 'Buyer'}</p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                </button>
+
+                {showUserDropdown && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowUserDropdown(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{user?.email}</p>
+                        {teamRole && (
+                          <span className="inline-block mt-2 text-[10px] font-bold bg-[#EEF2FF] text-[#6366F1] px-2 py-0.5 rounded-full uppercase tracking-wide">
+                            {teamRole}
+                          </span>
+                        )}
+                        {organization && (
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+                            <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                            <p className="text-xs font-medium text-gray-700">{organization.name}</p>
+                          </div>
+                        )}
+                      </div>
+                      <Link
+                        href="/end-user/dashboard"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowUserDropdown(false)}
+                      >
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                      <Link
+                        href="/end-user/orders"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowUserDropdown(false)}
+                      >
+                        <ShoppingBag className="h-4 w-4" />
+                        <span>My Orders</span>
+                      </Link>
+                      {(!teamRole || teamRole === 'ADMIN') && (
+                        <Link
+                          href="/end-user/team"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setShowUserDropdown(false)}
+                        >
+                          <Users className="h-4 w-4" />
+                          <span>My Team</span>
+                        </Link>
+                      )}
+                      <div className="border-t border-gray-100 mt-1 pt-1">
+                        <button
+                          onClick={() => {
+                            setShowUserDropdown(false);
+                            handleLogout();
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </header>

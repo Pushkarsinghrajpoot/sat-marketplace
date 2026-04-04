@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
-import { Target, Package, Folder, User, X, Plus, Menu } from 'lucide-react';
+import { Target, Package, Folder, User, X, Plus, Menu, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import {
@@ -23,6 +23,7 @@ const ASSIGNMENT_TYPES = [
   { value: 'SUPPORT', label: 'Support', icon: User, color: 'green' },
   { value: 'SALES', label: 'Sales', icon: Target, color: 'orange' },
   { value: 'PAGE', label: 'Page Access', icon: Menu, color: 'indigo' },
+  { value: 'CUSTOMER_ACCOUNT', label: 'Account Manager', icon: UserCircle, color: 'rose' },
 ];
 
 export default function AssignmentsPage() {
@@ -30,6 +31,7 @@ export default function AssignmentsPage() {
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignForm, setAssignForm] = useState({
@@ -54,9 +56,10 @@ export default function AssignmentsPage() {
     console.log('Loading assignments for organization:', user.organizationId);
     
     try {
-      const [members, productsData] = await Promise.all([
+      const [members, productsData, customersData] = await Promise.all([
         getTeamMembers(user.organizationId),
         loadProducts(),
+        loadCustomers(),
       ]);
 
       console.log('Loaded team members:', members.length);
@@ -64,6 +67,7 @@ export default function AssignmentsPage() {
 
       setTeamMembers(members);
       setProducts(productsData);
+      setCustomers(customersData);
 
       // Load all assignments for the team
       const allAssignments: any[] = [];
@@ -83,6 +87,16 @@ export default function AssignmentsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadCustomers = async () => {
+    if (!user?.organizationId) return [];
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, email')
+      .eq('role', 'END_USER')
+      .order('name');
+    return data || [];
   };
 
   const loadProducts = async () => {
@@ -199,6 +213,10 @@ export default function AssignmentsPage() {
     if (assignment.assignment_type === 'PAGE' && assignment.reference_id) {
       const route = RESELLER_ROUTES.find(r => r.path === assignment.reference_id);
       return route?.label || assignment.reference_id;
+    }
+    if (assignment.assignment_type === 'CUSTOMER_ACCOUNT' && assignment.reference_id) {
+      const customer = customers.find(c => c.id === assignment.reference_id);
+      return customer ? `${customer.name} (${customer.email})` : assignment.reference_id;
     }
     return assignment.assignment_type;
   };
@@ -378,6 +396,23 @@ export default function AssignmentsPage() {
                     </Select>
                   </div>
 
+                  {assignForm.assignmentType === 'CUSTOMER_ACCOUNT' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">End-User Customer *</label>
+                      <Select
+                        value={assignForm.referenceId}
+                        onChange={(e) => setAssignForm({ ...assignForm, referenceId: e.target.value })}
+                      >
+                        <option value="">Select customer</option>
+                        {customers.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} — {c.email}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+
                   {assignForm.assignmentType === 'PRODUCT' && (
                     <div>
                       <label className="block text-sm font-medium mb-2">Product *</label>
@@ -427,13 +462,11 @@ export default function AssignmentsPage() {
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-sm text-blue-900">
                       {assignForm.assignmentType === 'PAGE' ? (
-                        <>
-                          <strong>Sidebar Control:</strong> Only the selected pages will appear in this team member's sidebar navigation.
-                        </>
+                        <><strong>Sidebar Control:</strong> Only the selected pages will appear in this team member's sidebar navigation.</>
+                      ) : assignForm.assignmentType === 'CUSTOMER_ACCOUNT' ? (
+                        <><strong>Account Manager:</strong> The selected team member becomes the dedicated account manager for this end-user customer.</>
                       ) : (
-                        <>
-                          <strong>Auto-Routing:</strong> Messages and inquiries will be automatically assigned to this team member based on this assignment.
-                        </>
+                        <><strong>Auto-Routing:</strong> Messages and inquiries will be automatically assigned to this team member based on this assignment.</>
                       )}
                     </p>
                   </div>

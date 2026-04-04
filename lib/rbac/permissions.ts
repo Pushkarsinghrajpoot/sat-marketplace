@@ -287,6 +287,12 @@ export const END_USER_ROUTES: RoutePermission[] = [
   { path: '/end-user/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
   { path: '/end-user/my-leads', label: 'My Requests', icon: 'FileText' },
   { path: '/end-user/orders', label: 'My Orders', icon: 'ShoppingBag' },
+  {
+    path: '/end-user/team',
+    label: 'My Team',
+    icon: 'Users',
+    teamRoles: ['ADMIN'],
+  },
 ];
 
 // Helper function to check if user has permission

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, HelpCircle, Target, Handshake, DollarSign, Star, Megaphone, Briefcase, UserCog, ChevronLeft, ChevronRight, ChevronDown, UserCircle, Building2, Zap } from 'lucide-react';
+import { LayoutDashboard, Package, FileText, MessageCircle, BarChart3, Settings, LogOut, Bell, Menu, X, Users, HelpCircle, Target, Handshake, DollarSign, Star, Megaphone, Briefcase, UserCog, ChevronLeft, ChevronRight, ChevronDown, UserCircle, Building2, Zap, CreditCard, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { useState, useEffect, useMemo } from 'react';
@@ -25,6 +25,9 @@ const iconMap: Record<string, any> = {
   Megaphone,
   Briefcase,
   UserCog,
+  CreditCard,
+  ShoppingBag,
+  Zap,
 };
 
 export default function DistributorLayout({ children }: { children: React.ReactNode }) {
