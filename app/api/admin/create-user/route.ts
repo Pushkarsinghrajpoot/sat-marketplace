@@ -56,8 +56,29 @@ export async function POST(request: NextRequest) {
 
     const newUserId = authData.user!.id;
 
-    // 2. Create organization (only for RESELLER / DISTRIBUTOR)
+    // 2. Create organization (RESELLER / DISTRIBUTOR always; END_USER only if org_name provided)
     let organizationId: string | null = null;
+    if (role === 'END_USER' && org_name) {
+      const buyerOrgName = org_name.trim();
+      const { data: createdOrg, error: orgError } = await supabaseAdmin
+        .from('organizations')
+        .insert([{
+          name: buyerOrgName,
+          legal_name: org_legal_name?.trim() || buyerOrgName,
+          type: 'BUYER',
+          verified: false,
+          is_verified: false,
+        }])
+        .select()
+        .single();
+
+      if (orgError) {
+        await supabaseAdmin.auth.admin.deleteUser(newUserId);
+        return NextResponse.json({ error: 'Failed to create buyer organization: ' + orgError.message }, { status: 400 });
+      }
+      organizationId = createdOrg.id;
+    }
+
     if (role === 'RESELLER' || role === 'DISTRIBUTOR') {
       const orgPayload: Record<string, any> = {
         name: org_name || `${name}'s Company`,

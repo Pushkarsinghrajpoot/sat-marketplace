@@ -59,6 +59,7 @@ export default function AdminUsersPage() {
   const [orgStep, setOrgStep] = useState(false);
 
   const needsOrg = form.role === 'RESELLER' || form.role === 'DISTRIBUTOR';
+  const needsCompanyName = form.role === 'END_USER';
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -392,6 +393,23 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Company name (END_USER only) */}
+                  {needsCompanyName && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                        Company / Organization Name
+                        <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>
+                      </label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input value={form.org_name} onChange={e => set('org_name', e.target.value)}
+                          placeholder="Acme Corp"
+                          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#4648D4]" />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">If provided, a company account will be created for this end user.</p>
+                    </div>
+                  )}
 
                   {/* Info box */}
                   <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">

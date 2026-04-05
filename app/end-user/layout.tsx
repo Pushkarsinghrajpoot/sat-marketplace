@@ -229,6 +229,14 @@ export default function EndUserLayout({
                         )}
                       </div>
                       <Link
+                        href="/end-user/profile"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowUserDropdown(false)}
+                      >
+                        <UserCircle className="h-4 w-4" />
+                        <span>My Profile</span>
+                      </Link>
+                      <Link
                         href="/end-user/dashboard"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         onClick={() => setShowUserDropdown(false)}
