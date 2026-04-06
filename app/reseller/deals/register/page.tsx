@@ -30,6 +30,7 @@ export default function RegisterDealPage() {
   const [loading, setLoading] = useState(false);
   const [distributors, setDistributors] = useState<any[]>([]);
   const [selectedDistributor, setSelectedDistributor] = useState('');
+  const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]); // For BIDDING multi-select
   const [engagementType, setEngagementType] = useState('');
   const [engagementMessage, setEngagementMessage] = useState('');
   const [formData, setFormData] = useState({
@@ -116,7 +117,11 @@ export default function RegisterDealPage() {
         // This is engagement request step - always valid, optional
         return true;
       
-      case 5: // Declaration (both BIDDING and DEAL_REGISTRATION)
+      case 5: // Engagement step - validate distributor selection for BIDDING
+        if (dealType === 'BIDDING' && selectedDistributors.length === 0) {
+          toast.error('Please select at least one distributor for bidding');
+          return false;
+        }
         if (dealType === 'BIDDING' || dealType === 'DEAL_REGISTRATION') {
           if (!formData.confirmedRelationship || !formData.agreedToTerms || !signature) {
             toast.error('Please confirm all declarations and provide signature');
@@ -463,72 +468,80 @@ export default function RegisterDealPage() {
         }
       }
       
+      // Track engaged distributors for BIDDING deals
+      if (createdDeal.id && dealType === 'BIDDING' && selectedDistributors.length > 0) {
+        try {
+          const engagementRecords = selectedDistributors.map(distId => ({
+            deal_id: createdDeal.id,
+            distributor_id: distId,
+          }));
+          
+          await supabase
+            .from('deal_engaged_distributors')
+            .insert(engagementRecords);
+          
+          console.log(`BIDDING: Tracked ${selectedDistributors.length} engaged distributors`);
+        } catch (err) {
+          console.error('Error tracking engaged distributors:', err);
+        }
+      }
+      
       // Send notifications to distributors about new deal
       if (createdDeal.id) {
         try {
-          if (dealType === 'BIDDING') {
-            // For BIDDING deals, notify ALL distributors
-            console.log('BIDDING: Starting notification process for all distributors');
+          if (dealType === 'BIDDING' && selectedDistributors.length > 0) {
+            // For BIDDING deals, notify ONLY SELECTED distributors
+            console.log('BIDDING: Starting notification process for selected distributors');
+            console.log('BIDDING: Selected distributor IDs:', selectedDistributors);
             
-            const { data: allDistributors, error: distError } = await supabase
-              .from('organizations')
-              .select('id, name')
-              .eq('type', 'DISTRIBUTOR')
-              .eq('verified', true);
-            
-            console.log('BIDDING: Found distributors:', allDistributors?.length || 0, allDistributors);
-            
-            if (distError) {
-              console.error('BIDDING: Error fetching distributors:', distError);
-            }
-            
-            if (allDistributors && allDistributors.length > 0) {
-              let notificationCount = 0;
-              for (const distributor of allDistributors) {
-                console.log(`BIDDING: Processing distributor ${distributor.name} (${distributor.id})`);
-                
-                const { data: distributorUsers, error: usersError } = await supabase
-                  .from('users')
-                  .select('id, email, name')
-                  .eq('organization_id', distributor.id)
-                  .eq('role', 'DISTRIBUTOR');
-                
-                console.log(`BIDDING: Found ${distributorUsers?.length || 0} users for ${distributor.name}`);
-                
-                if (usersError) {
-                  console.error(`BIDDING: Error fetching users for ${distributor.name}:`, usersError);
-                }
-                
-                if (distributorUsers && distributorUsers.length > 0) {
-                  for (const distUser of distributorUsers) {
-                    console.log(`BIDDING: Sending notification to ${distUser.name} (${distUser.email})`);
-                    
-                    const result = await sendNotification({
-                      userId: distUser.id,
-                      notificationType: 'DEAL_REGISTERED',
-                      title: 'New Bidding Deal Available',
-                      message: `${user.name} registered a bidding deal: "${formData.opportunityName}"`,
-                      link: `/distributor/deals/${createdDeal.id}`,
-                      emailData: {
-                        resellerName: user.name,
-                        dealName: formData.opportunityName,
-                        estimatedValue: formData.estimatedValue,
-                      },
-                    });
-                    
-                    if (result.success) {
-                      notificationCount++;
-                      console.log(`BIDDING: ✓ Notification sent to ${distUser.name}`);
-                    } else {
-                      console.error(`BIDDING: ✗ Failed to send notification to ${distUser.name}:`, result.error);
-                    }
+            let notificationCount = 0;
+            for (const distributorId of selectedDistributors) {
+              console.log(`BIDDING: Processing distributor ${distributorId}`);
+              
+              const { data: distributorUsers, error: usersError } = await supabase
+                .from('users')
+                .select('id, email, name')
+                .eq('organization_id', distributorId)
+                .eq('role', 'DISTRIBUTOR');
+              
+              console.log(`BIDDING: Found ${distributorUsers?.length || 0} users for distributor ${distributorId}`);
+              
+              if (usersError) {
+                console.error(`BIDDING: Error fetching users for distributor ${distributorId}:`, usersError);
+              }
+              
+              if (distributorUsers && distributorUsers.length > 0) {
+                for (const distUser of distributorUsers) {
+                  console.log(`BIDDING: Sending notification to ${distUser.name} (${distUser.email})`);
+                  
+                  const result = await sendNotification({
+                    userId: distUser.id,
+                    notificationType: 'DEAL_REGISTERED',
+                    title: 'New Bidding Deal - You\'re Invited',
+                    message: `${user.name} invited you to bid on: "${formData.opportunityName}"`,
+                    link: `/distributor/deals/${createdDeal.id}`,
+                    emailData: {
+                      resellerName: user.name,
+                      dealName: formData.opportunityName,
+                      estimatedValue: formData.estimatedValue,
+                    },
+                  });
+                  
+                  if (result.success) {
+                    notificationCount++;
+                    console.log(`BIDDING: ✓ Notification sent to ${distUser.name}`);
+                  } else {
+                    console.error(`BIDDING: ✗ Failed to send notification to ${distUser.name}:`, result.error);
                   }
                 }
               }
-              console.log(`BIDDING: Total notifications sent: ${notificationCount}`);
-            } else {
-              console.warn('BIDDING: No verified distributors found!');
             }
+            console.log(`BIDDING: Total notifications sent: ${notificationCount}`);
+          } else if (dealType === 'BIDDING' && selectedDistributors.length === 0) {
+            console.warn('BIDDING: No distributors selected for bidding deal!');
+            toast.error('Please select at least one distributor for bidding');
+            setLoading(false);
+            return;
           } else if (dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
             // For DEAL_REGISTRATION, only notify selected distributor
             console.log('DEAL_REGISTRATION: Starting notification process for selected distributor');
@@ -584,31 +597,58 @@ export default function RegisterDealPage() {
       // Create engagement request if selected
       if (engagementType && createdDeal.id) {
         try {
-          // For BIDDING deals, engagement goes to selected distributor
-          // For DEAL_REGISTRATION, engagement goes to selected distributor if any
-          let distributorId = null;
-          if (dealType === 'BIDDING' && selectedDistributor) {
-            // For bidding, send to selected distributor
-            distributorId = selectedDistributor;
+          if (dealType === 'BIDDING' && selectedDistributors.length > 0) {
+            // For BIDDING deals, create engagement requests for all selected distributors
+            for (const distributorId of selectedDistributors) {
+              await createEngagementRequest({
+                reseller_id: user.id,
+                distributor_id: distributorId,
+                deal_id: createdDeal.id,
+                engagement_type: engagementType,
+                message: engagementMessage || `Request for ${engagementType.replace('_', ' ')}`,
+                status: 'PENDING',
+              });
+
+              // Send notification to distributor users
+              const { data: distributorUsers } = await supabase
+                .from('users')
+                .select('id')
+                .eq('organization_id', distributorId)
+                .eq('role', 'DISTRIBUTOR');
+              
+              if (distributorUsers && distributorUsers.length > 0) {
+                for (const distUser of distributorUsers) {
+                  await sendNotification({
+                    userId: distUser.id,
+                    notificationType: 'ENGAGEMENT_REQUEST',
+                    title: `New ${engagementType.replace('_', ' ')} Request`,
+                    message: `${user.name} requested ${engagementType.replace('_', ' ')} for bidding deal "${formData.opportunityName}"`,
+                    link: `/distributor/engagements`,
+                    emailData: {
+                      resellerName: user.name,
+                      dealName: formData.opportunityName,
+                    },
+                  });
+                }
+              }
+            }
+            console.log(`Engagement requests created for ${selectedDistributors.length} distributors`);
           } else if (dealType === 'DEAL_REGISTRATION' && selectedDistributor) {
-            distributorId = selectedDistributor;
-          }
+            // For DEAL_REGISTRATION, send to single selected distributor
+            await createEngagementRequest({
+              reseller_id: user.id,
+              distributor_id: selectedDistributor,
+              deal_id: createdDeal.id,
+              engagement_type: engagementType,
+              message: engagementMessage || `Request for ${engagementType.replace('_', ' ')}`,
+              status: 'PENDING',
+            });
 
-          await createEngagementRequest({
-            reseller_id: user.id,
-            distributor_id: distributorId,
-            deal_id: createdDeal.id,
-            engagement_type: engagementType,
-            message: engagementMessage || `Request for ${engagementType.replace('_', ' ')}`,
-            status: 'PENDING',
-          });
-
-          // Send notification to distributor users with email
-          if (distributorId) {
+            // Send notification to distributor users
             const { data: distributorUsers } = await supabase
               .from('users')
               .select('id')
-              .eq('organization_id', distributorId)
+              .eq('organization_id', selectedDistributor)
               .eq('role', 'DISTRIBUTOR');
             
             if (distributorUsers && distributorUsers.length > 0) {
@@ -626,9 +666,8 @@ export default function RegisterDealPage() {
                 });
               }
             }
+            console.log('Engagement request created');
           }
-
-          console.log('Engagement request created');
         } catch (err) {
           console.error('Error creating engagement request:', err);
           // Don't fail the whole submission if engagement fails
@@ -1206,11 +1245,67 @@ export default function RegisterDealPage() {
                   </Select>
                 </div>
 
-                {(dealType === 'BIDDING' || dealType === 'DIRECT_QUERY' || dealType === 'DEAL_REGISTRATION') && (
+                {dealType === 'BIDDING' && (
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      {dealType === 'DEAL_REGISTRATION' ? 'Select Distributor (Optional)' : 
-                       dealType === 'BIDDING' ? 'Select Distributor for Engagement' : 'Select Distributor *'}
+                      Select Distributors for Bidding *
+                    </label>
+                    <div className="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
+                      {distributors.length === 0 ? (
+                        <p className="text-sm text-gray-500">No distributors available</p>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                            <input
+                              type="checkbox"
+                              checked={selectedDistributors.length === distributors.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedDistributors(distributors.map(d => d.id));
+                                } else {
+                                  setSelectedDistributors([]);
+                                }
+                              }}
+                              className="h-4 w-4 text-blue-600 rounded"
+                            />
+                            <label className="text-sm font-semibold text-gray-700">
+                              Select All ({distributors.length})
+                            </label>
+                          </div>
+                          {distributors.map((dist) => (
+                            <div key={dist.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                              <input
+                                type="checkbox"
+                                checked={selectedDistributors.includes(dist.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedDistributors([...selectedDistributors, dist.id]);
+                                  } else {
+                                    setSelectedDistributors(selectedDistributors.filter(id => id !== dist.id));
+                                  }
+                                }}
+                                className="h-4 w-4 text-blue-600 rounded"
+                              />
+                              <label className="text-sm text-gray-700 flex-1 cursor-pointer">
+                                {dist.name}
+                                {dist.city && <span className="text-gray-500 ml-2">• {dist.city}</span>}
+                              </label>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Selected: {selectedDistributors.length} distributor{selectedDistributors.length !== 1 ? 's' : ''}
+                      {selectedDistributors.length > 0 && ' - All selected distributors will receive notifications and can submit quotes'}
+                    </p>
+                  </div>
+                )}
+
+                {(dealType === 'DIRECT_QUERY' || dealType === 'DEAL_REGISTRATION') && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {dealType === 'DEAL_REGISTRATION' ? 'Select Distributor (Optional)' : 'Select Distributor *'}
                     </label>
                     <Select
                       value={selectedDistributor}
@@ -1227,8 +1322,6 @@ export default function RegisterDealPage() {
                     <p className="text-xs text-gray-500 mt-1">
                       {dealType === 'DEAL_REGISTRATION'
                         ? 'If selected, this specific distributor will be able to view your deal and receive engagement requests'
-                        : dealType === 'BIDDING' 
-                        ? 'This engagement request will be sent to the selected distributor'
                         : 'This query will only be visible to the selected distributor'
                       }
                     </p>
