@@ -102,9 +102,10 @@ export async function getDeals(filters?: {
     // Filter to only show deals where this distributor is engaged
     const filteredData = await Promise.all(
       data.map(async (deal) => {
-        if (deal.visibility === 'PUBLIC') return deal;
+        // For BIDDING deals (PUBLIC visibility), check engagement table
+        // For DEAL_REGISTRATION (DISTRIBUTOR visibility), also check engagement table
+        // This ensures distributors only see deals they're specifically invited to
         
-        // Check if distributor is engaged with this deal
         const { data: engagement } = await supabase
           .from('deal_engaged_distributors')
           .select('id')
