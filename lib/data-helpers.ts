@@ -203,6 +203,28 @@ export async function getQuotes(filters?: { dealId?: string; distributorId?: str
     return [];
   }
 
+  // Filter quotes to only show those from deals where distributor is engaged
+  if (filters?.distributorId && data) {
+    const filteredData = await Promise.all(
+      data.map(async (quote) => {
+        // If no deal_id, show the quote (e.g., direct query quotes)
+        if (!quote.deal_id) return quote;
+        
+        // Check if distributor is engaged with this deal
+        const { data: engagement } = await supabase
+          .from('deal_engaged_distributors')
+          .select('id')
+          .eq('deal_id', quote.deal_id)
+          .eq('distributor_id', filters.distributorId)
+          .single();
+        
+        return engagement ? quote : null;
+      })
+    );
+    
+    return mapArray(filteredData.filter(Boolean) as any[], mapQuote);
+  }
+
   return mapArray(data || [], mapQuote);
 }
 
@@ -232,6 +254,25 @@ export async function getBOQs(filters?: { distributorId?: string; visibility?: s
   }
 
   let boqs = mapArray(data || [], mapBOQ);
+
+  // Filter BOQs to only show those from deals where distributor is engaged
+  if (filters?.distributorId && boqs.length > 0) {
+    const filteredBOQs = await Promise.all(
+      boqs.map(async (boq) => {
+        // Check if distributor is engaged with this deal
+        const { data: engagement } = await supabase
+          .from('deal_engaged_distributors')
+          .select('id')
+          .eq('deal_id', boq.dealId)
+          .eq('distributor_id', filters.distributorId)
+          .single();
+        
+        return engagement ? boq : null;
+      })
+    );
+    
+    boqs = filteredBOQs.filter(Boolean) as any[];
+  }
 
   // Filter out BOQs that have accepted/won quotes if requested
   if (filters?.excludeAccepted) {
