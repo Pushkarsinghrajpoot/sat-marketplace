@@ -11,7 +11,7 @@ import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { updateDeal, getQuotes, getDistributors } from '@/lib/data-helpers';
-import { sendNotification, sendBulkNotification } from '@/lib/notification-client';
+import { sendNotification, sendBulkNotification, sendOrgNotification } from '@/lib/notification-client';
 import { convertDealToBidding, convertDealToDirectQuery } from '@/lib/deal-conversion';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import MeetingActivityList from '@/components/meetings/MeetingActivityList';
@@ -153,33 +153,22 @@ export default function DealDetailPage() {
     try {
       const result = await convertDealToDirectQuery(params.id as string, selectedDistributor, user.id);
       if (result.success) {
-        // Notify selected distributor users about the new direct query
-        try {
-          const { data: distUsers } = await supabase
-            .from('users')
-            .select('id')
-            .eq('organization_id', selectedDistributor)
-            .eq('role', 'DISTRIBUTOR');
-
-          if (distUsers?.length) {
-            await sendBulkNotification(
-              distUsers.map((u: any) => u.id),
-              'ENGAGEMENT_REQUEST',
-              'New Direct Query — Action Required',
-              `${user.name || 'A reseller'} has sent you a direct query: "${deal?.opportunityName}". Please review and respond.`,
-              `/distributor/queries`,
-              {
-                resellerName: user.name || 'Reseller',
-                dealName: deal?.opportunityName || 'Direct Query',
-                engagementType: 'Direct Query',
-              }
-            );
-          }
-        } catch (notifErr) {
-          console.error('Notification failed (non-blocking):', notifErr);
-        }
-
         toast.success('Deal converted to direct query successfully!');
+
+        // Notify selected distributor (non-blocking, server-side user lookup bypasses RLS)
+        sendOrgNotification(
+          selectedDistributor,
+          'DISTRIBUTOR',
+          'ENGAGEMENT_REQUEST',
+          'New Direct Query — Action Required',
+          `${user.name || 'A reseller'} has sent you a direct query: "${deal?.opportunityName}". Please review and respond.`,
+          `/distributor/queries/${result.queryId}`,
+          {
+            resellerName: user.name || 'Reseller',
+            dealName: deal?.opportunityName || 'Direct Query',
+            engagementType: 'Direct Query',
+          }
+        ).catch((notifErr: any) => console.error('Notification failed (non-blocking):', notifErr));
         router.push(`/reseller/queries/${result.queryId}`);
       } else {
         toast.error('Failed to convert deal to direct query');
@@ -343,31 +332,41 @@ export default function DealDetailPage() {
       const result = await convertDealToBidding(params.id as string, user.id, selectedDistributors);
       if (!result.success) throw new Error('Conversion failed');
 
-      // Bug 4: Send notifications to all selected distributors
-      for (const distributorId of selectedDistributors) {
-        const { data: distUsers } = await supabase
-          .from('users')
-          .select('id')
-          .eq('organization_id', distributorId)
-          .eq('role', 'DISTRIBUTOR');
-        if (distUsers && distUsers.length > 0) {
-          const userIds = distUsers.map((du: any) => du.id);
-          await sendBulkNotification(
-            userIds,
-            'ENGAGEMENT_REQUEST',
-            'New Bidding Deal — You\'re Invited',
-            `${user.name || 'A reseller'} has invited you to bid on: "${deal?.opportunityName}". Submit a quote to participate.`,
-            `/distributor/deals/${params.id}`,
-            {
-              resellerName: user.name || 'Reseller',
-              dealName: deal?.opportunityName || 'New Deal',
-              engagementType: 'Bidding',
-            }
-          );
-        }
-      }
-
       toast.success('Deal converted to bidding successfully!');
+
+      // Send notifications (non-blocking — failures don't affect the success flow)
+      try {
+        // 1. Notify the reseller themselves
+        await sendNotification({
+          userId: user.id,
+          notificationType: 'DEAL_CONVERTED',
+          title: 'Deal Converted to Bidding',
+          message: `Your deal "${deal?.opportunityName}" has been converted to bidding and is now open for distributor quotes.`,
+          link: `/reseller/deals/${params.id}`,
+          emailData: { dealName: deal?.opportunityName },
+        });
+
+        // 2. Notify each selected distributor org (server-side lookup bypasses RLS)
+        await Promise.all(
+          selectedDistributors.map(distributorId =>
+            sendOrgNotification(
+              distributorId,
+              'DISTRIBUTOR',
+              'ENGAGEMENT_REQUEST',
+              'New Bidding Deal — You\'re Invited',
+              `${user.name || 'A reseller'} has invited you to bid on: "${deal?.opportunityName}". Submit a quote to participate.`,
+              `/distributor/deals/${params.id}`,
+              {
+                resellerName: user.name || 'Reseller',
+                dealName: deal?.opportunityName || 'New Deal',
+                engagementType: 'Bidding',
+              }
+            )
+          )
+        );
+      } catch (notifErr) {
+        console.error('Notifications failed (non-blocking):', notifErr);
+      }
       const { data } = await supabase.from('deals').select('*').eq('id', params.id).single();
       if (data) setDeal(mapDeal(data));
       setShowConvertModal(false);

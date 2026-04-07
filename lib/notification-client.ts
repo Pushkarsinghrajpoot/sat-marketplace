@@ -34,6 +34,38 @@ export async function sendNotification(params: NotificationParams) {
   }
 }
 
+/**
+ * Send a notification to all users in an organization (server resolves users via admin client,
+ * bypassing RLS so cross-org lookups work correctly).
+ */
+export async function sendOrgNotification(
+  organizationId: string,
+  role: string | null,
+  notificationType: string,
+  title: string,
+  message: string,
+  link: string,
+  emailData?: any
+) {
+  try {
+    const response = await fetch('/api/notifications/send-org', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ organizationId, role, notificationType, title, message, link, emailData }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to send org notification');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error sending org notification:', error);
+    return { success: false, error };
+  }
+}
+
 export async function sendBulkNotification(
   userIds: string[],
   notificationType: string,

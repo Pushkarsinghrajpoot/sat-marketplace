@@ -1,14 +1,23 @@
 'use client';
 
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Award, TrendingUp, FileText } from 'lucide-react';
+import { Users, Award, TrendingUp, FileText, Home } from 'lucide-react';
 
 export default function OEMDashboard() {
   return (
     <div className="p-6 lg:p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">OEM Dashboard</h1>
-        <p className="text-gray-600">Manage your partner ecosystem and program rules</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">OEM Dashboard</h1>
+          <p className="text-gray-600">Manage your partner ecosystem and program rules</p>
+        </div>
+        <Link href="/">
+          <button className="flex items-center gap-2 h-10 px-5 text-gray-700 font-semibold text-sm rounded-full border border-gray-200 bg-white hover:bg-gray-50 transition-all shadow-sm">
+            <Home className="h-4 w-4" />
+            Homepage
+          </button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
