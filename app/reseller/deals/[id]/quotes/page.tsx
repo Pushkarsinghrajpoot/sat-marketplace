@@ -89,12 +89,32 @@ export default function DealQuotesPage() {
 
       if (dealError) throw dealError;
 
-      // Reject other quotes for this deal
-      await supabase
+      // Set all other quotes to LOST and fetch them to notify losing distributors
+      const { data: losingQuotes } = await supabase
         .from('quotes')
         .update({ status: 'LOST' })
         .eq('deal_id', dealId)
-        .neq('id', quoteId);
+        .neq('id', quoteId)
+        .select('id, distributor_id, total');
+
+      // Notify each losing distributor
+      if (losingQuotes && losingQuotes.length > 0) {
+        const uniqueLosingDistributorIds = [...new Set(losingQuotes.map((q: any) => q.distributor_id).filter(Boolean))];
+        for (const distOrgId of uniqueLosingDistributorIds) {
+          const { data: distUsers } = await supabase
+            .from('users').select('id')
+            .eq('organization_id', distOrgId).eq('role', 'DISTRIBUTOR');
+          if (distUsers?.length) {
+            await sendBulkNotification(
+              distUsers.map((u: any) => u.id),
+              'QUOTE_REJECTED',
+              'Your quote was not selected',
+              `The reseller has accepted another distributor's quote for this deal. Thank you for your participation.`,
+              `/distributor/quotes/${losingQuotes.find((q: any) => q.distributor_id === distOrgId)?.id}`,
+            );
+          }
+        }
+      }
 
       // Send notification to distributor users with email
       const quote = quotes.find(q => q.id === quoteId);

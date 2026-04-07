@@ -46,7 +46,7 @@ export default function InquiryDetailPage() {
             name,
             email,
             organization_id,
-            organizations (
+            organizations!users_organization_id_fkey (
               id,
               name,
               type

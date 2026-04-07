@@ -21,10 +21,14 @@ function CreateQuoteContent() {
   
   const dealId = searchParams.get('dealId');
   const boqId = searchParams.get('boqId');
+  const queryId = searchParams.get('queryId');
+  const conversationId = searchParams.get('conversation');
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showUploadHint, setShowUploadHint] = useState(false);
   
   const [deal, setDeal] = useState<any>(null);
+  const [query, setQuery] = useState<any>(null);
+  const [conversation, setConversation] = useState<any>(null);
   const [boq, setBoq] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -46,63 +50,122 @@ function CreateQuoteContent() {
 
   useEffect(() => {
     fetchData();
-  }, [dealId, boqId]);
+  }, [dealId, boqId, queryId, conversationId]);
 
   const fetchData = async () => {
-    if (!dealId) {
-      toast.error('Deal ID is required');
+    if (!dealId && !queryId && !conversationId) {
+      toast.error('Missing context: deal, query, or conversation ID required');
       router.back();
       return;
     }
 
     try {
-      // Fetch deal details
-      const { data: dealData, error: dealError } = await supabase
-        .from('deals')
-        .select(`
-          *,
-          users:reseller_id (
-            id,
-            name,
-            email
-          )
-        `)
-        .eq('id', dealId)
-        .single();
-
-      if (dealError) throw dealError;
-      setDeal(dealData);
-
-      // Fetch BOQ if provided
-      if (boqId) {
-        const { data: boqData, error: boqError } = await supabase
-          .from('boqs')
+      if (conversationId) {
+        // Conversation-based quote: fetch chat conversation with product + customer
+        const { data: convData, error: convError } = await supabase
+          .from('chat_conversations')
           .select(`
             *,
-            boq_items(*)
+            products (
+              id,
+              name,
+              sku,
+              price
+            ),
+            users:customer_id (
+              id,
+              name,
+              email
+            )
           `)
-          .eq('id', boqId)
+          .eq('id', conversationId)
           .single();
 
-        if (!boqError && boqData) {
-          setBoq(boqData);
-          
-          // Pre-fill line items from BOQ items
-          if (boqData.boq_items && boqData.boq_items.length > 0) {
-            setLineItems(boqData.boq_items.map((item: any) => ({
-              product_name: item.product_name,
-              quantity: item.quantity,
-              unit_price: 0,
-              total: 0,
-              notes: item.specifications || '',
-              sku: item.sku,
-            })));
+        if (convError) throw convError;
+        setConversation(convData);
+
+        // Pre-fill notes from conversation subject
+        if (convData.subject) {
+          setQuoteData(prev => ({ ...prev, notes: convData.subject }));
+        }
+
+        // Pre-fill a line item from the linked product if available
+        if (convData.products) {
+          const unitPrice = convData.products.price || 0;
+          setLineItems([{
+            product_name: convData.products.name,
+            quantity: 1,
+            unit_price: unitPrice,
+            total: unitPrice,
+            notes: '',
+            sku: convData.products.sku || '',
+          }]);
+          setQuoteData(prev => ({ ...prev, subtotal: unitPrice }));
+        }
+      } else if (queryId) {
+        // Query-based quote: fetch direct query details
+        const { data: queryData, error: queryError } = await supabase
+          .from('direct_queries')
+          .select(`
+            *,
+            users:reseller_id (
+              id,
+              name,
+              email
+            )
+          `)
+          .eq('id', queryId)
+          .single();
+
+        if (queryError) throw queryError;
+        setQuery(queryData);
+      } else {
+        // Deal-based quote: fetch deal details
+        const { data: dealData, error: dealError } = await supabase
+          .from('deals')
+          .select(`
+            *,
+            users:reseller_id (
+              id,
+              name,
+              email
+            )
+          `)
+          .eq('id', dealId)
+          .single();
+
+        if (dealError) throw dealError;
+        setDeal(dealData);
+
+        // Fetch BOQ if provided
+        if (boqId) {
+          const { data: boqData, error: boqError } = await supabase
+            .from('boqs')
+            .select(`
+              *,
+              boq_items(*)
+            `)
+            .eq('id', boqId)
+            .single();
+
+          if (!boqError && boqData) {
+            setBoq(boqData);
+            if (boqData.boq_items && boqData.boq_items.length > 0) {
+              setLineItems(boqData.boq_items.map((item: any) => ({
+                product_name: item.product_name,
+                quantity: item.quantity,
+                unit_price: 0,
+                total: 0,
+                notes: item.specifications || '',
+                sku: item.sku,
+              })));
+            }
           }
         }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to load deal information');
+      toast.error('Failed to load information');
     } finally {
       setLoading(false);
     }
@@ -201,16 +264,27 @@ function CreateQuoteContent() {
 
     try {
       const total = quoteData.subtotal + taxAmount + quoteData.shipping - discountAmount;
+      const resellerId = conversationId
+        ? (conversation?.customer_id)
+        : queryId
+        ? query?.reseller_id
+        : deal?.reseller_id;
+      const contextName = conversationId
+        ? (conversation?.subject || conversation?.products?.name || 'Product Chat')
+        : queryId
+        ? query?.title
+        : deal?.opportunity_name;
 
       // Create quote
       const { data: quote, error: quoteError } = await supabase
         .from('quotes')
         .insert({
           quote_type: boqId ? 'BIDDING' : 'NORMAL',
-          deal_id: dealId,
+          deal_id: dealId || conversation?.deal_id || null,
+          query_id: queryId || null,
           boq_id: boqId || null,
           distributor_id: user.organizationId,
-          reseller_id: deal?.reseller_id,
+          reseller_id: resellerId,
           subtotal: quoteData.subtotal,
           tax: taxAmount,
           shipping: quoteData.shipping,
@@ -242,23 +316,30 @@ function CreateQuoteContent() {
         .from('quote_line_items')
         .insert(lineItemsData);
 
-      if (itemsError) {
-        console.error('Line items error:', itemsError);
-        // Non-critical, continue
+      if (itemsError) console.error('Line items error (non-critical):', itemsError);
+
+      // If this is a query-based quote, link it back to the direct query
+      if (queryId && quote.id) {
+        await supabase
+          .from('direct_queries')
+          .update({ linked_quote_id: quote.id, status: 'ACCEPTED' })
+          .eq('id', queryId);
       }
 
-      // Send notification to reseller with email
-      await sendNotification({
-        userId: deal?.reseller_id,
-        notificationType: 'QUOTE_RECEIVED',
-        title: 'New Quote Received',
-        message: `You received a quote for ${formatCurrency(total)} for ${deal?.opportunity_name}`,
-        link: `/reseller/deals/${dealId}/quotes`,
-        emailData: {
-          dealName: deal?.opportunity_name,
-          amount: formatCurrency(total),
-        },
-      });
+      // Notify reseller
+      if (resellerId) {
+        await sendNotification({
+          userId: resellerId,
+          notificationType: 'QUOTE_RECEIVED',
+          title: 'New Quote Received',
+          message: `You received a quote for ${formatCurrency(total)} for "${contextName}"`,
+          link: queryId ? `/reseller/queries/${queryId}` : `/reseller/deals/${dealId}/quotes`,
+          emailData: {
+            dealName: contextName,
+            amount: formatCurrency(total),
+          },
+        });
+      }
 
       toast.success('Quote submitted successfully!');
       router.push('/distributor/quotes');
@@ -282,12 +363,12 @@ function CreateQuoteContent() {
     );
   }
 
-  if (!deal) {
+  if (!deal && !query && !conversation) {
     return (
       <div className="p-6 lg:p-8">
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-gray-600 font-semibold">Deal not found</p>
+            <p className="text-gray-600 font-semibold">Context not found — deal, query, or conversation required</p>
             <Button className="mt-4" onClick={() => router.back()}>Go Back</Button>
           </CardContent>
         </Card>
@@ -310,7 +391,13 @@ function CreateQuoteContent() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Quote</h1>
           <p className="text-gray-600">
-            Deal: {deal.opportunity_name} - {deal.customer_company}
+            {deal
+              ? `Deal: ${deal.opportunity_name} — ${deal.customer_company}`
+              : query
+              ? `Query: ${query.title}`
+              : conversation
+              ? `Chat: ${conversation.subject || conversation.products?.name || 'Product Conversation'}`
+              : ''}
           </p>
           {boq && (
             <div className="mt-2 flex items-center gap-2 text-sm">

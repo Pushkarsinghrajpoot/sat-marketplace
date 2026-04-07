@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
-import { CheckCircle, Search, Send, AlertCircle, Lock, TrendingUp } from 'lucide-react';
+import { CheckCircle, Search, Send, AlertCircle, Lock, TrendingUp, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createDeal, getDistributors, createEngagementRequest } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
@@ -1360,15 +1360,20 @@ export default function RegisterDealPage() {
               <Button
                 variant="outline"
                 onClick={handleBack}
-                disabled={currentStep === 0}
+                disabled={currentStep === 0 || loading}
               >
                 Back
               </Button>
               <Button 
                 onClick={handleNext}
-                disabled={currentStep === 0 && !dealType}
+                disabled={(currentStep === 0 && !dealType) || loading}
               >
-                {currentStep === 5 && (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING' || dealType === 'DIRECT_QUERY') ? (
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : currentStep === 5 && (dealType === 'DEAL_REGISTRATION' || dealType === 'BIDDING' || dealType === 'DIRECT_QUERY') ? (
                   <>
                     <Lock className="h-4 w-4 mr-2" />
                     {dealType === 'DEAL_REGISTRATION' ? 'Lock & Register Deal' : 

@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Building2, User, Calendar, DollarSign, Lock, FileText, TrendingUp, CheckCircle, XCircle, Clock, Video, Users, MessageCircle, Star, X } from 'lucide-react';
+import { ArrowLeft, Building2, User, Calendar, DollarSign, Lock, FileText, TrendingUp, CheckCircle, XCircle, Clock, Video, Users, MessageCircle, Star, X, Send } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { sendNotification } from '@/lib/notification-client';
 import RatingButton from '@/components/ratings/RatingButton';
 
 const ACTIVITY_TYPES = [
@@ -60,9 +61,16 @@ export default function DistributorDealDetailPage() {
   const [existingRating, setExistingRating] = useState<any>(null);
   const [loadingRating, setLoadingRating] = useState(false);
   const [showRatingDetails, setShowRatingDetails] = useState(false);
+  const [showMessageResellerModal, setShowMessageResellerModal] = useState(false);
+  const [messageResellerText, setMessageResellerText] = useState('');
+  const [sendingResellerMsg, setSendingResellerMsg] = useState(false);
+  const [dealMessages, setDealMessages] = useState<any[]>([]);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
 
   useEffect(() => {
     fetchDealDetails();
+    loadDealMessages();
   }, [dealId]);
 
   useEffect(() => {
@@ -180,6 +188,93 @@ export default function DistributorDealDetailPage() {
   const totalScore = activities
     .filter(a => a.status === 'ACKNOWLEDGED')
     .reduce((sum, a) => sum + (a.points || 0), 0);
+
+  const loadDealMessages = async () => {
+    if (!dealId) return;
+    const { data } = await supabase
+      .from('quote_messages')
+      .select('id, text, created_at, read, sender_id, sender_org_id, users!quote_messages_sender_id_fkey(id, name)')
+      .eq('deal_id', dealId)
+      .order('created_at', { ascending: true });
+    if (data) setDealMessages(data);
+  };
+
+  const handleSendResellerMessage = async () => {
+    if (!messageResellerText.trim() || !user?.id) return;
+    setSendingResellerMsg(true);
+    try {
+      const resellerId = deal?.reseller_id || deal?.users?.id;
+      if (!resellerId) {
+        toast.error('Cannot find reseller for this deal');
+        return;
+      }
+
+      // Persist message to quote_messages with deal_id
+      const { error: msgError } = await supabase
+        .from('quote_messages')
+        .insert({
+          deal_id: dealId,
+          sender_id: user.id,
+          sender_org_id: user.organizationId,
+          recipient_id: resellerId,
+          recipient_org_id: deal?.reseller_organization_id || null,
+          text: messageResellerText.trim(),
+          read: false,
+        });
+
+      if (msgError) throw msgError;
+
+      // Send in-app notification to the reseller
+      await sendNotification({
+        userId: resellerId,
+        notificationType: 'QUOTE_MESSAGE',
+        title: 'Message from Distributor',
+        message: messageResellerText.trim(),
+        link: `/reseller/deals/${dealId}#messages`,
+      });
+
+      toast.success('Message sent to reseller!');
+      setMessageResellerText('');
+      setShowMessageResellerModal(false);
+      loadDealMessages();
+    } catch (err) {
+      console.error('Error sending message:', err);
+      toast.error('Failed to send message');
+    } finally {
+      setSendingResellerMsg(false);
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !user?.id) return;
+    setSendingReply(true);
+    try {
+      const resellerId = deal?.reseller_id || deal?.users?.id;
+      if (!resellerId) return;
+      await supabase.from('quote_messages').insert({
+        deal_id: dealId,
+        sender_id: user.id,
+        sender_org_id: user.organizationId,
+        recipient_id: resellerId,
+        recipient_org_id: deal?.reseller_organization_id || null,
+        text: replyText.trim(),
+        read: false,
+      });
+      await sendNotification({
+        userId: resellerId,
+        notificationType: 'QUOTE_MESSAGE',
+        title: 'New message from Distributor',
+        message: replyText.trim(),
+        link: `/reseller/deals/${dealId}#messages`,
+      });
+      setReplyText('');
+      loadDealMessages();
+    } catch (err) {
+      toast.error('Failed to send message');
+    } finally {
+      setSendingReply(false);
+    }
+  };
 
   const checkExistingRating = async () => {
     if (!user?.id || !dealId) return;
@@ -439,12 +534,10 @@ export default function DistributorDealDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              <Link href={`/distributor/messages?dealId=${deal.id}`}>
-                <Button variant="outline">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Message Reseller
-                </Button>
-              </Link>
+              <Button variant="outline" onClick={() => setShowMessageResellerModal(true)}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Message Reseller
+              </Button>
               <Link href={`/distributor/quotes/create?dealId=${deal.id}`}>
                 <Button variant="outline">
                   <FileText className="h-4 w-4 mr-2" />
@@ -1020,6 +1113,145 @@ export default function DistributorDealDetailPage() {
             </div>
           </div>
         )}
+      {/* Deal Messages Thread */}
+      <div id="messages" className="mt-6">
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-blue-600" />
+              Deal Messages
+              {dealMessages.filter((m: any) => !m.read && m.sender_id !== user?.id).length > 0 && (
+                <span className="ml-1 bg-blue-600 text-white text-xs rounded-full px-2 py-0.5">
+                  {dealMessages.filter((m: any) => !m.read && m.sender_id !== user?.id).length} new
+                </span>
+              )}
+            </h3>
+
+            {/* Thread */}
+            <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-1">
+              {dealMessages.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-6">No messages yet. Click &apos;Message Reseller&apos; to start.</p>
+              )}
+              {dealMessages.map((msg: any) => {
+                const isMe = msg.sender_id === user?.id;
+                return (
+                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                      isMe
+                        ? 'bg-blue-600 text-white rounded-br-none'
+                        : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                    }`}>
+                      {!isMe && (
+                        <p className="text-xs font-semibold mb-0.5 opacity-70">
+                          {msg.users?.name || 'Reseller'}
+                        </p>
+                      )}
+                      <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                      <p className={`text-[10px] mt-1 ${isMe ? 'text-blue-200' : 'text-gray-400'} text-right`}>
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {' · '}{new Date(msg.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Inline reply */}
+            <div className="flex gap-2 border-t pt-3">
+              <Textarea
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Type a reply..."
+                rows={2}
+                className="flex-1 resize-none text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendReply();
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                onClick={handleSendReply}
+                disabled={sendingReply || !replyText.trim()}
+                className="self-end"
+              >
+                {sendingReply ? '...' : 'Send'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Message Reseller Modal */}
+      {showMessageResellerModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-lg w-full shadow-2xl">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <MessageCircle className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Message Reseller</h3>
+                    {deal?.users?.name && (
+                      <p className="text-xs text-gray-500">To: {deal.users.name}</p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowMessageResellerModal(false);
+                    setMessageResellerText('');
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Deal context */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Regarding Deal</p>
+                <p className="text-sm font-semibold text-gray-800">{deal?.opportunity_name || deal?.opportunityName || 'This deal'}</p>
+              </div>
+
+              <Textarea
+                value={messageResellerText}
+                onChange={(e) => setMessageResellerText(e.target.value)}
+                placeholder="Type your message to the reseller..."
+                rows={5}
+                className="mb-4 resize-none"
+                autoFocus
+              />
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleSendResellerMessage}
+                  disabled={sendingResellerMsg || !messageResellerText.trim()}
+                  className="flex-1"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {sendingResellerMsg ? 'Sending...' : 'Send Message'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowMessageResellerModal(false);
+                    setMessageResellerText('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       </div>
     </div>
   );

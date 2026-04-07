@@ -6,16 +6,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Calendar, DollarSign, FileText, Building, Lock, Gavel, MessageSquare, FileCheck } from 'lucide-react';
+import { Search, Calendar, DollarSign, FileText, Building, Lock, Gavel, MessageSquare, FileCheck, Trophy, XCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useSimpleAuth } from '@/lib/simple-auth';
 import { getDeals } from '@/lib/data-helpers';
+import { supabase } from '@/lib/supabase';
 
 export default function DistributorDealsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [allDeals, setAllDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [distributorQuoteStatus, setDistributorQuoteStatus] = useState<Record<string, string>>({});
   const { user, organization } = useSimpleAuth();
 
   useEffect(() => {
@@ -32,6 +34,29 @@ export default function DistributorDealsPage() {
         });
 
         setAllDeals(deals);
+
+        // For WON BIDDING deals, check if THIS distributor's quote won or lost
+        const wonBiddingDeals = deals.filter(
+          (d: any) => d.status === 'WON' && d.dealType === 'BIDDING'
+        );
+        if (wonBiddingDeals.length > 0) {
+          const dealIds = wonBiddingDeals.map((d: any) => d.id);
+          const { data: myQuotes } = await supabase
+            .from('quotes')
+            .select('deal_id, status')
+            .in('deal_id', dealIds)
+            .eq('distributor_id', user.organizationId);
+          if (myQuotes) {
+            const statusMap: Record<string, string> = {};
+            myQuotes.forEach((q: any) => {
+              // If multiple quotes per deal, prefer WON > LOST
+              if (!statusMap[q.deal_id] || q.status === 'WON') {
+                statusMap[q.deal_id] = q.status;
+              }
+            });
+            setDistributorQuoteStatus(statusMap);
+          }
+        }
       } catch (error) {
         console.error('Error fetching deals:', error);
       } finally {
@@ -58,12 +83,29 @@ export default function DistributorDealsPage() {
   // Get active tab deals
   const currentDeals = activeTab === 'all' ? filteredDeals : dealsByType[activeTab as keyof typeof dealsByType] || [];
 
-  // Group current deals by status
+  // Resolve per-distributor outcome for WON BIDDING deals
+  const getDistributorDealOutcome = (deal: any): 'won' | 'lost' | null => {
+    if (deal.status === 'WON' && deal.dealType === 'BIDDING') {
+      const myQuoteStatus = distributorQuoteStatus[deal.id];
+      if (myQuoteStatus === 'WON') return 'won';
+      if (myQuoteStatus === 'LOST') return 'lost';
+      return 'lost'; // WON deal with no quote from this distributor = lost
+    }
+    return null;
+  };
+
+  // Group current deals by status (accounting for per-distributor bidding outcome)
   const dealsByStatus = {
     active: currentDeals.filter(d => d.status === 'ACTIVE' || d.status === 'REGISTERED'),
     quoted: currentDeals.filter(d => d.status === 'QUOTED'),
-    won: currentDeals.filter(d => d.status === 'WON'),
-    lost: currentDeals.filter(d => d.status === 'LOST'),
+    won: currentDeals.filter(d => {
+      if (d.status === 'WON' && d.dealType === 'BIDDING') return getDistributorDealOutcome(d) === 'won';
+      return d.status === 'WON';
+    }),
+    lost: currentDeals.filter(d => {
+      if (d.status === 'WON' && d.dealType === 'BIDDING') return getDistributorDealOutcome(d) === 'lost';
+      return d.status === 'LOST';
+    }),
   };
 
   const tabs = [
@@ -107,14 +149,28 @@ export default function DistributorDealsPage() {
                 <Calendar className="h-3 w-3" />
                 <span>{deal.closeDate || 'No date'}</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Badge variant="default" className="text-xs">
                   {deal.dealType?.replace('_', ' ')}
                 </Badge>
                 {deal.status === 'QUOTED' && (
                   <Badge variant="warning" className="text-xs">Quoted</Badge>
                 )}
-                {deal.status === 'WON' && (
+                {deal.status === 'WON' && deal.dealType === 'BIDDING' && (() => {
+                  const outcome = getDistributorDealOutcome(deal);
+                  if (outcome === 'won') return (
+                    <Badge variant="success" className="text-xs flex items-center gap-1">
+                      <Trophy className="h-2.5 w-2.5" /> Won
+                    </Badge>
+                  );
+                  if (outcome === 'lost') return (
+                    <Badge variant="error" className="text-xs flex items-center gap-1">
+                      <XCircle className="h-2.5 w-2.5" /> Lost Bid
+                    </Badge>
+                  );
+                  return <Badge variant="error" className="text-xs">Lost Bid</Badge>;
+                })()}
+                {deal.status === 'WON' && deal.dealType !== 'BIDDING' && (
                   <Badge variant="success" className="text-xs">Won</Badge>
                 )}
                 {deal.status === 'LOST' && (

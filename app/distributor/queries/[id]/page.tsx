@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, User, Building2, Clock, DollarSign, Send } from 'lucide-react';
+import { ArrowLeft, User, Building2, Clock, DollarSign, Send, FileText, CheckCircle2, MessageSquare } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import Link from 'next/link';
@@ -170,18 +170,61 @@ export default function DirectQueryViewPage() {
           </Card>
         )}
 
-        {query.status === 'OPEN' && (
-          <Card>
-            <CardContent className="p-6">
-              <Link href={`/distributor/queries/${query.id}/respond`}>
-                <Button className="w-full" size="lg">
-                  <Send className="h-4 w-4 mr-2" />
-                  Respond to Query
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+        {/* Actions */}
+        <Card>
+          <CardContent className="p-6">
+            {query.status === 'OPEN' && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 mb-3">This query is awaiting your response.</p>
+                <Link href={`/distributor/queries/${query.id}/respond`}>
+                  <Button className="w-full" size="lg">
+                    <Send className="h-4 w-4 mr-2" />
+                    Respond to Query
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {(query.status === 'RESPONDED' || query.status === 'ACCEPTED') && (
+              <div className="space-y-3">
+                {query.status === 'ACCEPTED' && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg mb-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                    <p className="text-sm font-medium text-green-800">
+                      Reseller accepted your response. Create a formal quote to proceed.
+                    </p>
+                  </div>
+                )}
+                {query.status === 'RESPONDED' && (
+                  <p className="text-sm text-gray-600 mb-3">
+                    Your response has been sent. You can now create a formal quote for this query.
+                  </p>
+                )}
+                {query.linked_quote_id ? (
+                  <Link href={`/distributor/quotes/${query.linked_quote_id}`}>
+                    <Button variant="outline" className="w-full" size="lg">
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Submitted Quote
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href={`/distributor/quotes/create?queryId=${query.id}`}>
+                    <Button className="w-full" size="lg">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Create Formal Quote
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {query.status === 'CLOSED' && (
+              <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <p className="text-sm text-gray-600">This query has been closed.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -98,14 +98,14 @@ export default function RespondToQueryPage() {
         notificationType: 'QUERY_RESPONSE',
         title: 'Query Response Received',
         message: `Your direct query "${query.title}" has been responded to`,
-        link: `/reseller/queries`,
+        link: `/reseller/queries/${queryId}`,
         emailData: {
           queryTitle: query.title,
         },
       });
 
       toast.success('Response sent successfully!');
-      router.push('/distributor/dashboard');
+      router.push(`/distributor/queries/${queryId}`);
     } catch (error) {
       console.error('Error sending response:', error);
       toast.error('Failed to send response');

@@ -41,10 +41,10 @@ export async function sendNotificationWithEmail(params: NotificationParams) {
     }
 
     // 3. Get email template
-    const templateFunction = emailTemplates[params.notificationType];
+    const templateFunction = emailTemplates[params.notificationType as keyof typeof emailTemplates];
     if (!templateFunction) {
-      console.error('No email template found for:', params.notificationType);
-      return { success: false, error: 'Template not found' };
+      console.warn('No email template found for:', params.notificationType, '— notification saved to DB, skipping email.');
+      return { success: true, emailSkipped: true };
     }
 
     // 4. Prepare email data with user name and full link

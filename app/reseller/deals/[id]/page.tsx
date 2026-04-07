@@ -11,7 +11,7 @@ import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { updateDeal, getQuotes, getDistributors } from '@/lib/data-helpers';
-import { sendNotification } from '@/lib/notification-client';
+import { sendNotification, sendBulkNotification } from '@/lib/notification-client';
 import { convertDealToBidding, convertDealToDirectQuery } from '@/lib/deal-conversion';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import MeetingActivityList from '@/components/meetings/MeetingActivityList';
@@ -55,6 +55,9 @@ export default function DealDetailPage() {
   const [boqTitle, setBoqTitle] = useState('');
   const [boqDescription, setBoqDescription] = useState('');
   const [uploadingBOQ, setUploadingBOQ] = useState(false);
+  const [dealMessages, setDealMessages] = useState<any[]>([]);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
   const { user } = useSimpleAuth();
 
   useEffect(() => {
@@ -75,6 +78,9 @@ export default function DealDetailPage() {
         // Fetch quotes count for all deals
         const quotes = await getQuotes({ dealId: params.id as string });
         setQuotesCount(quotes.length);
+
+        // Load deal messages thread
+        loadDealMessages();
 
         // Fetch winning distributor name for WON deals
         if (mappedDeal.status === 'WON' && mappedDeal.wonQuoteId) {
@@ -147,6 +153,32 @@ export default function DealDetailPage() {
     try {
       const result = await convertDealToDirectQuery(params.id as string, selectedDistributor, user.id);
       if (result.success) {
+        // Notify selected distributor users about the new direct query
+        try {
+          const { data: distUsers } = await supabase
+            .from('users')
+            .select('id')
+            .eq('organization_id', selectedDistributor)
+            .eq('role', 'DISTRIBUTOR');
+
+          if (distUsers?.length) {
+            await sendBulkNotification(
+              distUsers.map((u: any) => u.id),
+              'ENGAGEMENT_REQUEST',
+              'New Direct Query — Action Required',
+              `${user.name || 'A reseller'} has sent you a direct query: "${deal?.opportunityName}". Please review and respond.`,
+              `/distributor/queries`,
+              {
+                resellerName: user.name || 'Reseller',
+                dealName: deal?.opportunityName || 'Direct Query',
+                engagementType: 'Direct Query',
+              }
+            );
+          }
+        } catch (notifErr) {
+          console.error('Notification failed (non-blocking):', notifErr);
+        }
+
         toast.success('Deal converted to direct query successfully!');
         router.push(`/reseller/queries/${result.queryId}`);
       } else {
@@ -210,31 +242,93 @@ export default function DealDetailPage() {
     }
   };
 
+  const loadDealMessages = async () => {
+    if (!params.id) return;
+    const { data } = await supabase
+      .from('quote_messages')
+      .select('id, text, created_at, read, sender_id, sender_org_id, recipient_org_id, users!quote_messages_sender_id_fkey(id, name)')
+      .eq('deal_id', params.id)
+      .order('created_at', { ascending: true });
+    if (data) setDealMessages(data);
+  };
+
   const handleSendDistributorMessage = async () => {
     if (!messageDistributorText.trim() || !user?.id) return;
     setSendingDistributorMsg(true);
     try {
       const targetOrgId = messageDistributorTarget || engagedDistributors[0]?.id;
       if (!targetOrgId) { toast.error('No distributor to message'); return; }
+
       const { data: distUsers } = await supabase
         .from('users').select('id')
         .eq('organization_id', targetOrgId).eq('role', 'DISTRIBUTOR');
-      for (const du of (distUsers || [])) {
-        await sendNotification({
-          userId: du.id,
-          notificationType: 'QUOTE_MESSAGE',
-          title: 'Message from Reseller',
-          message: messageDistributorText,
-          link: `/distributor/deals/${params.id}`,
-        });
+
+      // Persist message to quote_messages with deal_id
+      const { error: msgErr } = await supabase.from('quote_messages').insert({
+        deal_id: params.id,
+        sender_id: user.id,
+        sender_org_id: user.organizationId,
+        recipient_org_id: targetOrgId,
+        recipient_id: distUsers?.[0]?.id || null,
+        text: messageDistributorText.trim(),
+        read: false,
+      });
+      if (msgErr) throw msgErr;
+
+      // Notify all distributor users
+      if (distUsers?.length) {
+        await sendBulkNotification(
+          distUsers.map((du: any) => du.id),
+          'QUOTE_MESSAGE',
+          'Message from Reseller',
+          messageDistributorText.trim(),
+          `/distributor/deals/${params.id}#messages`,
+        );
       }
+
       toast.success('Message sent to distributor!');
       setMessageDistributorText('');
       setShowMessageDistributorModal(false);
+      loadDealMessages();
     } catch (err) {
       toast.error('Failed to send message');
     } finally {
       setSendingDistributorMsg(false);
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !user?.id || engagedDistributors.length === 0) return;
+    setSendingReply(true);
+    try {
+      const targetOrgId = engagedDistributors[0]?.id;
+      const { data: distUsers } = await supabase
+        .from('users').select('id')
+        .eq('organization_id', targetOrgId).eq('role', 'DISTRIBUTOR');
+      await supabase.from('quote_messages').insert({
+        deal_id: params.id,
+        sender_id: user.id,
+        sender_org_id: user.organizationId,
+        recipient_org_id: targetOrgId,
+        recipient_id: distUsers?.[0]?.id || null,
+        text: replyText.trim(),
+        read: false,
+      });
+      if (distUsers?.length) {
+        await sendBulkNotification(
+          distUsers.map((du: any) => du.id),
+          'QUOTE_MESSAGE',
+          'New message from Reseller',
+          replyText.trim(),
+          `/distributor/deals/${params.id}#messages`,
+        );
+      }
+      setReplyText('');
+      loadDealMessages();
+    } catch (err) {
+      toast.error('Failed to send message');
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -256,17 +350,20 @@ export default function DealDetailPage() {
           .select('id')
           .eq('organization_id', distributorId)
           .eq('role', 'DISTRIBUTOR');
-        if (distUsers) {
-          for (const du of distUsers) {
-            await sendNotification({
-              userId: du.id,
-              notificationType: 'DEAL_REGISTERED',
-              title: 'New Bidding Deal - You\'re Invited',
-              message: `${user.name} invited you to bid on: "${deal?.opportunityName}"`,
-              link: `/distributor/deals/${params.id}`,
-              emailData: { resellerName: user.name, dealName: deal?.opportunityName },
-            });
-          }
+        if (distUsers && distUsers.length > 0) {
+          const userIds = distUsers.map((du: any) => du.id);
+          await sendBulkNotification(
+            userIds,
+            'ENGAGEMENT_REQUEST',
+            'New Bidding Deal — You\'re Invited',
+            `${user.name || 'A reseller'} has invited you to bid on: "${deal?.opportunityName}". Submit a quote to participate.`,
+            `/distributor/deals/${params.id}`,
+            {
+              resellerName: user.name || 'Reseller',
+              dealName: deal?.opportunityName || 'New Deal',
+              engagementType: 'Bidding',
+            }
+          );
         }
       }
 
@@ -1380,6 +1477,82 @@ export default function DealDetailPage() {
                     Cancel
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Deal Messages Thread */}
+        {(dealMessages.length > 0 || engagedDistributors.length > 0) && (
+          <div id="messages" className="mt-6">
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-blue-600" />
+                  Deal Messages
+                  {dealMessages.filter(m => !m.read && m.sender_id !== user?.id).length > 0 && (
+                    <span className="ml-1 bg-blue-600 text-white text-xs rounded-full px-2 py-0.5">
+                      {dealMessages.filter(m => !m.read && m.sender_id !== user?.id).length} new
+                    </span>
+                  )}
+                </h3>
+
+                {/* Thread */}
+                <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-1">
+                  {dealMessages.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-6">No messages yet. Start the conversation.</p>
+                  )}
+                  {dealMessages.map((msg: any) => {
+                    const isMe = msg.sender_id === user?.id;
+                    return (
+                      <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                          isMe
+                            ? 'bg-blue-600 text-white rounded-br-none'
+                            : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                        }`}>
+                          {!isMe && (
+                            <p className="text-xs font-semibold mb-0.5 opacity-70">
+                              {msg.users?.name || 'Distributor'}
+                            </p>
+                          )}
+                          <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                          <p className={`text-[10px] mt-1 ${isMe ? 'text-blue-200' : 'text-gray-400'} text-right`}>
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {' · '}{new Date(msg.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Quick reply inline */}
+                {engagedDistributors.length > 0 && (
+                  <div className="flex gap-2 border-t pt-3">
+                    <Textarea
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Type a message..."
+                      rows={2}
+                      className="flex-1 resize-none text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendReply();
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSendReply}
+                      disabled={sendingReply || !replyText.trim()}
+                      className="self-end"
+                    >
+                      {sendingReply ? '...' : 'Send'}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
