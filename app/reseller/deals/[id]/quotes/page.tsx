@@ -5,14 +5,15 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, TrendingDown, Eye, FileText, CheckCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Eye, FileText, CheckCircle, XCircle, RefreshCw, X, MessageSquare } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { getQuotes } from '@/lib/data-helpers';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useSimpleAuth } from '@/lib/simple-auth';
-import { sendBulkNotification } from '@/lib/notification-client';
+import { sendBulkNotification, sendNotification } from '@/lib/notification-client';
 
 export default function DealQuotesPage() {
   const params = useParams();
@@ -20,6 +21,12 @@ export default function DealQuotesPage() {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [requestingRevision, setRequestingRevision] = useState<string | null>(null);
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [revisionQuoteId, setRevisionQuoteId] = useState<string | null>(null);
+  const [revisionMessage, setRevisionMessage] = useState('');
+  const [submittingRevision, setSubmittingRevision] = useState(false);
   const { user } = useSimpleAuth();
 
   useEffect(() => {
@@ -122,6 +129,94 @@ export default function DealQuotesPage() {
     }
   };
 
+  const handleRejectQuote = async (quoteId: string) => {
+    if (!user?.id) return;
+    setRejecting(quoteId);
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .update({ status: 'REJECTED' })
+        .eq('id', quoteId);
+      if (error) throw error;
+
+      const quote = quotes.find(q => q.id === quoteId);
+      if (quote?.distributor_id) {
+        const { data: distUsers } = await supabase
+          .from('users').select('id')
+          .eq('organization_id', quote.distributor_id).eq('role', 'DISTRIBUTOR');
+        if (distUsers?.length) {
+          await sendBulkNotification(
+            distUsers.map(u => u.id),
+            'QUOTE_REJECTED',
+            'Quote Rejected',
+            `Your quote #${quoteId.slice(-8)} for ${formatCurrency(quote.total || 0)} has been rejected by the reseller.`,
+            `/distributor/quotes/${quoteId}`,
+          );
+        }
+      }
+      toast.success('Quote rejected.');
+      fetchQuotes();
+    } catch (err) {
+      toast.error('Failed to reject quote');
+    } finally {
+      setRejecting(null);
+    }
+  };
+
+  const openRevisionModal = (quoteId: string) => {
+    setRevisionQuoteId(quoteId);
+    setRevisionMessage('');
+    setShowRevisionModal(true);
+  };
+
+  const handleRequestRevision = async () => {
+    if (!revisionQuoteId || !user?.id) return;
+    setSubmittingRevision(true);
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .update({ status: 'REVISION_REQUESTED' })
+        .eq('id', revisionQuoteId);
+      if (error) throw error;
+
+      const quote = quotes.find(q => q.id === revisionQuoteId);
+      if (quote?.distributor_id) {
+        const { data: distUsers } = await supabase
+          .from('users').select('id')
+          .eq('organization_id', quote.distributor_id).eq('role', 'DISTRIBUTOR');
+        if (distUsers?.length) {
+          await sendBulkNotification(
+            distUsers.map(u => u.id),
+            'QUOTE_REVISION',
+            'Revision Requested on Your Quote',
+            revisionMessage
+              ? `Reseller requested changes: "${revisionMessage}"`
+              : `Reseller requested a revision on quote #${revisionQuoteId.slice(-8)}.`,
+            `/distributor/quotes/${revisionQuoteId}`,
+          );
+        }
+        // Also insert a quote_message so distributor sees the feedback
+        if (revisionMessage.trim()) {
+          await supabase.from('quote_messages').insert({
+            quote_id: revisionQuoteId,
+            sender_id: user.id,
+            recipient_id: quote.distributor_id,
+            text: `🔄 Revision requested: ${revisionMessage}`,
+            read: false,
+          });
+        }
+      }
+      toast.success('Revision request sent to distributor.');
+      setShowRevisionModal(false);
+      setRevisionQuoteId(null);
+      fetchQuotes();
+    } catch (err) {
+      toast.error('Failed to send revision request');
+    } finally {
+      setSubmittingRevision(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'TO_SUBMIT': return 'warning';
@@ -129,6 +224,10 @@ export default function DealQuotesPage() {
       case 'UNDER_REVIEW': return 'default';
       case 'WON': return 'success';
       case 'LOST': return 'danger';
+      case 'REJECTED': return 'danger';
+      case 'REVISION_REQUESTED': return 'warning';
+      case 'EXPIRED': return 'default';
+      case 'CANCELLED': return 'default';
       default: return 'default';
     }
   };
@@ -298,22 +397,59 @@ export default function DealQuotesPage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
-                      <Link href={`/reseller/quotes/${quote.id}`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full">
+                    {/* Revision feedback banner */}
+                    {quote.status === 'REVISION_REQUESTED' && (
+                      <div className="flex items-start gap-2 mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <RefreshCw className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-orange-800">Revision requested — waiting for distributor to resubmit.</p>
+                      </div>
+                    )}
+                    {quote.status === 'REJECTED' && (
+                      <div className="flex items-start gap-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-red-800">This quote has been rejected.</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 flex-wrap">
+                      <Link href={`/reseller/quotes/${quote.id}`}>
+                        <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4 mr-2" />
-                          View Details
+                          View
                         </Button>
                       </Link>
-                      {quote.status === 'SUBMITTED' && (
-                        <Button 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => handleAcceptQuote(quote.id)}
-                          disabled={accepting === quote.id}
-                        >
-                          {accepting === quote.id ? 'Accepting...' : 'Accept Quote'}
-                        </Button>
+                      {(quote.status === 'SUBMITTED' || quote.status === 'UNDER_REVIEW') && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAcceptQuote(quote.id)}
+                            disabled={accepting === quote.id}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1.5" />
+                            {accepting === quote.id ? 'Accepting...' : 'Accept'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openRevisionModal(quote.id)}
+                            disabled={requestingRevision === quote.id}
+                            className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-1.5" />
+                            Request Revision
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRejectQuote(quote.id)}
+                            disabled={rejecting === quote.id}
+                            className="border-red-300 text-red-700 hover:bg-red-50"
+                          >
+                            <XCircle className="h-4 w-4 mr-1.5" />
+                            {rejecting === quote.id ? 'Rejecting...' : 'Reject'}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </CardContent>
@@ -322,6 +458,45 @@ export default function DealQuotesPage() {
             })}
           </div>
         </>
+      )}
+      {/* Revision Request Modal */}
+      {showRevisionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-lg w-full">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5 text-orange-600" />
+                  Request Quote Revision
+                </h3>
+                <Button variant="outline" size="sm" onClick={() => setShowRevisionModal(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                The distributor will be notified and the quote will be sent back for revision. Optionally explain what changes are needed.
+              </p>
+              <Textarea
+                value={revisionMessage}
+                onChange={(e) => setRevisionMessage(e.target.value)}
+                placeholder="e.g. Please revise the unit price for item 2, and provide a faster delivery timeline..."
+                rows={4}
+                className="mb-4"
+              />
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleRequestRevision}
+                  disabled={submittingRevision}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  {submittingRevision ? 'Sending...' : 'Send Revision Request'}
+                </Button>
+                <Button variant="outline" onClick={() => setShowRevisionModal(false)}>Cancel</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

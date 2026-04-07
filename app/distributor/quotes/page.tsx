@@ -54,6 +54,8 @@ export default function QuotesPage() {
       case 'UNDER_REVIEW': return 'default';
       case 'WON': return 'success';
       case 'LOST': return 'danger';
+      case 'REJECTED': return 'danger';
+      case 'REVISION_REQUESTED': return 'warning';
       default: return 'default';
     }
   };
@@ -71,6 +73,8 @@ export default function QuotesPage() {
             { key: 'boqs', label: 'BOQ Requests', count: boqs.length },
             { key: 'to-submit', label: 'To Submit', count: quotes.filter(q => q.status === 'TO_SUBMIT').length },
             { key: 'submitted', label: 'Submitted', count: quotes.filter(q => q.status === 'SUBMITTED').length },
+            { key: 'revision', label: 'Revision Needed', count: quotes.filter(q => q.status === 'REVISION_REQUESTED').length },
+            { key: 'rejected', label: 'Rejected', count: quotes.filter(q => q.status === 'REJECTED').length },
             { key: 'won', label: 'Won', count: quotes.filter(q => q.status === 'WON').length },
             { key: 'lost', label: 'Lost', count: quotes.filter(q => q.status === 'LOST').length },
             { key: 'all', label: 'All Quotes', count: quotes.length },
@@ -207,6 +211,8 @@ export default function QuotesPage() {
               if (activeTab === 'all') return true;
               if (activeTab === 'to-submit') return q.status === 'TO_SUBMIT';
               if (activeTab === 'submitted') return q.status === 'SUBMITTED';
+              if (activeTab === 'revision') return q.status === 'REVISION_REQUESTED';
+              if (activeTab === 'rejected') return q.status === 'REJECTED';
               if (activeTab === 'won') return q.status === 'WON';
               if (activeTab === 'lost') return q.status === 'LOST';
               return true;
@@ -302,6 +308,17 @@ export default function QuotesPage() {
                 </div>
               </div>
 
+              {quote.status === 'REVISION_REQUESTED' && (
+                <div className="mb-3 flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <span className="text-orange-600 text-sm font-medium">⚠️ Revision requested by reseller — please update and resubmit.</span>
+                </div>
+              )}
+              {quote.status === 'REJECTED' && (
+                <div className="mb-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <span className="text-red-700 text-sm font-medium">✕ This quote was rejected by the reseller.</span>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <Link href={`/distributor/quotes/${quote.id}`} className="flex-1">
                   <Button variant="outline" size="sm" className="w-full">
@@ -326,6 +343,15 @@ export default function QuotesPage() {
                     <Button variant="outline" size="sm" className="w-full">
                       <Edit className="h-4 w-4 mr-2" />
                       Update Quote
+                    </Button>
+                  </Link>
+                )}
+
+                {quote.status === 'REVISION_REQUESTED' && (
+                  <Link href={`/distributor/quotes/create?dealId=${quote.dealId}&editQuoteId=${quote.id}`} className="flex-1">
+                    <Button size="sm" className="w-full bg-orange-600 hover:bg-orange-700">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Revise & Resubmit
                     </Button>
                   </Link>
                 )}
