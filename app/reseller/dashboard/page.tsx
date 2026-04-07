@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   DollarSign, Briefcase, TrendingUp, Target, Plus, ArrowRight, Lock,
   Search, Send, Trophy, FileText, Upload, Package, ChevronRight,
-  Clock, CheckCircle, AlertCircle, Eye, FileSpreadsheet, Zap
+  Clock, CheckCircle, AlertCircle, Eye, FileSpreadsheet, Zap, Home
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
@@ -110,13 +110,21 @@ export default function ResellerDashboard() {
             </>
           )}
         </div>
-        <Link href="/reseller/deals/register">
-          <button className="flex items-center gap-2 h-11 px-6 text-white font-semibold text-[14px] rounded-full transition-all hover:opacity-90 hover:shadow-[0_8px_20px_rgba(245,158,11,0.35)]"
-            style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}>
-            <Plus className="h-4 w-4" />
-            Register Deal
-          </button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/">
+            <button className="flex items-center gap-2 h-11 px-5 text-[#161B2B] font-semibold text-[14px] rounded-full border border-[#e2e4ec] bg-white hover:bg-gray-50 transition-all shadow-sm">
+              <Home className="h-4 w-4" />
+              Homepage
+            </button>
+          </Link>
+          <Link href="/reseller/deals/register">
+            <button className="flex items-center gap-2 h-11 px-6 text-white font-semibold text-[14px] rounded-full transition-all hover:opacity-90 hover:shadow-[0_8px_20px_rgba(245,158,11,0.35)]"
+              style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}>
+              <Plus className="h-4 w-4" />
+              Register Deal
+            </button>
+          </Link>
+        </div>
       </div>
 
       {/* ===== KPI CARDS ===== */}

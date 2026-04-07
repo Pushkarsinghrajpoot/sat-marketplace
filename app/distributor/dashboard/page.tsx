@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock,
   Search, Send, TrendingUp, Clock, CheckCircle, FileSpreadsheet,
-  ChevronRight, BarChart3, Zap, Trophy, Upload, Target, Download
+  ChevronRight, BarChart3, Zap, Trophy, Upload, Target, Download, Home
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries, getQuotes, getBOQs } from '@/lib/data-helpers';
@@ -102,6 +102,12 @@ export default function DistributorDashboard() {
           )}
         </div>
         <div className="flex gap-3">
+          <Link href="/">
+             <button className="px-5 py-2.5 bg-white border border-[#c7c6cd]/30 text-[#161B2B] text-sm font-semibold rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+               <Home className="w-[18px] h-[18px]" />
+               Homepage
+             </button>
+          </Link>
           <Link href="/distributor/analytics">
              <button className="px-5 py-2.5 bg-white border border-[#c7c6cd]/30 text-[#161B2B] text-sm font-semibold rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-2">
                <Download className="w-[18px] h-[18px]" />

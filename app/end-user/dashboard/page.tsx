@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Search, Send, TrendingUp, Eye, Clock, AlertCircle } from 'lucide-react';
+import { Lock, Search, Send, TrendingUp, Eye, Clock, AlertCircle, Home } from 'lucide-react';
+import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
@@ -70,9 +71,17 @@ export default function EndUserDashboard() {
         </CardContent>
       </Card>
 
-      <div className="mb-8">
-        <h1 className="text-[24px] font-semibold text-[#09090B] mb-1">Dashboard</h1>
-        <p className="text-[14px] text-[#71717A]">View deals and queries from your organization</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-[24px] font-semibold text-[#09090B] mb-1">Dashboard</h1>
+          <p className="text-[14px] text-[#71717A]">View deals and queries from your organization</p>
+        </div>
+        <Link href="/">
+          <button className="flex items-center gap-2 h-10 px-5 text-[#09090B] font-semibold text-[14px] rounded-full border border-[#e4e4e7] bg-white hover:bg-gray-50 transition-all shadow-sm">
+            <Home className="h-4 w-4" />
+            Homepage
+          </button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
