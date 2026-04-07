@@ -11,12 +11,14 @@ import { formatCurrency } from '@/lib/utils';
 import { Lock, TrendingUp } from 'lucide-react';
 import { getDeals, getDirectQueries } from '@/lib/data-helpers';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { supabase } from '@/lib/supabase';
 
 export default function DealsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deals, setDeals] = useState<any[]>([]);
   const [directQueries, setDirectQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [wonDistributors, setWonDistributors] = useState<Record<string, string>>({});
   const { user } = useSimpleAuth();
 
   useEffect(() => {
@@ -38,6 +40,23 @@ export default function DealsPage() {
         console.log('DealsPage: Deals fetched:', dealsData.length, 'Direct queries:', queriesData.length);
         setDeals(dealsData);
         setDirectQueries(queriesData);
+
+        // Enrich WON deals with winning distributor name
+        const wonDeals = dealsData.filter(d => d.status === 'WON' && d.wonQuoteId);
+        if (wonDeals.length > 0) {
+          const wonQuoteIds = wonDeals.map(d => d.wonQuoteId);
+          const { data: wonQuotes } = await supabase
+            .from('quotes')
+            .select('id, distributor_id, organizations!quotes_distributor_id_fkey(name)')
+            .in('id', wonQuoteIds);
+          if (wonQuotes) {
+            const map: Record<string, string> = {};
+            wonQuotes.forEach((q: any) => {
+              map[q.id] = q.organizations?.name || 'Unknown Distributor';
+            });
+            setWonDistributors(map);
+          }
+        }
       } catch (error) {
         console.error('DealsPage: Error fetching deals:', error);
       } finally {
@@ -292,6 +311,14 @@ export default function DealsPage() {
                           {deal.status}
                         </Badge>
                       </div>
+                      {deal.status === 'WON' && deal.wonQuoteId && wonDistributors[deal.wonQuoteId] && (
+                        <div className="flex items-center gap-1.5 mt-1 pt-1 border-t border-green-200">
+                          <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
+                          <span className="text-[11px] font-semibold text-green-800">
+                            Won by: {wonDistributors[deal.wonQuoteId]}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     <Button 

@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, TrendingDown, Eye, FileText } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Eye, FileText, CheckCircle } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { getQuotes } from '@/lib/data-helpers';
 import { supabase } from '@/lib/supabase';
@@ -218,7 +218,13 @@ export default function DealQuotesPage() {
               const diffFromAverage = quote.total - averagePrice;
               
               return (
-                <Card key={quote.id} className={isLowest ? 'border-2 border-green-500' : ''}>
+                <Card key={quote.id} className={`${isLowest ? 'border-2 border-green-500' : ''} ${quote.status === 'WON' ? 'border-2 border-yellow-400 bg-yellow-50' : ''}`}>
+                  {quote.status === 'WON' && (
+                    <div className="flex items-center gap-2 bg-yellow-400 text-yellow-900 px-4 py-2 rounded-t-lg font-semibold text-sm">
+                      <CheckCircle className="h-4 w-4" />
+                      🏆 Winning Quote — {quote.distributor?.name || 'Unknown Distributor'} won this deal
+                    </div>
+                  )}
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
@@ -237,7 +243,7 @@ export default function DealQuotesPage() {
                         </div>
                         <div className="space-y-1">
                           <p className="text-sm text-gray-600">
-                            Distributor: {quote.distributor?.name || 'Unknown'}
+                            Distributor: <strong>{quote.distributor?.name || 'Unknown'}</strong>
                           </p>
                           <p className="text-sm text-gray-600">
                             Submitted: {quote.submittedAt ? formatRelativeTime(quote.submittedAt) : 'Draft'}

@@ -49,6 +49,7 @@ export default function DealDetailPage() {
   const [messageDistributorText, setMessageDistributorText] = useState('');
   const [sendingDistributorMsg, setSendingDistributorMsg] = useState(false);
   const [engagedDistributors, setEngagedDistributors] = useState<any[]>([]);
+  const [wonDistributorName, setWonDistributorName] = useState<string | null>(null);
   const [showBOQModal, setShowBOQModal] = useState(false);
   const [boqFile, setBoqFile] = useState<File | null>(null);
   const [boqTitle, setBoqTitle] = useState('');
@@ -74,6 +75,18 @@ export default function DealDetailPage() {
         // Fetch quotes count for all deals
         const quotes = await getQuotes({ dealId: params.id as string });
         setQuotesCount(quotes.length);
+
+        // Fetch winning distributor name for WON deals
+        if (mappedDeal.status === 'WON' && mappedDeal.wonQuoteId) {
+          const { data: wonQuote } = await supabase
+            .from('quotes')
+            .select('distributor_id, organizations!quotes_distributor_id_fkey(name)')
+            .eq('id', mappedDeal.wonQuoteId)
+            .single();
+          if (wonQuote?.organizations) {
+            setWonDistributorName((wonQuote.organizations as any).name || null);
+          }
+        }
 
         // Fetch engaged distributors for message target
         const { data: engagedData } = await supabase
@@ -556,9 +569,15 @@ export default function DealDetailPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{deal.opportunityName || 'Untitled Deal'}</h1>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Badge variant={deal.status === 'WON' ? 'success' : 'warning'}>{deal.status || 'Unknown'}</Badge>
               <span className="text-gray-600">Deal ID: {deal.id}</span>
+              {deal.status === 'WON' && wonDistributorName && (
+                <div className="flex items-center gap-1.5 bg-green-100 border border-green-300 rounded-full px-3 py-0.5">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                  <span className="text-xs font-semibold text-green-800">Won by: {wonDistributorName}</span>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex gap-3">
