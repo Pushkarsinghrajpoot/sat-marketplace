@@ -87,20 +87,14 @@ export default function QuoteDetailPage() {
     }
   };
 
-  const handleUpdateQuote = async () => {
-    setSubmitting(true);
-    try {
-      await updateQuote(quote.id, { 
-        status: 'UNDER_REVIEW',
-        updated_at: new Date().toISOString()
-      });
-      toast.success('Quote updated successfully!');
-      router.push('/distributor/quotes');
-    } catch (error) {
-      console.error('Error updating quote:', error);
-      toast.error('Failed to update quote');
-    } finally {
-      setSubmitting(false);
+  const handleUpdateQuote = () => {
+    // Navigate to the edit page with the existing quote's deal/boq context
+    const dealId = quote.deal_id || quote.deals?.id;
+    const boqId = quote.boq_id;
+    if (boqId) {
+      router.push(`/distributor/quotes/create?boqId=${boqId}&dealId=${dealId}&editQuoteId=${quote.id}`);
+    } else {
+      router.push(`/distributor/quotes/create?dealId=${dealId}&editQuoteId=${quote.id}`);
     }
   };
 

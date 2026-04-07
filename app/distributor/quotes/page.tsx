@@ -322,9 +322,12 @@ export default function QuotesPage() {
                 )}
                 
                 {quote.status === 'SUBMITTED' && (
-                  <Button variant="outline" size="sm">
-                    Update Quote
-                  </Button>
+                  <Link href={`/distributor/quotes/${quote.id}`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Update Quote
+                    </Button>
+                  </Link>
                 )}
 
                 {quote.status === 'WON' && (

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Trash2, Send, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Send, FileText, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
@@ -21,6 +21,8 @@ function CreateQuoteContent() {
   
   const dealId = searchParams.get('dealId');
   const boqId = searchParams.get('boqId');
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [showUploadHint, setShowUploadHint] = useState(false);
   
   const [deal, setDeal] = useState<any>(null);
   const [boq, setBoq] = useState<any>(null);
@@ -33,9 +35,9 @@ function CreateQuoteContent() {
     paymentTerms: '',
     notes: '',
     subtotal: 0,
-    tax: 0,
+    taxPercent: 0,
+    discountPercent: 0,
     shipping: 0,
-    discount: 0,
   });
   
   const [lineItems, setLineItems] = useState<any[]>([
@@ -138,6 +140,47 @@ function CreateQuoteContent() {
     setQuoteData(prev => ({ ...prev, subtotal }));
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFile(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) { toast.error('File must have a header row and at least one data row'); setUploadingFile(false); return; }
+        // Parse header to find column indices (case-insensitive)
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+        const nameIdx = headers.findIndex(h => h.includes('product') || h.includes('name') || h.includes('item'));
+        const qtyIdx = headers.findIndex(h => h.includes('qty') || h.includes('quantity'));
+        const priceIdx = headers.findIndex(h => h.includes('price') || h.includes('unit') || h.includes('rate'));
+        const skuIdx = headers.findIndex(h => h.includes('sku') || h.includes('code'));
+        if (nameIdx === -1) { toast.error('CSV must have a column for product name (e.g. "product_name")'); setUploadingFile(false); return; }
+        const parsed = lines.slice(1).map(line => {
+          const cols = line.split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+          const qty = qtyIdx >= 0 ? parseInt(cols[qtyIdx]) || 1 : 1;
+          const price = priceIdx >= 0 ? parseFloat(cols[priceIdx]) || 0 : 0;
+          return { product_name: cols[nameIdx] || '', quantity: qty, unit_price: price, total: qty * price, notes: '', sku: skuIdx >= 0 ? cols[skuIdx] : '' };
+        }).filter(item => item.product_name);
+        if (parsed.length === 0) { toast.error('No valid rows found in file'); setUploadingFile(false); return; }
+        setLineItems(parsed);
+        calculateTotals(parsed);
+        toast.success(`Imported ${parsed.length} line item${parsed.length !== 1 ? 's' : ''} from file!`);
+        setShowUploadHint(false);
+      } catch (err) {
+        toast.error('Failed to parse file. Please use CSV format.');
+      } finally {
+        setUploadingFile(false);
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const taxAmount = (quoteData.subtotal * quoteData.taxPercent) / 100;
+  const discountAmount = (quoteData.subtotal * quoteData.discountPercent) / 100;
+
   const handleSubmit = async () => {
     if (!user?.organizationId) {
       toast.error('Please login as distributor');
@@ -157,7 +200,7 @@ function CreateQuoteContent() {
     setSubmitting(true);
 
     try {
-      const total = quoteData.subtotal + quoteData.tax + quoteData.shipping - quoteData.discount;
+      const total = quoteData.subtotal + taxAmount + quoteData.shipping - discountAmount;
 
       // Create quote
       const { data: quote, error: quoteError } = await supabase
@@ -169,9 +212,9 @@ function CreateQuoteContent() {
           distributor_id: user.organizationId,
           reseller_id: deal?.reseller_id,
           subtotal: quoteData.subtotal,
-          tax: quoteData.tax,
+          tax: taxAmount,
           shipping: quoteData.shipping,
-          discount: quoteData.discount,
+          discount: discountAmount,
           total: total,
           valid_until: quoteData.validUntil,
           delivery_timeline: quoteData.deliveryTimeline,
@@ -252,7 +295,7 @@ function CreateQuoteContent() {
     );
   }
 
-  const total = quoteData.subtotal + quoteData.tax + quoteData.shipping - quoteData.discount;
+  const total = quoteData.subtotal + taxAmount + quoteData.shipping - discountAmount;
 
   return (
     <div className="p-6 lg:p-8">
@@ -278,6 +321,46 @@ function CreateQuoteContent() {
         </div>
 
         <div className="space-y-6">
+          {/* Upload Quote File */}
+          <Card className="border-dashed border-2 border-blue-200 bg-blue-50/40">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold text-blue-900 flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Import from File
+                  </h3>
+                  <p className="text-xs text-blue-700 mt-1">Upload a CSV file to auto-fill line items. Columns: <strong>product_name, quantity, unit_price</strong> (and optionally <strong>sku</strong>)</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const csv = 'product_name,sku,quantity,unit_price\nSample Product,SKU-001,10,500\nAnother Product,SKU-002,5,1200';
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = 'quote_template.csv';
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                  }}
+                  className="text-xs text-blue-600 underline hover:text-blue-800"
+                >
+                  Download Template
+                </button>
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className="flex-1 border border-blue-300 bg-white rounded-lg px-4 py-2.5 flex items-center gap-3 hover:border-blue-500 transition-colors">
+                  <FileText className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                  <span className="text-sm text-gray-500">{uploadingFile ? 'Importing...' : 'Click to select CSV file (.csv)'}</span>
+                </div>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={uploadingFile}
+                />
+              </label>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Line Items</CardTitle>
@@ -402,14 +485,21 @@ function CreateQuoteContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Tax</label>
-                  <Input
-                    type="number"
-                    value={quoteData.tax}
-                    onChange={(e) => setQuoteData({ ...quoteData, tax: parseFloat(e.target.value) || 0 })}
-                    min="0"
-                    step="0.01"
-                  />
+                  <label className="block text-sm font-medium mb-2">Tax (%)</label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={quoteData.taxPercent}
+                      onChange={(e) => setQuoteData({ ...quoteData, taxPercent: parseFloat(e.target.value) || 0 })}
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      className="pr-16"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                      = {formatCurrency(taxAmount)}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Shipping</label>
@@ -422,14 +512,21 @@ function CreateQuoteContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Discount</label>
-                  <Input
-                    type="number"
-                    value={quoteData.discount}
-                    onChange={(e) => setQuoteData({ ...quoteData, discount: parseFloat(e.target.value) || 0 })}
-                    min="0"
-                    step="0.01"
-                  />
+                  <label className="block text-sm font-medium mb-2">Discount (%)</label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={quoteData.discountPercent}
+                      onChange={(e) => setQuoteData({ ...quoteData, discountPercent: parseFloat(e.target.value) || 0 })}
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      className="pr-16"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                      = {formatCurrency(discountAmount)}
+                    </span>
+                  </div>
                 </div>
                 <div className="pt-4 border-t">
                   <label className="block text-sm font-medium mb-2">Total</label>

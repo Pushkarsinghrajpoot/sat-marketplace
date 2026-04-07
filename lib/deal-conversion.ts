@@ -59,20 +59,32 @@ export async function convertDealToDirectQuery(
   }
 }
 
-export async function convertDealToBidding(dealId: string, userId?: string) {
+export async function convertDealToBidding(dealId: string, userId?: string, distributorIds: string[] = []) {
   try {
-    // Update deal visibility and conversion status
+    // Update deal: set deal_type to BIDDING, visibility PUBLIC, mark converted
     const { error: updateError } = await supabase
       .from('deals')
       .update({
+        deal_type: 'BIDDING',
         converted_to_bidding: true,
         converted_to_bidding_at: new Date().toISOString(),
         visibility: 'PUBLIC',
+        status: 'ACTIVE',
       })
       .eq('id', dealId);
 
-    if (updateError) {
-      throw updateError;
+    if (updateError) throw updateError;
+
+    // Insert deal_engaged_distributors records for selected distributors
+    if (distributorIds.length > 0) {
+      const engagementRecords = distributorIds.map(distId => ({
+        deal_id: dealId,
+        distributor_id: distId,
+      }));
+      // Use upsert to avoid duplicates
+      await supabase
+        .from('deal_engaged_distributors')
+        .upsert(engagementRecords, { onConflict: 'deal_id,distributor_id' });
     }
 
     return { success: true };

@@ -13,6 +13,7 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { getQuotes } from '@/lib/data-helpers';
 import { supabase } from '@/lib/supabase';
 import { useSimpleAuth } from '@/lib/simple-auth';
+import { sendNotification } from '@/lib/notification-client';
 import { toast } from 'sonner';
 
 export default function FollowUpPage() {
@@ -132,17 +133,17 @@ export default function FollowUpPage() {
     if (!quote?.reseller_id) return;
 
     try {
-      // Create reminder notification for reseller
-      const notification = {
-        user_id: quote.reseller_id,
-        notification_type: 'QUOTE_REMINDER',
-        title: 'Quote Follow-up',
-        message: `Following up on quote ${quote.id.slice(-8)} for ${formatCurrency(quote.total || 0)}`,
+      await sendNotification({
+        userId: quote.reseller_id,
+        notificationType: 'QUOTE_REMINDER',
+        title: 'Quote Follow-up Reminder',
+        message: `Distributor is following up on quote #${quote.id.slice(-8)} for ${formatCurrency(quote.total || 0)}`,
         link: `/reseller/deals/${quote.deal_id}/quotes`,
-      };
-
-      console.log('Reminder notification:', notification);
-      
+        emailData: {
+          dealName: quote.deal?.opportunity_name || quote.deals?.opportunity_name,
+          amount: formatCurrency(quote.total || 0),
+        },
+      });
       toast.success('Reminder sent to reseller!');
     } catch (error) {
       console.error('Error sending reminder:', error);

@@ -5,7 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, FileText, Calendar, DollarSign, User, Mail, Phone, MessageSquare, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Calendar, DollarSign, User, Mail, Phone, MessageSquare, CheckCircle, Clock, AlertCircle, X } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getQuotes } from '@/lib/data-helpers';
@@ -23,6 +24,10 @@ export default function QuoteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageType, setMessageType] = useState<'message' | 'call'>('message');
+  const [messageText, setMessageText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
     async function fetchQuote() {
@@ -173,56 +178,115 @@ export default function QuoteDetailPage() {
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !user?.id || !quote) return;
+    setSendingMessage(true);
+    try {
+      const distributorId = quote.distributor_id || quote.organizations?.id;
+      // Insert into quote_messages table
+      await supabase.from('quote_messages').insert({
+        quote_id: quoteId,
+        sender_id: user.id,
+        recipient_id: distributorId,
+        text: messageType === 'call'
+          ? `📞 Call Request: ${messageText}`
+          : messageText,
+        read: false,
+      });
+      // Notify distributor users
+      if (distributorId) {
+        const { data: distUsers } = await supabase
+          .from('users').select('id')
+          .eq('organization_id', distributorId).eq('role', 'DISTRIBUTOR');
+        for (const du of (distUsers || [])) {
+          await sendNotification({
+            userId: du.id,
+            notificationType: 'QUOTE_MESSAGE',
+            title: messageType === 'call' ? 'Call Request from Reseller' : 'New Message from Reseller',
+            message: messageText,
+            link: `/distributor/quotes/${quoteId}`,
+          });
+        }
+      }
+      toast.success(messageType === 'call' ? 'Call request sent!' : 'Message sent!');
+      setMessageText('');
+      setShowMessageModal(false);
+    } catch (err) {
+      toast.error('Failed to send message');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   const handleDownloadQuote = () => {
-    // Generate a downloadable text quote
-    const quoteText = `
-QUOTE #${quote.id.slice(-8)}
-Date: ${new Date(quote.created_at).toLocaleDateString()}
-Status: ${quote.status.replace('_', ' ')}
+    const lineItemsHTML = (quote.lineItems || []).map((item: any, i: number) => `
+      <tr style="background:${i % 2 === 0 ? '#f9fafb' : '#fff'}">
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${item.product_name || '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center">${item.sku || '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center">${item.quantity}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right">${formatCurrency(item.unit_price)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right">${formatCurrency(item.subtotal)}</td>
+      </tr>`).join('');
 
-DISTRIBUTOR:
-${quote.distributor?.name || 'Unknown Distributor'}
-${quote.distributor?.email || ''}
+    const html = `<!DOCTYPE html><html><head><title>Quote #${quote.id.slice(-8)}</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#111}
+      h1{font-size:24px;margin-bottom:4px}
+      .meta{color:#6b7280;font-size:13px;margin-bottom:24px}
+      .section{margin-bottom:20px}
+      .section h2{font-size:13px;font-weight:700;text-transform:uppercase;color:#6b7280;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      th{background:#f3f4f6;padding:8px 12px;text-align:left;font-size:12px;font-weight:600;border-bottom:2px solid #e5e7eb}
+      .totals{margin-left:auto;width:280px;margin-top:16px}
+      .totals tr td{padding:6px 12px;font-size:13px}
+      .totals tr td:last-child{text-align:right;font-weight:600}
+      .total-row td{font-size:16px;font-weight:700;border-top:2px solid #111;padding-top:10px}
+      @media print{body{padding:16px}}
+    </style></head><body>
+    <h1>Quote #${quote.id.slice(-8)}</h1>
+    <div class="meta">
+      Generated: ${new Date().toLocaleDateString()} &nbsp;|&nbsp;
+      Valid Until: ${quote.valid_until ? new Date(quote.valid_until).toLocaleDateString() : 'N/A'} &nbsp;|&nbsp;
+      Status: <strong>${(quote.status || '').replace('_', ' ')}</strong>
+    </div>
+    <div class="grid">
+      <div class="section"><h2>From (Distributor)</h2>
+        <p style="margin:0;font-weight:600">${quote.distributor?.name || 'N/A'}</p>
+        <p style="margin:4px 0;font-size:13px;color:#6b7280">${quote.distributor?.email || ''}</p>
+      </div>
+      <div class="section"><h2>Deal / Customer</h2>
+        <p style="margin:0;font-weight:600">${quote.deal?.opportunityName || quote.deals?.opportunity_name || 'N/A'}</p>
+        <p style="margin:4px 0;font-size:13px;color:#6b7280">${quote.deal?.customerName || ''} · ${quote.deal?.customerCompany || ''}</p>
+      </div>
+    </div>
+    <div class="section"><h2>Line Items</h2>
+      <table>
+        <thead><tr><th>Product</th><th>SKU</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Subtotal</th></tr></thead>
+        <tbody>${lineItemsHTML || '<tr><td colspan="5" style="padding:12px;text-align:center;color:#9ca3af">No line items</td></tr>'}</tbody>
+      </table>
+      <table class="totals">
+        <tr><td>Subtotal</td><td>${formatCurrency(quote.subtotal || 0)}</td></tr>
+        <tr><td>Tax</td><td>${formatCurrency(quote.tax || 0)}</td></tr>
+        <tr><td>Shipping</td><td>${formatCurrency(quote.shipping || 0)}</td></tr>
+        <tr><td>Discount</td><td>- ${formatCurrency(quote.discount || 0)}</td></tr>
+        <tr class="total-row"><td>Total</td><td>${formatCurrency(quote.total || 0)}</td></tr>
+      </table>
+    </div>
+    <div class="grid">
+      <div class="section"><h2>Payment Terms</h2><p>${quote.payment_terms || 'N/A'}</p></div>
+      <div class="section"><h2>Delivery</h2><p>${quote.delivery_timeline || 'N/A'}</p></div>
+    </div>
+    ${quote.notes ? `<div class="section"><h2>Notes</h2><p>${quote.notes}</p></div>` : ''}
+    <script>window.onload=()=>{window.print();}</script>
+    </body></html>`;
 
-CUSTOMER:
-${quote.deal?.customerName || 'Unknown Customer'}
-${quote.deal?.customerCompany || ''}
-${quote.deal?.customerEmail || ''}
-
-DEAL:
-${quote.deal?.opportunityName || 'N/A'}
-
-ITEMS:
-${quote.lineItems?.map((item: any) => 
-  `${item.product_name} - Qty: ${item.quantity} x ${formatCurrency(item.unit_price)} = ${formatCurrency(item.subtotal)}`
-).join('\n') || 'No items'}
-
-SUBTOTAL: ${formatCurrency(quote.subtotal || 0)}
-TAX: ${formatCurrency(quote.tax || 0)}
-SHIPPING: ${formatCurrency(quote.shipping || 0)}
-DISCOUNT: ${formatCurrency(quote.discount || 0)}
-TOTAL: ${formatCurrency(quote.total || 0)}
-
-PAYMENT TERMS: ${quote.payment_terms || 'N/A'}
-DELIVERY: ${quote.delivery_timeline || 'N/A'}
-VALID UNTIL: ${quote.valid_until ? new Date(quote.valid_until).toLocaleDateString() : 'N/A'}
-
-NOTES:
-${quote.notes || 'No additional notes'}
-    `.trim();
-
-    // Create downloadable file
-    const blob = new Blob([quoteText], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Quote-${quote.id.slice(-8)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-
-    toast.success('Quote downloaded successfully!');
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+    toast.success('Opening PDF — use "Save as PDF" in the print dialog');
   };
 
   const getStatusColor = (status: string) => {
@@ -573,11 +637,11 @@ ${quote.notes || 'No additional notes'}
               <CardTitle>Contact Distributor</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => { setMessageType('message'); setShowMessageModal(true); }}>
                 <Mail className="h-4 w-4 mr-2" />
                 Send Message
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => { setMessageType('call'); setShowMessageModal(true); }}>
                 <Phone className="h-4 w-4 mr-2" />
                 Request Call
               </Button>
@@ -585,6 +649,35 @@ ${quote.notes || 'No additional notes'}
           </Card>
         </div>
       </div>
+
+      {/* Message/Call Modal */}
+      {showMessageModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold">
+                  {messageType === 'call' ? '📞 Request a Call' : '💬 Send Message'}
+                </h3>
+                <Button variant="outline" size="sm" onClick={() => setShowMessageModal(false)}><X className="h-4 w-4" /></Button>
+              </div>
+              <Textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder={messageType === 'call' ? 'Describe the best time to call and your contact number...' : 'Type your message to the distributor...'}
+                rows={4}
+                className="mb-4"
+              />
+              <div className="flex gap-3">
+                <Button onClick={handleSendMessage} disabled={sendingMessage || !messageText.trim()} className="flex-1">
+                  {sendingMessage ? 'Sending...' : messageType === 'call' ? 'Send Call Request' : 'Send Message'}
+                </Button>
+                <Button variant="outline" onClick={() => setShowMessageModal(false)}>Cancel</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

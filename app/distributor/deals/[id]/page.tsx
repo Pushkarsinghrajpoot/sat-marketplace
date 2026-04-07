@@ -439,7 +439,7 @@ export default function DistributorDealDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              <Link href={`/distributor/chat?dealId=${deal.id}`}>
+              <Link href={`/distributor/messages?dealId=${deal.id}`}>
                 <Button variant="outline">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message Reseller

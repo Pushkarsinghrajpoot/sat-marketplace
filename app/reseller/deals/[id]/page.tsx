@@ -6,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Award, X, DollarSign, Calendar, Building, Users, Plus, Lock, CheckCircle, Upload, MessageCircle, FileSpreadsheet, Star } from 'lucide-react';
+import { Award, X, DollarSign, Calendar, Building, Users, Plus, Lock, CheckCircle, Upload, MessageCircle, FileSpreadsheet, Star, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { updateDeal, getQuotes, getDistributors } from '@/lib/data-helpers';
+import { sendNotification } from '@/lib/notification-client';
 import { convertDealToBidding, convertDealToDirectQuery } from '@/lib/deal-conversion';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import MeetingActivityList from '@/components/meetings/MeetingActivityList';
@@ -42,6 +43,12 @@ export default function DealDetailPage() {
   const [dealProducts, setDealProducts] = useState<any[]>([]);
   const [distributors, setDistributors] = useState<any[]>([]);
   const [selectedDistributor, setSelectedDistributor] = useState('');
+  const [selectedDistributors, setSelectedDistributors] = useState<string[]>([]);
+  const [showMessageDistributorModal, setShowMessageDistributorModal] = useState(false);
+  const [messageDistributorTarget, setMessageDistributorTarget] = useState('');
+  const [messageDistributorText, setMessageDistributorText] = useState('');
+  const [sendingDistributorMsg, setSendingDistributorMsg] = useState(false);
+  const [engagedDistributors, setEngagedDistributors] = useState<any[]>([]);
   const [showBOQModal, setShowBOQModal] = useState(false);
   const [boqFile, setBoqFile] = useState<File | null>(null);
   const [boqTitle, setBoqTitle] = useState('');
@@ -67,6 +74,15 @@ export default function DealDetailPage() {
         // Fetch quotes count for all deals
         const quotes = await getQuotes({ dealId: params.id as string });
         setQuotesCount(quotes.length);
+
+        // Fetch engaged distributors for message target
+        const { data: engagedData } = await supabase
+          .from('deal_engaged_distributors')
+          .select('distributor_id, organizations!deal_engaged_distributors_distributor_id_fkey(id, name)')
+          .eq('deal_id', params.id);
+        if (engagedData) {
+          setEngagedDistributors(engagedData.map((e: any) => e.organizations).filter(Boolean));
+        }
 
         // Fetch deal products
         const { data: productsData } = await supabase
@@ -181,16 +197,71 @@ export default function DealDetailPage() {
     }
   };
 
+  const handleSendDistributorMessage = async () => {
+    if (!messageDistributorText.trim() || !user?.id) return;
+    setSendingDistributorMsg(true);
+    try {
+      const targetOrgId = messageDistributorTarget || engagedDistributors[0]?.id;
+      if (!targetOrgId) { toast.error('No distributor to message'); return; }
+      const { data: distUsers } = await supabase
+        .from('users').select('id')
+        .eq('organization_id', targetOrgId).eq('role', 'DISTRIBUTOR');
+      for (const du of (distUsers || [])) {
+        await sendNotification({
+          userId: du.id,
+          notificationType: 'QUOTE_MESSAGE',
+          title: 'Message from Reseller',
+          message: messageDistributorText,
+          link: `/distributor/deals/${params.id}`,
+        });
+      }
+      toast.success('Message sent to distributor!');
+      setMessageDistributorText('');
+      setShowMessageDistributorModal(false);
+    } catch (err) {
+      toast.error('Failed to send message');
+    } finally {
+      setSendingDistributorMsg(false);
+    }
+  };
+
   const handleConvertToBidding = async () => {
     if (!user?.id) return;
+    if (selectedDistributors.length === 0) {
+      toast.error('Please select at least one distributor');
+      return;
+    }
     setConverting(true);
     try {
-      await convertDealToBidding(params.id as string, user.id);
+      const result = await convertDealToBidding(params.id as string, user.id, selectedDistributors);
+      if (!result.success) throw new Error('Conversion failed');
+
+      // Bug 4: Send notifications to all selected distributors
+      for (const distributorId of selectedDistributors) {
+        const { data: distUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('organization_id', distributorId)
+          .eq('role', 'DISTRIBUTOR');
+        if (distUsers) {
+          for (const du of distUsers) {
+            await sendNotification({
+              userId: du.id,
+              notificationType: 'DEAL_REGISTERED',
+              title: 'New Bidding Deal - You\'re Invited',
+              message: `${user.name} invited you to bid on: "${deal?.opportunityName}"`,
+              link: `/distributor/deals/${params.id}`,
+              emailData: { resellerName: user.name, dealName: deal?.opportunityName },
+            });
+          }
+        }
+      }
+
       toast.success('Deal converted to bidding successfully!');
-      // Refresh deal data
       const { data } = await supabase.from('deals').select('*').eq('id', params.id).single();
       if (data) setDeal(mapDeal(data));
       setShowConvertModal(false);
+      setSelectedDistributors([]);
     } catch (error) {
       console.error('Error converting deal:', error);
       toast.error('Failed to convert deal to bidding');
@@ -600,12 +671,10 @@ export default function DealDetailPage() {
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Upload BOQ
               </Button>
-              <Link href={`/reseller/messages?dealId=${deal.id}`}>
-                <Button variant="outline">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Message Distributor
-                </Button>
-              </Link>
+              <Button variant="outline" onClick={() => setShowMessageDistributorModal(true)}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Message Distributor
+              </Button>
               <Button variant="outline" onClick={() => setShowMeetingModal(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Meeting/Activity
@@ -1024,35 +1093,72 @@ export default function DealDetailPage() {
         {/* Convert to Bidding Modal */}
         {showConvertModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-md w-full">
+            <Card className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-4">Convert to Bidding</h3>
-                <p className="text-gray-600 mb-6">
-                  This will convert your registered deal into a competitive bidding opportunity. 
-                  Your lock status and activity score will remain visible to all participants.
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="h-5 w-5 text-orange-600" />
+                  <h3 className="text-xl font-bold">Convert to Bidding</h3>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  Select distributors to invite for bidding. Only selected distributors will see this deal and can submit quotes.
                 </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-blue-900">
-                    <strong>What happens next:</strong>
-                  </p>
-                  <ul className="text-sm text-blue-800 mt-2 space-y-1">
-                    <li>• Other resellers can participate</li>
-                    <li>• Your lock badge remains visible</li>
-                    <li>• Activity score is preserved</li>
-                    <li>• Meeting history stays attached</li>
+
+                {/* Distributor Multi-Select */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Select Distributors *</label>
+                  <div className="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+                    {distributors.length === 0 ? (
+                      <p className="text-sm text-gray-500">No distributors available</p>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                          <input
+                            type="checkbox"
+                            checked={selectedDistributors.length === distributors.length}
+                            onChange={(e) => setSelectedDistributors(e.target.checked ? distributors.map(d => d.id) : [])}
+                            className="h-4 w-4 rounded"
+                          />
+                          <label className="text-sm font-semibold text-gray-700">Select All ({distributors.length})</label>
+                        </div>
+                        {distributors.map((dist) => (
+                          <div key={dist.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded">
+                            <input
+                              type="checkbox"
+                              checked={selectedDistributors.includes(dist.id)}
+                              onChange={(e) => setSelectedDistributors(
+                                e.target.checked
+                                  ? [...selectedDistributors, dist.id]
+                                  : selectedDistributors.filter(id => id !== dist.id)
+                              )}
+                              className="h-4 w-4 rounded"
+                            />
+                            <label className="text-sm text-gray-700">{dist.name}{dist.city ? ` · ${dist.city}` : ''}</label>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{selectedDistributors.length} distributor{selectedDistributors.length !== 1 ? 's' : ''} selected</p>
+                </div>
+
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                  <ul className="text-sm text-orange-800 space-y-1">
+                    <li>• Selected distributors will be notified immediately</li>
+                    <li>• Your lock badge and activity score are preserved</li>
+                    <li>• Deal moves to the Open Bidding section</li>
                   </ul>
                 </div>
                 <div className="flex gap-3">
-                  <Button 
-                    onClick={handleConvertToBidding} 
-                    disabled={converting}
+                  <Button
+                    onClick={handleConvertToBidding}
+                    disabled={converting || selectedDistributors.length === 0}
                     className="flex-1"
                   >
-                    {converting ? 'Converting...' : 'Convert to Bidding'}
+                    {converting ? 'Converting...' : `Convert & Invite ${selectedDistributors.length > 0 ? `(${selectedDistributors.length})` : ''}`}
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowConvertModal(false)}
+                  <Button
+                    variant="outline"
+                    onClick={() => { setShowConvertModal(false); setSelectedDistributors([]); }}
                     disabled={converting}
                   >
                     Cancel
@@ -1197,6 +1303,61 @@ export default function DealDetailPage() {
                     }}
                     disabled={uploadingBOQ}
                   >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Message Distributor Modal */}
+        {showMessageDistributorModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-md w-full">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-blue-600" />
+                    Message Distributor
+                  </h3>
+                  <Button variant="outline" size="sm" onClick={() => setShowMessageDistributorModal(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {engagedDistributors.length > 1 && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1">Send To</label>
+                    <select
+                      className="w-full border border-gray-200 rounded-lg p-2 text-sm"
+                      value={messageDistributorTarget}
+                      onChange={(e) => setMessageDistributorTarget(e.target.value)}
+                    >
+                      <option value="">All engaged distributors</option>
+                      {engagedDistributors.map((d: any) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <Textarea
+                  value={messageDistributorText}
+                  onChange={(e) => setMessageDistributorText(e.target.value)}
+                  placeholder="Type your message to the distributor..."
+                  rows={4}
+                  className="mb-4"
+                />
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleSendDistributorMessage}
+                    disabled={sendingDistributorMsg || !messageDistributorText.trim()}
+                    className="flex-1"
+                  >
+                    {sendingDistributorMsg ? 'Sending...' : 'Send Message'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowMessageDistributorModal(false)}>
                     Cancel
                   </Button>
                 </div>
