@@ -137,6 +137,12 @@ export const RESELLER_ROUTES: RoutePermission[] = [
     requiredPermissions: [{ module: 'products', action: 'create' }]
   },
   { 
+    path: '/reseller/inventory', 
+    label: 'Inventory', 
+    icon: 'Warehouse',
+    requiredPermissions: [{ module: 'products', action: 'view' }]
+  },
+  { 
     path: '/reseller/services', 
     label: 'Services', 
     icon: 'Wrench',
@@ -235,6 +241,12 @@ export const DISTRIBUTOR_ROUTES: RoutePermission[] = [
     path: '/distributor/products', 
     label: 'Products', 
     icon: 'Package',
+    requiredPermissions: [{ module: 'products', action: 'view' }]
+  },
+  { 
+    path: '/distributor/inventory', 
+    label: 'Inventory', 
+    icon: 'Warehouse',
     requiredPermissions: [{ module: 'products', action: 'view' }]
   },
   { 

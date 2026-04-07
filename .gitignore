@@ -44,4 +44,7 @@ next-env.d.ts
 .agents 
 
 #md files 
-.md
+*.md
+
+# all sql file 
+.*sql
