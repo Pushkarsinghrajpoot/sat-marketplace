@@ -54,11 +54,19 @@ export default function InquiriesPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) return;
+      console.log('Loading leads for user:', user.id, user.name);
       const res = await fetch('/api/leads', { headers: { Authorization: `Bearer ${token}` } });
       const json = await res.json();
-      if (res.ok) setLeads(json.leads || []);
-      else toast.error('Failed to load leads: ' + json.error);
+      console.log('Leads API response:', json);
+      if (res.ok) {
+        setLeads(json.leads || []);
+        console.log('Loaded leads count:', json.leads?.length || 0);
+      } else {
+        console.error('Failed to load leads:', json.error);
+        toast.error('Failed to load leads: ' + json.error);
+      }
     } catch (err) {
+      console.error('Load leads error:', err);
       toast.error('Failed to load leads');
     } finally {
       setLeadsLoading(false);

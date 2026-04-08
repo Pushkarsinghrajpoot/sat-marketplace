@@ -8,7 +8,7 @@ async function assignReseller(): Promise<{ id: string; organization_id: string |
     .select('id, organization_id')
     .eq('role', 'RESELLER')
     .eq('is_active', true)
-    .is('team_role', null); // only org owners, not team members
+    .in('team_role', [null, 'ADMIN']); // include org owners and team admins
 
   if (!resellers || resellers.length === 0) return null;
 
@@ -67,8 +67,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Auto-assign to a reseller
-    const reseller = await assignReseller();
+    // Auto-assign to the product owner's reseller organization
+    let reseller = null;
+    
+    if (product_id) {
+      // Get the product to find its owner organization
+      const { data: product } = await supabaseAdmin
+        .from('products')
+        .select('organization_id')
+        .eq('id', product_id)
+        .single();
+      
+      if (product?.organization_id) {
+        // Find admin/owner of the product's organization
+        const { data: productOwner } = await supabaseAdmin
+          .from('users')
+          .select('id, organization_id')
+          .eq('organization_id', product.organization_id)
+          .eq('role', 'RESELLER')
+          .eq('is_active', true)
+          .in('team_role', [null, 'ADMIN'])
+          .limit(1)
+          .single();
+        
+        if (productOwner) {
+          reseller = productOwner;
+          console.log('Assigned lead to product owner:', productOwner);
+        }
+      }
+    }
+    
+    // Fallback to round-robin if no specific product owner found
+    if (!reseller) {
+      reseller = await assignReseller();
+      console.log('Used round-robin assignment:', reseller);
+    }
 
     const payload: Record<string, any> = {
       product_id: product_id || null,
@@ -99,16 +132,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // Notify the assigned reseller
-    if (reseller?.id) {
-      await supabaseAdmin.from('notifications').insert({
-        user_id: reseller.id,
-        notification_type: 'NEW_LEAD',
-        title: 'New Quote Request',
-        message: `${buyer_name}${buyer_company ? ` from ${buyer_company}` : ''} requested a quote${product_name ? ` for ${product_name}` : ''}.`,
-        link: '/reseller/inquiries',
-        read: false,
-      });
+    // Notify all relevant team members of the reseller organization
+    if (reseller?.organization_id) {
+      // Get all active team members (admins and relevant roles) from the organization
+      const { data: teamMembers } = await supabaseAdmin
+        .from('users')
+        .select('id, name, team_role')
+        .eq('organization_id', reseller.organization_id)
+        .eq('role', 'RESELLER')
+        .eq('is_active', true)
+        .in('team_role', [null, 'ADMIN', 'SALES', 'MANAGER']); // Include relevant roles
+      
+      if (teamMembers && teamMembers.length > 0) {
+        // Create notifications for all team members
+        const notifications = teamMembers.map(member => ({
+          user_id: member.id,
+          notification_type: 'NEW_LEAD',
+          title: 'New Quote Request',
+          message: `${buyer_name}${buyer_company ? ` from ${buyer_company}` : ''} requested a quote${product_name ? ` for ${product_name}` : ''}.`,
+          link: '/reseller/inquiries',
+          read: false,
+        }));
+        
+        await supabaseAdmin.from('notifications').insert(notifications);
+        console.log(`Notified ${teamMembers.length} team members of organization ${reseller.organization_id}`);
+      }
     }
 
     return NextResponse.json({ lead }, { status: 201 });
