@@ -67,11 +67,17 @@ export default function InquiriesPage() {
 
   // ── Load Product Inquiries (existing) ────────────────────
   const loadInquiries = async () => {
+    if (!user?.organizationId) return;
     setInquiriesLoading(true);
     try {
       const { data, error } = await supabase
         .from('product_inquiries')
-        .select(`*, products (*), user:users!product_inquiries_user_id_fkey (id, name, email, avatar)`)
+        .select(`
+          *, 
+          products!inner (*), 
+          user:users!product_inquiries_user_id_fkey (id, name, email, avatar)
+        `)
+        .eq('products.organization_id', user.organizationId)
         .order('created_at', { ascending: false });
       if (error) throw error;
       setInquiries(data || []);
@@ -84,7 +90,7 @@ export default function InquiriesPage() {
 
   const handleTabChange = (tab: 'leads' | 'inquiries') => {
     setActiveTab(tab);
-    if (tab === 'inquiries' && inquiries.length === 0) loadInquiries();
+    if (tab === 'inquiries') loadInquiries();
   };
 
   // ── Update lead status ───────────────────────────────────

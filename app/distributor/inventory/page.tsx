@@ -242,6 +242,11 @@ export default function DistributorInventoryPage() {
           <p className="text-[13px] text-gray-500">Warehouse management — separate from your product catalog</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Link href="/distributor/products/new">
+            <Button variant="primary" size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />Add Product
+            </Button>
+          </Link>
           <Button variant="outline" size="sm" onClick={() => { fetchProducts(); fetchLogs(); }}>
             <RefreshCw className="h-4 w-4 mr-1.5" />Refresh
           </Button>

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Star, Heart, Share2, Minus, Plus, Download, CheckCircle, Package, MessageCircle, ShoppingCart, Zap } from 'lucide-react';
+import { Star, Heart, Share2, Minus, Plus, Download, CheckCircle, Package, MessageCircle, ShoppingCart, Zap, Check } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getProductById, getEnhancedProducts } from '@/lib/product-helpers';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,7 @@ import { useCart } from '@/lib/cart-context';
 import StarRating from '@/components/ratings/StarRating';
 import RatingButton from '@/components/ratings/RatingButton';
 import RatingsList from '@/components/ratings/RatingsList';
+import { toast } from 'sonner';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -33,6 +34,8 @@ export default function ProductDetailPage() {
   const [showChat, setShowChat] = useState(false);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
   const { addToCart } = useCart();
 
   const isBuyer = !user || user.role === 'END_USER';
@@ -68,6 +71,7 @@ export default function ProductDetailPage() {
         // Check if user has already rated this product
         if (user?.id) {
           await checkExistingRating(productData.id);
+          await checkIfProductSaved(productData.id);
         }
 
         // Fetch related products — same category + same org-type tier as the current product
@@ -122,6 +126,95 @@ export default function ProductDetailPage() {
       }
     } catch (error) {
       // No existing rating found
+    }
+  };
+
+  const checkIfProductSaved = async (productId: string) => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('saved_products')
+        .select('id')
+        .eq('product_id', productId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (data && !error) {
+        setIsSaved(true);
+      }
+    } catch (error) {
+      // Product not saved
+      setIsSaved(false);
+    }
+  };
+
+  const handleSaveProduct = async () => {
+    if (!user?.id || !product?.id) {
+      router.push('/auth/login');
+      return;
+    }
+
+    setSavingProduct(true);
+    try {
+      if (isSaved) {
+        // Unsave product
+        const { error } = await supabase
+          .from('saved_products')
+          .delete()
+          .eq('product_id', product.id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+        setIsSaved(false);
+        toast.success('Product removed from saved items');
+      } else {
+        // Save product
+        const { error } = await supabase
+          .from('saved_products')
+          .insert({
+            product_id: product.id,
+            user_id: user.id
+          });
+
+        if (error) throw error;
+        setIsSaved(true);
+        toast.success('Product saved successfully');
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast.error('Failed to save product');
+    } finally {
+      setSavingProduct(false);
+    }
+  };
+
+  const handleShareProduct = async () => {
+    if (!product) return;
+
+    const shareData = {
+      title: product.name,
+      text: `Check out this product: ${product.name}`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Product link copied to clipboard');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Product link copied to clipboard');
+      } catch (clipboardError) {
+        toast.error('Failed to share product');
+      }
     }
   };
 
@@ -344,11 +437,24 @@ export default function ProductDetailPage() {
               Chat with Sales
             </Button>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1">
-                <Heart className="h-5 w-5 mr-2" />
-                Save
+              <Button 
+                variant="outline" 
+                className="flex-1" 
+                onClick={handleSaveProduct}
+                disabled={savingProduct}
+              >
+                {isSaved ? (
+                  <Check className="h-5 w-5 mr-2 text-green-600" />
+                ) : (
+                  <Heart className="h-5 w-5 mr-2" />
+                )}
+                {savingProduct ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
               </Button>
-              <Button variant="outline" className="flex-1">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={handleShareProduct}
+              >
                 <Share2 className="h-5 w-5 mr-2" />
                 Share
               </Button>

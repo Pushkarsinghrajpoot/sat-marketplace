@@ -21,8 +21,17 @@ export default function ResellerRatingsPage() {
     if (!user?.id) return;
 
     try {
-      const statsData = await getRatingStats(user.id);
-      setStats(statsData);
+      // Get ratings for the user's organization, not the individual user
+      const organizationId = user?.organizationId;
+      
+      if (organizationId) {
+        const statsData = await getRatingStats(undefined, organizationId);
+        setStats(statsData);
+      } else {
+        // Fallback to user ratings if no organization
+        const statsData = await getRatingStats(user.id);
+        setStats(statsData);
+      }
     } catch (error) {
       console.error('Error loading rating stats:', error);
     } finally {
@@ -233,7 +242,7 @@ export default function ResellerRatingsPage() {
         )}
 
         {/* Reviews List */}
-        {user?.id && <RatingDisplay userId={user.id} showStats={false} />}
+        {user?.organizationId && <RatingDisplay organizationId={user.organizationId} showStats={false} />}
       </div>
     </div>
   );

@@ -31,6 +31,7 @@ async function findAssignedUserForProduct(productId: string, organizationId: str
       .select('id')
       .eq('organization_id', organizationId)
       .eq('team_role', 'ADMIN')
+      .eq('is_active', true)
       .limit(1)
       .single();
 
@@ -39,7 +40,21 @@ async function findAssignedUserForProduct(productId: string, organizationId: str
       return admin.id;
     }
 
-    console.log('No assigned user or admin found for organization:', organizationId);
+    // If no admin found, try to find any active user from the organization
+    const { data: anyUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+      .limit(1)
+      .single();
+
+    if (anyUser?.id) {
+      console.log('No admin found, using any active user:', anyUser.id);
+      return anyUser.id;
+    }
+
+    console.log('No active users found for organization:', organizationId);
     return null;
   } catch (error) {
     console.error('Error finding assigned user:', error);

@@ -10,11 +10,12 @@ import { useSimpleAuth } from '@/lib/simple-auth';
 import { toast } from 'sonner';
 
 interface RatingDisplayProps {
-  userId: string;
+  userId?: string;
+  organizationId?: string;
   showStats?: boolean;
 }
 
-export function RatingDisplay({ userId, showStats = true }: RatingDisplayProps) {
+export function RatingDisplay({ userId, organizationId, showStats = true }: RatingDisplayProps) {
   const { user } = useSimpleAuth();
   const [ratings, setRatings] = useState<any[]>([]);
   const [aggregate, setAggregate] = useState<any>(null);
@@ -22,14 +23,28 @@ export function RatingDisplay({ userId, showStats = true }: RatingDisplayProps) 
 
   useEffect(() => {
     loadRatings();
-  }, [userId]);
+  }, [userId, organizationId]);
 
   const loadRatings = async () => {
     try {
-      const [ratingsData, aggregateData] = await Promise.all([
-        getRatingsForUser(userId, { limit: 10 }),
-        getRatingAggregate(userId),
-      ]);
+      let ratingsData, aggregateData;
+      
+      if (organizationId) {
+        // Get ratings for organization
+        const { getRatingsForOrganization } = await import('@/lib/rating-helpers');
+        [ratingsData, aggregateData] = await Promise.all([
+          getRatingsForOrganization(organizationId, { limit: 10 }),
+          getRatingAggregate(undefined, organizationId),
+        ]);
+      } else if (userId) {
+        // Get ratings for user
+        [ratingsData, aggregateData] = await Promise.all([
+          getRatingsForUser(userId, { limit: 10 }),
+          getRatingAggregate(userId),
+        ]);
+      } else {
+        return;
+      }
       
       setRatings(ratingsData);
       setAggregate(aggregateData);

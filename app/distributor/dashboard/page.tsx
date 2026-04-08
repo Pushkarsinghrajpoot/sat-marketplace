@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Package, ShoppingCart, DollarSign, Users, ArrowRight, Plus, Lock,
   Search, Send, TrendingUp, Clock, CheckCircle, FileSpreadsheet,
@@ -30,7 +31,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function DistributorDashboard() {
-  const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries' | 'quotes'>('registrations');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') as 'registrations' | 'bidding' | 'queries' | 'quotes' | null;
+  const [activeTab, setActiveTab] = useState<'registrations' | 'bidding' | 'queries' | 'quotes'>(
+    tabParam && ['registrations', 'bidding', 'queries', 'quotes'].includes(tabParam) ? tabParam : 'registrations'
+  );
   const [stats, setStats] = useState({ totalProducts: 0, activeQuotes: 0, monthlyRevenue: 0, activeCustomers: 0, dealRegistrations: 0, biddingDeals: 0, directQueries: 0, boqs: 0 });
   const [dealRegistrations, setDealRegistrations] = useState<any[]>([]);
   const [biddingDeals, setBiddingDeals] = useState<any[]>([]);
