@@ -17,14 +17,20 @@ export default function DistributorInquiriesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (organization) {
+    if (organization || user?.organizationId) {
       loadInquiries();
     }
-  }, [organization, filter]);
+  }, [organization, user?.organizationId, filter]);
 
   const loadInquiries = async () => {
     setLoading(true);
     try {
+      const organizationId = organization?.id || user?.organizationId;
+      if (!organizationId) {
+        setInquiries([]);
+        return;
+      }
+
       let query = supabase
         .from('product_inquiries')
         .select(`
@@ -46,7 +52,7 @@ export default function DistributorInquiriesPage() {
             )
           )
         `)
-        .eq('products.organization_id', organization?.id)
+        .eq('products.organization_id', organizationId)
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {

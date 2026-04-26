@@ -7,14 +7,17 @@ async function getCallerReseller(request: NextRequest) {
   const token = authHeader.replace('Bearer ', '');
   const { data: { user } } = await supabaseAdmin.auth.getUser(token);
   if (!user) return null;
-  const { data } = await supabaseAdmin.from('users').select('id, role').eq('id', user.id).single();
+  const { data } = await supabaseAdmin
+    .from('users')
+    .select('id, role, organization_id, team_role')
+    .eq('id', user.id)
+    .single();
   return data;
 }
 
 // GET /api/leads — reseller fetches their assigned leads
 export async function GET(request: NextRequest) {
   const caller = await getCallerReseller(request);
-  console.log('API /leads caller:', caller);
   if (!caller) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (caller.role !== 'RESELLER' && caller.role !== 'PLATFORM_ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -30,8 +33,13 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false });
 
   if (caller.role === 'RESELLER') {
-    console.log('Filtering leads for reseller ID:', caller.id);
-    query = query.eq('assigned_reseller_id', caller.id);
+    if (caller.organization_id) {
+      query = query.or(
+        `assigned_reseller_id.eq.${caller.id},assigned_reseller_org_id.eq.${caller.organization_id}`
+      );
+    } else {
+      query = query.eq('assigned_reseller_id', caller.id);
+    }
   }
 
   if (status && status !== 'ALL') {
@@ -43,7 +51,6 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error } = await query;
-  console.log('Leads query result:', { data: data?.length || 0, error });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ leads: data || [] });
