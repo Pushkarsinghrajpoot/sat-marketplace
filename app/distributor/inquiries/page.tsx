@@ -45,7 +45,7 @@ export default function DistributorInquiriesPage() {
             id,
             name,
             email,
-            organizations (
+            organizations:organizations!users_organization_id_fkey (
               id,
               name,
               type
